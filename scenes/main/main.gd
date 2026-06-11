@@ -1,17 +1,20 @@
 extends Node2D
-## 메인 씬: 웨이브 진행, 적 스폰, 클리어 판정, 카드 보상, 게임오버 흐름.
+## 메인 씬: 웨이브 진행(+무한 모드), 적 스폰, 클리어 판정, 카드 보상, 게임오버, 효과음.
 
 const ENEMY_SCENE := preload("res://scenes/enemy/enemy.tscn")
 const SPAWN_Y := -60.0  # 화면(720x1280) 위쪽 바깥
 const SPAWN_X_MIN := 60.0  # 스폰 가로 범위 (가장자리 여백 확보)
 const SPAWN_X_MAX := 660.0
 const CHOICES_PER_CLEAR := 3
+const RARITY_WEIGHT := {"common": 3.0, "rare": 1.0}  # 카드 등장 가중치
 
-# 순서대로 진행할 웨이브들
+# 정의된 웨이브들 (다 깨면 무한 모드로 증폭 생성)
 var waves: Array = [
 	preload("res://resources/waves/wave_01.tres"),
 	preload("res://resources/waves/wave_02.tres"),
 	preload("res://resources/waves/wave_03.tres"),
+	preload("res://resources/waves/wave_04.tres"),
+	preload("res://resources/waves/wave_05.tres"),
 ]
 # 보상 후보 카드 풀 (소모되지 않으므로 같은 카드가 다시 나올 수 있음)
 var card_pool: Array = [
@@ -19,6 +22,9 @@ var card_pool: Array = [
 	preload("res://resources/cards/card_fire_rate.tres"),
 	preload("res://resources/cards/card_multi_shot.tres"),
 	preload("res://resources/cards/card_pierce.tres"),
+	preload("res://resources/cards/card_heal.tres"),
+	preload("res://resources/cards/card_damage_big.tres"),
+	preload("res://resources/cards/card_fire_rate_big.tres"),
 ]
 
 var wave_index := 0
@@ -45,13 +51,31 @@ func _ready() -> void:
 
 func _start_wave(index: int) -> void:
 	wave_index = index
-	spawn_list = waves[index].build_spawn_list()
+	spawn_list = _build_spawn_list(index)
 	spawned = 0
 	alive = 0
-	wave_label.text = "Wave %d / %d" % [index + 1, waves.size()]
-	spawn_timer.wait_time = waves[index].spawn_interval
+	wave_label.text = "Wave %d" % (index + 1)
+	spawn_timer.wait_time = _wave_interval(index)
 	spawn_timer.start()
 	print("WAVE %d START" % (index + 1))
+
+## 정의된 웨이브는 데이터에서, 그 이후(무한 모드)는 마지막 웨이브를 증폭해 생성
+func _build_spawn_list(index: int) -> Array:
+	if index < waves.size():
+		return waves[index].build_spawn_list()
+	var level: int = index - waves.size() + 1  # 무한 1단계, 2단계, ...
+	var list: Array = waves.back().build_spawn_list()
+	var extra := int(list.size() * 0.25 * level)
+	for i in extra:
+		list.append(list[randi() % list.size()])  # 기존 구성 비율대로 증원
+	list.shuffle()
+	return list
+
+func _wave_interval(index: int) -> float:
+	if index < waves.size():
+		return waves[index].spawn_interval
+	var level: int = index - waves.size() + 1
+	return maxf(waves.back().spawn_interval * pow(0.95, level), 0.25)
 
 func _spawn_enemy() -> void:
 	var data: EnemyData = spawn_list[spawned]
@@ -68,9 +92,11 @@ func _spawn_enemy() -> void:
 		spawn_timer.stop()
 
 func _on_enemy_died() -> void:
+	$SfxEnemyDie.play()
 	_unregister_enemy()
 
 func _on_enemy_reached_player(contact_damage: float) -> void:
+	$SfxPlayerHit.play()
 	$Player.take_damage(contact_damage)
 	_unregister_enemy()
 
@@ -84,20 +110,27 @@ func _unregister_enemy() -> void:
 
 func _on_wave_cleared() -> void:
 	print("WAVE CLEAR")
-	if wave_index + 1 >= waves.size():
-		print("ALL WAVES CLEAR")
-		wave_label.text = "ALL WAVES CLEAR"
-		restart_button.show()
-		return
 	card_select.open(_draw_cards(CHOICES_PER_CLEAR))
 
-## 풀에서 무작위로 count장 뽑기 (풀이 작으면 있는 만큼)
+## 풀에서 희귀도 가중치로 count장 중복 없이 뽑기
 func _draw_cards(count: int) -> Array:
 	var pool := card_pool.duplicate()
-	pool.shuffle()
-	return pool.slice(0, count)
+	var picked: Array = []
+	while picked.size() < count and not pool.is_empty():
+		var total := 0.0
+		for c in pool:
+			total += RARITY_WEIGHT.get(c.rarity, 3.0)
+		var r := randf() * total
+		for c in pool:
+			r -= RARITY_WEIGHT.get(c.rarity, 3.0)
+			if r <= 0.0:
+				picked.append(c)
+				pool.erase(c)
+				break
+	return picked
 
 func _on_card_chosen(card: CardData) -> void:
+	$SfxCardPick.play()
 	$Player.apply_card(card)
 	_start_wave(wave_index + 1)
 
@@ -107,7 +140,8 @@ func _on_player_hp_changed(hp: float, max_hp: float) -> void:
 func _on_player_died() -> void:
 	game_over = true
 	print("GAME OVER")
-	wave_label.text = "GAME OVER"
+	wave_label.text = "GAME OVER - Wave %d" % (wave_index + 1)
+	$SfxGameOver.play()  # process_mode=ALWAYS라 일시정지 중에도 재생됨
 	get_tree().paused = true
 	restart_button.show()
 
@@ -117,4 +151,5 @@ func _on_restart_pressed() -> void:
 	get_tree().reload_current_scene()
 
 func _on_player_fired(projectile) -> void:
+	$SfxShoot.play()
 	$Projectiles.add_child(projectile)

@@ -4,6 +4,8 @@ extends Resource
 
 @export var card_name: String = ""
 @export var description: String = ""
+@export var rarity: String = "common"  ## "common" | "rare" (등장 가중치 3:1)
+@export var heal: float = 0.0  ## 선택 즉시 회복량
 ## 선택 시 BuildState에 더해질 증가량
 @export var damage_bonus: float = 0.0
 @export var fire_rate_bonus: float = 0.0

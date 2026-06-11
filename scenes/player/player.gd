@@ -47,6 +47,9 @@ func apply_card(card: CardData) -> void:
 	build.projectile_count += card.projectile_count_bonus
 	build.pierce += card.pierce_bonus
 	attack_timer.wait_time = 1.0 / build.fire_rate
+	if card.heal > 0.0:
+		hp = minf(hp + card.heal, max_hp)
+		hp_changed.emit(hp, max_hp)
 
 func _fire_at(target) -> void:
 	var p = PROJECTILE_SCENE.instantiate()

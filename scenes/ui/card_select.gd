@@ -17,7 +17,9 @@ func open(cards: Array) -> void:
 	for i in buttons.size():
 		var btn: Button = buttons[i]
 		if i < cards.size():
-			btn.text = "%s\n%s" % [cards[i].card_name, cards[i].description]
+			var is_rare: bool = cards[i].rarity == "rare"
+			btn.text = "%s%s\n%s" % ["★ " if is_rare else "", cards[i].card_name, cards[i].description]
+			btn.add_theme_color_override("font_color", Color(1.0, 0.84, 0.4) if is_rare else Color(1, 1, 1))
 			btn.visible = true
 		else:
 			btn.visible = false

@@ -1,9 +1,14 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scenes/main/main.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2"]
 [ext_resource type="PackedScene" path="res://scenes/ui/card_select.tscn" id="3"]
 [ext_resource type="FontFile" path="res://assets/fonts/NotoSansKR.ttf" id="4"]
+[ext_resource type="AudioStream" path="res://assets/audio/shoot.wav" id="5"]
+[ext_resource type="AudioStream" path="res://assets/audio/enemy_die.wav" id="6"]
+[ext_resource type="AudioStream" path="res://assets/audio/player_hit.wav" id="7"]
+[ext_resource type="AudioStream" path="res://assets/audio/card_pick.wav" id="8"]
+[ext_resource type="AudioStream" path="res://assets/audio/game_over.wav" id="9"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1")
@@ -72,6 +77,29 @@ grow_horizontal = 0
 grow_vertical = 0
 theme_override_font_sizes/font_size = 16
 horizontal_alignment = 2
-text = "v0.4"
+text = "v0.5"
 
 [node name="SpawnTimer" type="Timer" parent="."]
+
+[node name="SfxShoot" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("5")
+volume_db = -10.0
+max_polyphony = 4
+
+[node name="SfxEnemyDie" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("6")
+volume_db = -8.0
+max_polyphony = 4
+
+[node name="SfxPlayerHit" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("7")
+volume_db = -6.0
+
+[node name="SfxCardPick" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("8")
+volume_db = -6.0
+
+[node name="SfxGameOver" type="AudioStreamPlayer" parent="."]
+process_mode = 3
+stream = ExtResource("9")
+volume_db = -4.0

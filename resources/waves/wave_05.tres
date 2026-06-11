@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="WaveData" load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://data/wave_data.gd" id="1"]
+[ext_resource type="Script" path="res://data/wave_entry.gd" id="2"]
+[ext_resource type="Resource" path="res://resources/enemies/enemy_basic.tres" id="3"]
+[ext_resource type="Resource" path="res://resources/enemies/enemy_fast.tres" id="4"]
+[ext_resource type="Resource" path="res://resources/enemies/enemy_tank.tres" id="5"]
+
+[sub_resource type="Resource" id="entry_basic"]
+script = ExtResource("2")
+enemy = ExtResource("3")
+count = 14
+
+[sub_resource type="Resource" id="entry_fast"]
+script = ExtResource("2")
+enemy = ExtResource("4")
+count = 10
+
+[sub_resource type="Resource" id="entry_tank"]
+script = ExtResource("2")
+enemy = ExtResource("5")
+count = 6
+
+[resource]
+script = ExtResource("1")
+spawn_interval = 0.5
+entries = [SubResource("entry_basic"), SubResource("entry_fast"), SubResource("entry_tank")]
