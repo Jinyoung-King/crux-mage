@@ -16,16 +16,13 @@ func _ready() -> void:
 	hp = max_hp
 
 ## 스폰 시 적 종류 데이터 적용 (add_child 전에 호출할 것)
-func setup(data: EnemyData) -> void:
-	max_hp = data.hp
+## hp_scale: 무한 모드 체력 배율
+func setup(data: EnemyData, hp_scale: float = 1.0) -> void:
+	max_hp = data.hp * hp_scale
 	speed = data.speed
 	contact_damage = data.contact_damage
-	var half := data.size / 2.0
-	$ColorRect.color = data.color
-	$ColorRect.offset_left = -half
-	$ColorRect.offset_top = -half
-	$ColorRect.offset_right = half
-	$ColorRect.offset_bottom = half
+	$Sprite2D.texture = data.sprite
+	$Sprite2D.scale = Vector2(3, 3)  # 스프라이트는 size/3 픽셀 그리드로 제작됨
 	# 충돌 모양은 인스턴스 간 공유되므로 새로 만들어 크기 적용
 	var shape := RectangleShape2D.new()
 	shape.size = Vector2(data.size, data.size)

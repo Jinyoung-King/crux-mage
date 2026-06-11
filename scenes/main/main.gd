@@ -7,6 +7,7 @@ const SPAWN_X_MIN := 60.0  # 스폰 가로 범위 (가장자리 여백 확보)
 const SPAWN_X_MAX := 660.0
 const CHOICES_PER_CLEAR := 3
 const RARITY_WEIGHT := {"common": 3.0, "rare": 1.0}  # 카드 등장 가중치
+const ENDLESS_HP_GROWTH := 0.15  # 무한 모드 단계당 적 체력 증가율
 
 # 정의된 웨이브들 (다 깨면 무한 모드로 증폭 생성)
 var waves: Array = [
@@ -29,6 +30,7 @@ var card_pool: Array = [
 
 var wave_index := 0
 var spawn_list: Array = []  # 이번 웨이브에서 스폰할 EnemyData 순서
+var endless_hp_scale := 1.0  # 이번 웨이브의 적 체력 배율 (무한 모드에서 상승)
 var spawned := 0
 var alive := 0
 var game_over := false
@@ -52,6 +54,8 @@ func _ready() -> void:
 func _start_wave(index: int) -> void:
 	wave_index = index
 	spawn_list = _build_spawn_list(index)
+	var endless_level: int = maxi(index - waves.size() + 1, 0)
+	endless_hp_scale = pow(1.0 + ENDLESS_HP_GROWTH, endless_level)  # 복리: 후반 빌드 성장을 따라잡도록
 	spawned = 0
 	alive = 0
 	wave_label.text = "Wave %d" % (index + 1)
@@ -80,7 +84,7 @@ func _wave_interval(index: int) -> float:
 func _spawn_enemy() -> void:
 	var data: EnemyData = spawn_list[spawned]
 	var enemy = ENEMY_SCENE.instantiate()
-	enemy.setup(data)
+	enemy.setup(data, endless_hp_scale)
 	enemy.position = Vector2(randf_range(SPAWN_X_MIN, SPAWN_X_MAX), SPAWN_Y)
 	enemy.goal_y = $Player.position.y - 30.0 - data.size / 2.0  # 플레이어 반높이 + 적 반높이
 	enemy.died.connect(_on_enemy_died)

@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://data/enemy_data.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/enemy_fast.png" id="2"]
 
 [resource]
 script = ExtResource("1")
@@ -8,5 +9,5 @@ display_name = "돌격병"
 hp = 12.0
 speed = 140.0
 contact_damage = 5.0
-size = 26.0
-color = Color(0.95, 0.6, 0.2, 1)
+size = 27.0
+sprite = ExtResource("2")
