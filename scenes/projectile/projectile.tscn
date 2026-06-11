@@ -1,0 +1,23 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scenes/projectile/projectile.gd" id="1"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_proj"]
+size = Vector2(16, 8)
+
+[node name="Projectile" type="Area2D"]
+collision_layer = 0
+collision_mask = 2
+script = ExtResource("1")
+
+[node name="ColorRect" type="ColorRect" parent="."]
+offset_left = -8.0
+offset_top = -4.0
+offset_right = 8.0
+offset_bottom = 4.0
+color = Color(1, 0.9, 0.3, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_proj")
+
+[node name="VisibleOnScreenNotifier2D" type="VisibleOnScreenNotifier2D" parent="."]

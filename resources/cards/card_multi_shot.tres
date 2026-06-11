@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+card_name = "분열 마법"
+description = "동시 표적 +1"
+projectile_count_bonus = 1

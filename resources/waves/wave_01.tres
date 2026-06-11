@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="WaveData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://data/wave_data.gd" id="1"]
+[ext_resource type="Script" path="res://data/wave_entry.gd" id="2"]
+[ext_resource type="Resource" path="res://resources/enemies/enemy_basic.tres" id="3"]
+
+[sub_resource type="Resource" id="entry_basic"]
+script = ExtResource("2")
+enemy = ExtResource("3")
+count = 10
+
+[resource]
+script = ExtResource("1")
+spawn_interval = 1.0
+entries = [SubResource("entry_basic")]

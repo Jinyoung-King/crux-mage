@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+card_name = "신속한 시전"
+description = "초당 발사 +0.5"
+fire_rate_bonus = 0.5

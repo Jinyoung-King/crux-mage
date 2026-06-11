@@ -1,0 +1,10 @@
+class_name EnemyData
+extends Resource
+## 적 종류 정의 (스탯 + 표시).
+
+@export var display_name: String = ""
+@export var hp: float = 30.0
+@export var speed: float = 60.0  ## 이동 속도(px/s)
+@export var contact_damage: float = 10.0  ## 플레이어 도달 시 피해
+@export var size: float = 36.0  ## 정사각 한 변(px)
+@export var color: Color = Color(0.85, 0.25, 0.25)
