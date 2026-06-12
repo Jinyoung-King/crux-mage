@@ -20,6 +20,7 @@ var waves: Array = [
 	preload("res://resources/waves/wave_04.tres"),
 ]
 var boss_wave: WaveData = preload("res://resources/waves/wave_boss.tres")
+var midboss_wave: WaveData = preload("res://resources/waves/wave_midboss.tres")
 # 보상 후보 카드 풀 (소모되지 않으므로 같은 카드가 다시 나올 수 있음)
 var card_pool: Array = [
 	preload("res://resources/cards/card_damage_up.tres"),
@@ -87,9 +88,14 @@ func _flash_screen() -> void:
 	flash_overlay.color.a = 0.35
 	create_tween().tween_property(flash_overlay, "color:a", 0.0, 0.25)
 
-## 5의 배수 웨이브가 보스 웨이브
-func _is_boss_wave(index: int) -> bool:
-	return (index + 1) % 5 == 0
+## 웨이브 종류: 끝자리 0(10,20…)=보스, 3·5·7=중간보스, 그 외=일반. 무한에서도 10단위 반복.
+func _wave_kind(index: int) -> String:
+	var n := (index + 1) % 10
+	if n == 0:
+		return "boss"
+	if n == 3 or n == 5 or n == 7:
+		return "midboss"
+	return "normal"
 
 ## 웨이브 5 이후의 증폭 단계 (웨이브 6 → 1, 7 → 2, ...)
 func _endless_level(index: int) -> int:
@@ -101,10 +107,15 @@ func _start_wave(index: int) -> void:
 	endless_hp_scale = pow(1.0 + ENDLESS_HP_GROWTH, _endless_level(index))  # 복리: 후반 빌드 성장을 따라잡도록
 	spawned = 0
 	alive = 0
-	if _is_boss_wave(index):
+	var kind := _wave_kind(index)
+	if kind == "boss":
 		wave_label.text = "Wave %d - 보스" % (index + 1)
 		_add_shake(6.0)  # 보스 등장 예고
 		print("BOSS WAVE")
+	elif kind == "midboss":
+		wave_label.text = "Wave %d - 중간보스" % (index + 1)
+		_add_shake(4.0)
+		print("MIDBOSS WAVE")
 	else:
 		wave_label.text = "Wave %d" % (index + 1)
 	spawn_timer.wait_time = _wave_interval(index)
@@ -112,11 +123,14 @@ func _start_wave(index: int) -> void:
 	$Player.on_wave_start()  # 패시브: 웨이브 시작 회복
 	print("WAVE %d START" % (index + 1))
 
-## 정의된 웨이브는 데이터에서, 보스/무한 웨이브는 기준 구성을 증폭해 생성
+## 종류별 기준 구성(보스/중간보스/일반)을 가져와 무한 단계만큼 증원
 func _build_spawn_list(index: int) -> Array:
+	var kind := _wave_kind(index)
 	var base: Array
-	if _is_boss_wave(index):
+	if kind == "boss":
 		base = boss_wave.build_spawn_list()
+	elif kind == "midboss":
+		base = midboss_wave.build_spawn_list()
 	elif index < waves.size():
 		return waves[index].build_spawn_list()
 	else:
@@ -128,9 +142,12 @@ func _build_spawn_list(index: int) -> Array:
 	return base
 
 func _wave_interval(index: int) -> float:
+	var kind := _wave_kind(index)
 	var base_interval: float
-	if _is_boss_wave(index):
+	if kind == "boss":
 		base_interval = boss_wave.spawn_interval
+	elif kind == "midboss":
+		base_interval = midboss_wave.spawn_interval
 	elif index < waves.size():
 		base_interval = waves[index].spawn_interval
 	else:
@@ -225,7 +242,7 @@ func _unregister_enemy() -> void:
 func _on_wave_cleared() -> void:
 	print("WAVE CLEAR")
 	# 보스 웨이브 보상은 희귀 카드 확정
-	card_select.open(_draw_cards(CHOICES_PER_CLEAR, _is_boss_wave(wave_index)))
+	card_select.open(_draw_cards(CHOICES_PER_CLEAR, _wave_kind(wave_index) == "boss"))
 
 ## 현재 빌드에서 의미 있는 카드인지 — 죽은 픽(조건 미충족 시너지 등)을 드래프트에서 제외
 func _is_card_useful(card: CardData) -> bool:

@@ -28,14 +28,18 @@ var slow_factor := 1.0
 var slow_time_left := 0.0
 var _tint := Color.WHITE  ## 상태 색조 (화상/둔화)
 var _flashing := false    ## 피격 플래시 중에는 색조 덮어쓰기 보류
+var sprite_scale := 3.0   ## 스프라이트 표시 배율 (size/텍스처폭, 등장 연출이 참조)
+# HP바 (중간보스·보스 전용)
+const HP_BAR_W := 60.0
+var hp_fill: ColorRect
 
 func _ready() -> void:
 	add_to_group("enemies")
 	hp = max_hp
 	base_x = position.x
-	# 등장 팝인 연출
-	$Sprite2D.scale = Vector2(1.2, 1.2)
-	create_tween().tween_property($Sprite2D, "scale", Vector2(3, 3), 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	# 등장 팝인 연출 (최종 배율 sprite_scale로 튀어오름)
+	$Sprite2D.scale = Vector2(sprite_scale * 0.4, sprite_scale * 0.4)
+	create_tween().tween_property($Sprite2D, "scale", Vector2(sprite_scale, sprite_scale), 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 ## 스폰 시 적 종류 데이터 적용 (add_child 전에 호출할 것)
 ## hp_scale: 무한 모드 체력 배율
@@ -62,11 +66,29 @@ func setup(data: EnemyData, hp_scale: float = 1.0) -> void:
 		at.timeout.connect(_on_ranged_timer.bind(data))
 		add_child(at)
 	$Sprite2D.texture = data.sprite
-	$Sprite2D.scale = Vector2(3, 3)  # 스프라이트는 size/3 픽셀 그리드로 제작됨
+	# 표시 배율 = 크기/텍스처폭 (대부분 적은 3배, 중간보스는 축소판이라 더 작음)
+	sprite_scale = data.size / float(data.sprite.get_width())
+	$Sprite2D.scale = Vector2(sprite_scale, sprite_scale)
 	# 충돌 모양은 인스턴스 간 공유되므로 새로 만들어 크기 적용
 	var shape := RectangleShape2D.new()
 	shape.size = Vector2(data.size, data.size)
 	$CollisionShape2D.shape = shape
+	if data.show_hp_bar:
+		_build_hp_bar(data.size)
+
+## 머리 위 HP바 생성 (중간보스·보스). 스프라이트 위에 그려지도록 마지막에 add.
+func _build_hp_bar(enemy_size: float) -> void:
+	var top := -enemy_size / 2.0 - 16.0
+	var bg := ColorRect.new()
+	bg.color = Color(0, 0, 0, 0.65)
+	bg.size = Vector2(HP_BAR_W + 4.0, 10.0)
+	bg.position = Vector2(-(HP_BAR_W + 4.0) / 2.0, top - 2.0)
+	add_child(bg)
+	hp_fill = ColorRect.new()
+	hp_fill.color = Color(0.9, 0.2, 0.2)
+	hp_fill.size = Vector2(HP_BAR_W, 6.0)
+	hp_fill.position = Vector2(-HP_BAR_W / 2.0, top)
+	add_child(hp_fill)
 
 func _physics_process(delta: float) -> void:
 	if hp <= 0.0:
@@ -91,6 +113,8 @@ func _physics_process(delta: float) -> void:
 	_update_tint()
 	if not _flashing:
 		$Sprite2D.modulate = _tint
+	if hp_fill:
+		hp_fill.size.x = HP_BAR_W * maxf(hp / max_hp, 0.0)
 	if position.y >= goal_y:
 		hp = 0.0  # 도달한 적은 이후 피격/사망 처리에서 제외
 		reached_player.emit(contact_damage)
