@@ -6,12 +6,14 @@ const FONT := preload("res://assets/fonts/NotoSansKR.ttf")
 @onready var coin_label: Label = $Center/CoinLabel
 @onready var slot_label: Label = $Center/SlotLabel
 @onready var rows: VBoxContainer = $Center/Rows
+@onready var slot_button: Button = $Center/SlotButton
 @onready var back_button: Button = $Center/BackButton
 
 var row_buttons := {}  # id → Button
 
 func _ready() -> void:
 	back_button.pressed.connect(_on_back)
+	slot_button.pressed.connect(_on_slot_buy)
 	for r in RelicLib.RELICS:
 		_make_row(r)
 	_refresh()
@@ -52,9 +54,20 @@ func _on_button(id: String) -> void:
 		GameState.toggle_relic(id)
 	_refresh()
 
+func _on_slot_buy() -> void:
+	if GameState.buy_relic_slot():
+		_refresh()
+
 func _refresh() -> void:
 	coin_label.text = "보유 코인 %d" % GameState.coins
 	slot_label.text = "장착 %d / %d" % [GameState.equipped_relics.size(), GameState.relic_slots()]
+	var sc := GameState.relic_slot_cost()
+	if sc < 0:
+		slot_button.text = "슬롯 최대 (%d)" % GameState.relic_slots()
+		slot_button.disabled = true
+	else:
+		slot_button.text = "슬롯 +1 (%d코인)" % sc
+		slot_button.disabled = not GameState.can_buy_relic_slot()
 	for r in RelicLib.RELICS:
 		var btn: Button = row_buttons[r.id]
 		if not GameState.is_relic_unlocked(r.id):

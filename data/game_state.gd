@@ -3,10 +3,11 @@ extends Node
 ## 씬을 새로 로드해도 유지되며, 최고 기록은 user://에 영속 저장된다.
 
 const SAVE_PATH := "user://save.cfg"
-const VERSION := "v0.46"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
+const VERSION := "v0.47"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
 
 # 패치노트 (최신이 위). 새 버전 추가 시 맨 앞에 한 항목 추가. 시작 화면 "패치노트" + 업데이트 시 자동 안내.
 const CHANGELOG := [
+	{"v": "v0.47", "notes": ["유물 슬롯 강화 — 코인으로 장착 슬롯을 최대 4칸까지 확장"]},
 	{"v": "v0.46", "notes": ["PWA 자동 업데이트 — 새 버전 배포 시 앱을 다시 열면 자동 반영"]},
 	{"v": "v0.45", "notes": ["유물 개편 — 코인으로 영구 해금 후 런마다 장착(시작 화면 '유물')", "보스는 유물 드래프트 대신 희귀 카드 확정"]},
 	{"v": "v0.44", "notes": ["패치노트 화면 추가 — 업데이트 시 변경 내용을 안내"]},
@@ -37,7 +38,8 @@ const UPGRADES := [
 const XP_BASE := 50
 const XP_STEP := 25
 const MASTERY_PER_LEVEL := 0.02  ## 숙련 레벨당 공격력·체력 +2%
-const RELIC_SLOTS := 2  ## 런마다 장착 가능한 유물 수
+const RELIC_SLOTS := 2  ## 기본 유물 장착 슬롯 수
+const RELIC_SLOTS_MAX := 4  ## 슬롯 강화 상한
 
 # 컬렉션 로스터 (unlock_wave 오름차순)
 var characters: Array = [
@@ -58,7 +60,8 @@ var upgrades := {}  ## 영구 강화 레벨 — 캐릭터별 {char_key: {id: lev
 var char_xp := {}  ## 캐릭터별 누적 경험치 {char_key: xp} → 숙련도 레벨(자동 패시브)
 var seen_version := ""  ## 마지막으로 패치노트를 본 버전 — 다르면 시작 시 자동 안내
 var unlocked_relics: Array = []  ## 코인으로 영구 해금한 유물 id
-var equipped_relics: Array = []  ## 이번 런에 장착할 유물 id (해금분 중 최대 RELIC_SLOTS개)
+var equipped_relics: Array = []  ## 이번 런에 장착할 유물 id (해금분 중 최대 relic_slots개)
+var relic_slot_bonus := 0  ## 코인으로 늘린 추가 유물 슬롯 (relic_slots = RELIC_SLOTS + 이것)
 
 func _ready() -> void:
 	_load()
@@ -179,7 +182,26 @@ func add_coins(n: int) -> void:
 
 ## --- 유물 (코인 영구 해금 + 런 장착) ---
 func relic_slots() -> int:
-	return RELIC_SLOTS
+	return RELIC_SLOTS + relic_slot_bonus
+
+## 다음 유물 슬롯 비용 (상한 도달 시 -1). 비용 = 300 × 2^현재추가슬롯.
+func relic_slot_cost() -> int:
+	if relic_slots() >= RELIC_SLOTS_MAX:
+		return -1
+	return int(300 * pow(2, relic_slot_bonus))
+
+func can_buy_relic_slot() -> bool:
+	var c := relic_slot_cost()
+	return c >= 0 and coins >= c
+
+## 슬롯 +1 (코인 공용 차감·영속). 성공 시 true.
+func buy_relic_slot() -> bool:
+	if not can_buy_relic_slot():
+		return false
+	coins -= relic_slot_cost()
+	relic_slot_bonus += 1
+	_save()
+	return true
 
 func relic_cost(id: String) -> int:
 	return int(RelicLib.relic_def(id).get("cost", 100))
@@ -225,6 +247,7 @@ func _load() -> void:
 		seen_version = cf.get_value("meta", "seen_version", "")
 		unlocked_relics = cf.get_value("meta", "unlocked_relics", [])
 		equipped_relics = cf.get_value("meta", "equipped_relics", [])
+		relic_slot_bonus = cf.get_value("meta", "relic_slot_bonus", 0)
 		_migrate_upgrades()  # 구형(글로벌) 강화 → 코인 환불 후 캐릭터별로 전환
 
 func _save() -> void:
@@ -239,6 +262,7 @@ func _save() -> void:
 	cf.set_value("meta", "seen_version", seen_version)
 	cf.set_value("meta", "unlocked_relics", unlocked_relics)
 	cf.set_value("meta", "equipped_relics", equipped_relics)
+	cf.set_value("meta", "relic_slot_bonus", relic_slot_bonus)
 	cf.save(SAVE_PATH)
 
 ## 현재 버전의 패치노트를 본 것으로 기록(자동 안내 1회용)
