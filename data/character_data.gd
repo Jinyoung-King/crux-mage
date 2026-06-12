@@ -22,3 +22,6 @@ extends Resource
 @export var passive_crit_mult: float = 1.0       ## 치명타 데미지 배수
 @export var passive_slow_factor: float = 1.0     ## 서리: 둔화 시 속도 배수(1=둔화 없음)
 @export var passive_slow_duration: float = 0.0   ## 둔화 지속(초). 0이면 둔화 없음
+@export var passive_chain_count: int = 0         ## 뇌전: 명중 시 인근 적에게 연쇄하는 횟수
+@export var passive_chain_factor: float = 0.0    ## 연쇄 1회당 데미지 비율
+@export var passive_chain_range: float = 220.0   ## 연쇄 사정거리(px)

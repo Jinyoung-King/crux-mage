@@ -4,6 +4,7 @@ extends Area2D
 ## 캐릭터 패시브(치명타/화상/둔화)는 플레이어가 발사 시 설정한다.
 
 signal dealt(heal: float)  ## 적에 피해를 입힐 때 흡혈 회복량(피해×흡혈률)을 알림
+signal chained(from: Vector2, to: Vector2)  ## 뇌전 연쇄 시각용 (시작점→도착점)
 
 @export var speed: float = 600.0
 
@@ -19,6 +20,10 @@ var burn_duration := 0.0
 var slow_factor := 1.0
 var slow_duration := 0.0
 var size_scale := 1.0  ## 발사체 크기 배율 (시각 + 충돌)
+# 뇌전술사 연쇄 (플레이어가 발사 시 캐릭터에서 채움)
+var chain_count := 0
+var chain_factor := 0.0
+var chain_range := 220.0
 
 func _ready() -> void:
 	rotation = direction.angle()
@@ -46,7 +51,28 @@ func _on_area_entered(area) -> void:
 		area.apply_burn(burn_dps, burn_duration)
 	if slow_duration > 0.0:
 		area.apply_slow(slow_factor, slow_duration)
+	if chain_count > 0:
+		_chain_from(area, dmg)
 	if pierce > 0:
 		pierce -= 1
 	else:
 		queue_free()
+
+## 뇌전 연쇄: 명중한 적 주변의 가까운 적들에게 연쇄 피해 + 시각 신호.
+## take_damage는 일반 명중과 같은 경로(사망 시 died→main FX)라 물리 콜백에서 안전.
+func _chain_from(hit, dmg: float) -> void:
+	var origin: Vector2 = hit.global_position
+	var others := get_tree().get_nodes_in_group("enemies").filter(func(e): return e != hit and is_instance_valid(e))
+	others.sort_custom(func(a, b): return origin.distance_squared_to(a.global_position) < origin.distance_squared_to(b.global_position))
+	var n := 0
+	for e in others:
+		if n >= chain_count:
+			break
+		var ep: Vector2 = e.global_position
+		if origin.distance_to(ep) > chain_range:
+			break  # 정렬돼 있으므로 사정거리 밖이면 이후도 전부 밖
+		e.take_damage(dmg * chain_factor)
+		if lifesteal > 0.0:
+			dealt.emit(dmg * chain_factor * lifesteal)
+		chained.emit(origin, ep)
+		n += 1

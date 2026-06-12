@@ -273,6 +273,10 @@ BOLT_PAL = {
     "Y": (255, 210, 80, 255),
     "W": (255, 255, 235, 255),
 }
+SPARK_PAL = {  # 뇌전술사 연쇄 번개 탄 (보라/전기)
+    "Y": (170, 130, 255, 255),
+    "W": (240, 230, 255, 255),
+}
 
 # 화염구 (7x7) — 화염술사
 FIREBALL = [
@@ -322,6 +326,7 @@ write_png("wizard.png", WIZARD, _wizard_pal((40, 70, 160), (60, 100, 200), (35, 
 write_png("mage_fire.png", WIZARD, _wizard_pal((150, 40, 40), (205, 75, 60), (115, 30, 35), (255, 180, 80)))
 write_png("mage_storm.png", WIZARD, _wizard_pal((40, 115, 70), (70, 175, 95), (35, 95, 55), (190, 255, 150)))
 write_png("mage_frost.png", WIZARD, _wizard_pal((50, 110, 150), (85, 175, 205), (40, 90, 130), (190, 240, 255)))
+write_png("mage_arc.png", WIZARD, _wizard_pal((90, 60, 150), (140, 95, 215), (70, 45, 120), (210, 180, 255)))
 write_png("fireball.png", FIREBALL, FIREBALL_PAL)
 write_png("arrow.png", ARROW, ARROW_PAL)
 write_png("frost.png", FROST, FROST_PAL)
@@ -335,4 +340,5 @@ write_png("enemy_slime_mini.png", SLIME_MINI, SLIME_MINI_PAL)
 write_png("enemy_caster.png", CASTER, CASTER_PAL)
 write_png("dark_bolt.png", DARK_BOLT, DARK_BOLT_PAL)
 write_png("bolt.png", BOLT, BOLT_PAL)
+write_png("spark.png", BOLT, SPARK_PAL)
 print("OK:", sorted(os.listdir(OUT)))

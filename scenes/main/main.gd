@@ -406,4 +406,21 @@ func _apply_speed(s: float) -> void:
 
 func _on_player_fired(projectile) -> void:
 	$SfxShoot.play()
+	if projectile.chain_count > 0:
+		projectile.chained.connect(_on_chain)
 	$Projectiles.add_child(projectile)
+
+## 뇌전 연쇄 시각: 두 적 사이에 짧게 번쩍이는 선 (물리 콜백 밖에서 생성 — call_deferred)
+func _on_chain(from: Vector2, to: Vector2) -> void:
+	_draw_arc.call_deferred(from, to)
+
+func _draw_arc(from: Vector2, to: Vector2) -> void:
+	var line := Line2D.new()
+	line.add_point(from)
+	line.add_point(to)
+	line.width = 3.0
+	line.default_color = Color(0.78, 0.62, 1.0, 0.95)
+	$Fx.add_child(line)
+	var tw := line.create_tween()
+	tw.tween_property(line, "modulate:a", 0.0, 0.18)
+	tw.tween_callback(line.queue_free)

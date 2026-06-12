@@ -111,6 +111,9 @@ func _fire_at(target) -> void:
 		p.burn_duration = character.passive_burn_duration
 		p.slow_factor = character.passive_slow_factor
 		p.slow_duration = character.passive_slow_duration
+		p.chain_count = character.passive_chain_count
+		p.chain_factor = character.passive_chain_factor
+		p.chain_range = character.passive_chain_range
 	p.position = global_position  # Projectiles 컨테이너가 원점에 있어 전역 좌표와 동일
 	p.speed += build.projectile_speed_bonus  # 발사체 속도 카드 (예측 조준도 이 속도로 계산)
 	p.size_scale = build.projectile_size  # 발사체 크기 카드

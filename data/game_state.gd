@@ -23,6 +23,7 @@ var characters: Array = [
 	preload("res://resources/characters/char_pyromancer.tres"),
 	preload("res://resources/characters/char_archer.tres"),
 	preload("res://resources/characters/char_frost.tres"),
+	preload("res://resources/characters/char_arc.tres"),
 ]
 var selected: CharacterData
 var best_wave := 0
