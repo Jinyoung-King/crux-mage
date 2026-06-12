@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1")
 display_name = "폭풍 궁사"
-description = "초고속 연사, 낮은 화력"
+description = "초고속 연사 · 치명타"
 mage_sprite = ExtResource("2")
 projectile_sprite = ExtResource("3")
 shoot_sound = ExtResource("4")
@@ -18,3 +18,5 @@ base_projectile_count = 1
 base_pierce = 0
 unlock_wave = 6
 accent_color = Color(0.4, 0.78, 0.45, 1)
+passive_crit_chance = 0.25
+passive_crit_mult = 2.5

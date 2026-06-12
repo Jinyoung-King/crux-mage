@@ -14,3 +14,11 @@ extends Resource
 @export var base_pierce: int = 0
 @export var unlock_wave: int = 0  ## 최고 도달 웨이브가 이 값 이상이면 해금 (0 = 기본 해금)
 @export var accent_color: Color = Color(0.3, 0.5, 1.0)
+# 전용 패시브 (캐릭터마다 하나씩, 해당 필드만 채움)
+@export var passive_wave_heal: float = 0.0       ## 견습: 웨이브 시작 시 회복량
+@export var passive_burn_dps: float = 0.0        ## 화염: 명중 시 화상 초당 피해
+@export var passive_burn_duration: float = 0.0   ## 화상 지속(초)
+@export var passive_crit_chance: float = 0.0     ## 궁사: 치명타 확률(0~1)
+@export var passive_crit_mult: float = 1.0       ## 치명타 데미지 배수
+@export var passive_slow_factor: float = 1.0     ## 서리: 둔화 시 속도 배수(1=둔화 없음)
+@export var passive_slow_duration: float = 0.0   ## 둔화 지속(초). 0이면 둔화 없음

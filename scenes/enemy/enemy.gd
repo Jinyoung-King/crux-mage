@@ -21,6 +21,13 @@ var split_count := 0
 var split_enemy: EnemyData
 var base_x := 0.0  ## 지그재그 기준 x
 var zig_t := 0.0
+# 상태이상 (패시브)
+var burn_dps := 0.0
+var burn_time_left := 0.0
+var slow_factor := 1.0
+var slow_time_left := 0.0
+var _tint := Color.WHITE  ## 상태 색조 (화상/둔화)
+var _flashing := false    ## 피격 플래시 중에는 색조 덮어쓰기 보류
 
 func _ready() -> void:
 	add_to_group("enemies")
@@ -64,10 +71,26 @@ func setup(data: EnemyData, hp_scale: float = 1.0) -> void:
 func _physics_process(delta: float) -> void:
 	if hp <= 0.0:
 		return  # 이미 사망/도달 처리된 적
-	position.y += speed * delta
+	# 화상 도트 (패시브)
+	if burn_time_left > 0.0:
+		burn_time_left -= delta
+		hp -= burn_dps * delta
+		if hp <= 0.0:
+			_die()
+			return
+	# 둔화 적용 이동
+	var spd := speed
+	if slow_time_left > 0.0:
+		slow_time_left -= delta
+		spd *= slow_factor
+	position.y += spd * delta
 	if zigzag_amplitude > 0.0:
 		zig_t += delta
 		position.x = clampf(base_x + sin(zig_t * TAU / zigzag_period) * zigzag_amplitude, 30.0, 690.0)
+	# 상태 색조 갱신 (피격 플래시 중이 아닐 때만 적용)
+	_update_tint()
+	if not _flashing:
+		$Sprite2D.modulate = _tint
 	if position.y >= goal_y:
 		hp = 0.0  # 도달한 적은 이후 피격/사망 처리에서 제외
 		reached_player.emit(contact_damage)
@@ -79,12 +102,26 @@ func take_damage(amount: float) -> void:
 	hp -= amount
 	_flash()
 	if hp <= 0.0:
-		# 분열: 처치로 죽을 때만 (도달로 빠지면 분열 없음). died보다 먼저 emit해야
-		# 마지막 적이 분열할 때 웨이브 클리어가 새끼 생성 전에 판정되는 것을 막는다.
-		if split_count > 0 and split_enemy != null:
-			summon.emit(split_enemy, split_count, global_position)
-		died.emit(global_position, effect_color, body_size, $Sprite2D.texture)
-		queue_free()
+		_die()
+
+## 화상 적용 (패시브): 더 센 화상으로 갱신하고 지속시간 리프레시
+func apply_burn(dps: float, dur: float) -> void:
+	burn_dps = maxf(burn_dps, dps)
+	burn_time_left = maxf(burn_time_left, dur)
+
+## 둔화 적용 (패시브): 속도 배수 갱신, 지속시간 리프레시
+func apply_slow(factor: float, dur: float) -> void:
+	slow_factor = factor
+	slow_time_left = maxf(slow_time_left, dur)
+
+## 사망 처리 (피격사·화상사 공통)
+func _die() -> void:
+	# 분열: 처치로 죽을 때만 (도달로 빠지면 분열 없음). died보다 먼저 emit해야
+	# 마지막 적이 분열할 때 웨이브 클리어가 새끼 생성 전에 판정되는 것을 막는다.
+	if split_count > 0 and split_enemy != null:
+		summon.emit(split_enemy, split_count, global_position)
+	died.emit(global_position, effect_color, body_size, $Sprite2D.texture)
+	queue_free()
 
 func _on_summon_timer(data: EnemyData) -> void:
 	if hp > 0.0:
@@ -94,7 +131,19 @@ func _on_ranged_timer(data: EnemyData) -> void:
 	if hp > 0.0:
 		ranged_attack.emit(data.attack_damage, global_position)
 
-## 피격 플래시: 밝게 번쩍였다가 원색으로
+## 상태이상에 따른 색조: 화상=주황 끼, 둔화=푸른 끼, 둘 다면 혼합
+func _update_tint() -> void:
+	var c := Color.WHITE
+	if burn_time_left > 0.0:
+		c *= Color(1.5, 0.7, 0.45)
+	if slow_time_left > 0.0:
+		c *= Color(0.6, 0.8, 1.4)
+	_tint = c
+
+## 피격 플래시: 밝게 번쩍였다가 현재 상태 색조로 복귀
 func _flash() -> void:
+	_flashing = true
 	$Sprite2D.modulate = Color(3.0, 3.0, 3.0)
-	create_tween().tween_property($Sprite2D, "modulate", Color.WHITE, 0.12)
+	var tw := create_tween()
+	tw.tween_property($Sprite2D, "modulate", _tint, 0.12)
+	tw.finished.connect(func(): _flashing = false)

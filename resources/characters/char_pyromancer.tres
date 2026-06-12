@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1")
 display_name = "화염술사"
-description = "느리지만 강력한 한 방"
+description = "느린 일격 · 화상 도트"
 mage_sprite = ExtResource("2")
 projectile_sprite = ExtResource("3")
 shoot_sound = ExtResource("4")
@@ -18,3 +18,5 @@ base_projectile_count = 1
 base_pierce = 0
 unlock_wave = 3
 accent_color = Color(0.85, 0.35, 0.25, 1)
+passive_burn_dps = 6.0
+passive_burn_duration = 3.0

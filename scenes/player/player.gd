@@ -32,6 +32,12 @@ func apply_character(c: CharacterData) -> void:
 	attack_timer.wait_time = 1.0 / effective_fire_rate()
 	$Sprite2D.texture = c.mage_sprite
 
+## 웨이브 시작 시 패시브 회복 (견습 마법사)
+func on_wave_start() -> void:
+	if character and character.passive_wave_heal > 0.0 and hp < max_hp:
+		hp = minf(hp + character.passive_wave_heal, max_hp)
+		hp_changed.emit(hp, max_hp)
+
 ## 시너지 반영 실효 데미지: 기본 + (동시 표적당 데미지 × 동시 표적 수)
 func effective_damage() -> float:
 	return build.damage + build.damage_per_target * build.projectile_count
@@ -88,6 +94,14 @@ func _fire_at(target) -> void:
 	var p = PROJECTILE_SCENE.instantiate()
 	if character and character.projectile_sprite:
 		p.get_node("Sprite2D").texture = character.projectile_sprite  # 캐릭터 전용 발사체 외형
+	if character:
+		# 패시브 효과를 발사체에 실어 보냄
+		p.crit_chance = character.passive_crit_chance
+		p.crit_mult = character.passive_crit_mult
+		p.burn_dps = character.passive_burn_dps
+		p.burn_duration = character.passive_burn_duration
+		p.slow_factor = character.passive_slow_factor
+		p.slow_duration = character.passive_slow_duration
 	p.position = global_position  # Projectiles 컨테이너가 원점에 있어 전역 좌표와 동일
 	# 적이 아래로 이동 중이므로 비행시간만큼 앞질러 조준 (1회 예측으로 충분)
 	var flight_time: float = global_position.distance_to(target.global_position) / p.speed

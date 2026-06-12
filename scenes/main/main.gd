@@ -109,6 +109,7 @@ func _start_wave(index: int) -> void:
 		wave_label.text = "Wave %d" % (index + 1)
 	spawn_timer.wait_time = _wave_interval(index)
 	spawn_timer.start()
+	$Player.on_wave_start()  # 패시브: 웨이브 시작 회복
 	print("WAVE %d START" % (index + 1))
 
 ## 정의된 웨이브는 데이터에서, 보스/무한 웨이브는 기준 구성을 증폭해 생성

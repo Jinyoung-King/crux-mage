@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1")
 display_name = "견습 마법사"
-description = "균형잡힌 기본기"
+description = "균형잡힌 기본기 · 매 웨이브 회복"
 mage_sprite = ExtResource("2")
 projectile_sprite = ExtResource("3")
 shoot_sound = ExtResource("4")
@@ -18,3 +18,4 @@ base_projectile_count = 1
 base_pierce = 0
 unlock_wave = 0
 accent_color = Color(0.3, 0.5, 1, 1)
+passive_wave_heal = 8.0
