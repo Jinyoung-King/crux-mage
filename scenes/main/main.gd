@@ -11,6 +11,7 @@ const SPAWN_X_MAX := 660.0
 const CHOICES_PER_CLEAR := 3
 const RARITY_WEIGHT := {"common": 3.0, "rare": 1.0}  # 카드 등장 가중치
 const ENDLESS_HP_GROWTH := 0.15  # 무한 모드 단계당 적 체력 증가율
+const SPEEDS := [1.0, 2.0, 3.0]  # 배속 순환 단계(탭마다 1→2→3→1x)
 
 # 정의된 일반 웨이브들 (5의 배수 웨이브는 보스, 그 외 이후는 무한 모드로 증폭 생성)
 var waves: Array = [
@@ -53,6 +54,7 @@ var shake := 0.0  # 화면 흔들림 세기(px), 매 프레임 감쇠
 @onready var flash_overlay: ColorRect = $HUD/FlashOverlay
 @onready var best_label: Label = $HUD/BestLabel
 @onready var char_select_button: Button = $HUD/CharSelectButton
+@onready var speed_button: Button = $HUD/SpeedButton
 
 func _ready() -> void:
 	var ch: CharacterData = GameState.selected
@@ -65,6 +67,8 @@ func _ready() -> void:
 	card_select.card_chosen.connect(_on_card_chosen)
 	restart_button.pressed.connect(_on_restart_pressed)
 	char_select_button.pressed.connect(_on_char_select_pressed)
+	speed_button.pressed.connect(_on_speed_pressed)
+	_apply_speed(GameState.game_speed)  # 저장된 배속 복원
 	_on_player_hp_changed($Player.hp, $Player.max_hp)  # HP 초기 표시
 	_update_best_label()
 	_start_wave(0)
@@ -320,7 +324,19 @@ func _on_restart_pressed() -> void:
 ## 캐릭터 선택 화면으로 (게임오버 후)
 func _on_char_select_pressed() -> void:
 	get_tree().paused = false
+	Engine.time_scale = 1.0  # 메뉴는 1배로 (배속 설정은 GameState에 보존되어 다음 게임에 복원)
 	get_tree().change_scene_to_file("res://scenes/ui/start_screen.tscn")
+
+## 배속 버튼: 1→2→3→1x 순환. Engine.time_scale 하나로 이동·타이머·트윈이 모두 가속됨.
+func _on_speed_pressed() -> void:
+	var i := SPEEDS.find(GameState.game_speed)
+	var next: float = SPEEDS[(i + 1) % SPEEDS.size()]
+	GameState.set_game_speed(next)
+	_apply_speed(next)
+
+func _apply_speed(s: float) -> void:
+	Engine.time_scale = s
+	speed_button.text = "배속 %dx" % int(s)
 
 func _on_player_fired(projectile) -> void:
 	$SfxShoot.play()
