@@ -4,6 +4,7 @@ extends Node2D
 const ENEMY_SCENE := preload("res://scenes/enemy/enemy.tscn")
 const DEATH_BURST_SCENE := preload("res://scenes/fx/death_burst.tscn")
 const DEATH_REMAINS := preload("res://scenes/fx/death_remains.gd")
+const DAMAGE_NUMBER := preload("res://scenes/fx/damage_number.gd")
 const ENEMY_BOLT_SCENE := preload("res://scenes/projectile/enemy_bolt.tscn")
 const SPAWN_Y := -60.0  # 화면(720x1280) 위쪽 바깥
 const SPAWN_X_MIN := 60.0  # 스폰 가로 범위 (가장자리 여백 확보)
@@ -517,7 +518,15 @@ func _on_player_fired(projectile) -> void:
 	$SfxShoot.play()
 	if projectile.chain_count > 0:
 		projectile.chained.connect(_on_chain)
+	projectile.damaged.connect(_on_projectile_damaged)
 	$Projectiles.add_child(projectile)
+
+## 직격 피해 위치에 플로팅 데미지 숫자 생성 (비물리 FX라 충돌 콜백 중 즉시 추가 안전)
+func _on_projectile_damaged(amount: float, is_crit: bool, pos: Vector2) -> void:
+	var dn = DAMAGE_NUMBER.new()
+	dn.position = pos
+	$Fx.add_child(dn)
+	dn.setup(amount, is_crit)
 
 ## 뇌전 연쇄 시각: 두 적 사이에 짧게 번쩍이는 선 (물리 콜백 밖에서 생성 — call_deferred)
 func _on_chain(from: Vector2, to: Vector2) -> void:

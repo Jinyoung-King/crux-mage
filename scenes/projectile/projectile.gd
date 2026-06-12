@@ -5,6 +5,7 @@ extends Area2D
 
 signal dealt(heal: float)  ## 적에 피해를 입힐 때 흡혈 회복량(피해×흡혈률)을 알림
 signal chained(from: Vector2, to: Vector2)  ## 뇌전 연쇄 시각용 (시작점→도착점)
+signal damaged(amount: float, is_crit: bool, pos: Vector2)  ## 직격 피해 수치(플로팅 숫자용)
 
 @export var speed: float = 600.0
 
@@ -43,9 +44,12 @@ func _on_area_entered(area) -> void:
 	if not area.is_in_group("enemies"):
 		return
 	var dmg := damage
+	var is_crit := false
 	if crit_chance > 0.0 and randf() < crit_chance:
 		dmg *= crit_mult  # 치명타
+		is_crit = true
 	area.take_damage(dmg)
+	damaged.emit(dmg, is_crit, area.global_position)  # 플로팅 데미지 숫자
 	if lifesteal > 0.0:
 		dealt.emit(dmg * lifesteal)  # 흡혈: 입힌 피해(치명타 포함) 비율만큼 회복
 	if execute_threshold > 0.0 and area.hp > 0.0 and area.hp <= area.max_hp * execute_threshold:
