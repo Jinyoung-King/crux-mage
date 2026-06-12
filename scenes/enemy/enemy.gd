@@ -139,16 +139,35 @@ func _build_hp_bar(enemy_size: float) -> void:
 	hp_fill.position = Vector2(-HP_BAR_W / 2.0, top)
 	add_child(hp_fill)
 
-## 엘리트 오라: 수식어 색의 반투명 사각을 스프라이트 뒤에 깔아 한눈에 구분
+## 엘리트 오라: 몹 스프라이트의 '모양'(알파)만 빌려 수식어 색의 단색 실루엣을 만들고,
+## 8방향으로 살짝 밀어 본체 뒤에 깔아 몹을 감싸는 빛나는 외곽선을 만든다(은은한 맥동).
 func _build_elite_aura(color: Color) -> void:
-	var s := body_size * 1.35
-	var aura := ColorRect.new()
-	aura.color = Color(color.r, color.g, color.b, 0.35)
-	aura.size = Vector2(s, s)
-	aura.position = Vector2(-s / 2.0, -s / 2.0)
-	aura.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# 텍스처 RGB는 버리고 알파(모양)만 써서 단색으로 칠하는 셰이더 (모듈레이트는 빨강을 청록으로 못 바꿈)
+	var shader := Shader.new()
+	shader.code = "shader_type canvas_item;\nuniform vec4 aura : source_color = vec4(1.0);\nvoid fragment() {\n\tCOLOR = vec4(aura.rgb, aura.a * COLOR.a * texture(TEXTURE, UV).a);\n}"
+	var mat := ShaderMaterial.new()
+	mat.shader = shader
+	mat.set_shader_parameter("aura", color)
+	var aura := Node2D.new()
+	var off := maxf(5.0, body_size * 0.13)
+	var dirs := [Vector2.RIGHT, Vector2.LEFT, Vector2.UP, Vector2.DOWN,
+		Vector2(1, 1).normalized(), Vector2(1, -1).normalized(),
+		Vector2(-1, 1).normalized(), Vector2(-1, -1).normalized()]
+	for d in dirs:
+		var ghost := Sprite2D.new()
+		ghost.texture = $Sprite2D.texture
+		ghost.scale = $Sprite2D.scale
+		ghost.texture_filter = $Sprite2D.texture_filter
+		ghost.material = mat  # 8장이 같은 색 → 머티리얼 공유
+		ghost.position = d * off
+		aura.add_child(ghost)
+	aura.modulate.a = 0.75  # 전체 투명도(맥동이 조절)
 	add_child(aura)
-	move_child(aura, 0)  # 맨 뒤로 (스프라이트 뒤에 그려지도록)
+	move_child(aura, 0)  # 본체 스프라이트 뒤에 그려지도록 맨 앞 인덱스로
+	# 은은한 맥동 (노드에 묶인 트윈 → 적이 죽으면 자동 종료)
+	var tw := aura.create_tween().set_loops()
+	tw.tween_property(aura, "modulate:a", 0.95, 0.55).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(aura, "modulate:a", 0.5, 0.55).set_trans(Tween.TRANS_SINE)
 
 func _physics_process(delta: float) -> void:
 	if hp <= 0.0:
