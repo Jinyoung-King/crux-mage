@@ -3,6 +3,7 @@ extends Node2D
 
 const ENEMY_SCENE := preload("res://scenes/enemy/enemy.tscn")
 const DEATH_BURST_SCENE := preload("res://scenes/fx/death_burst.tscn")
+const DEATH_REMAINS := preload("res://scenes/fx/death_remains.gd")
 const ENEMY_BOLT_SCENE := preload("res://scenes/projectile/enemy_bolt.tscn")
 const SAVE_PATH := "user://save.cfg"
 const SPAWN_Y := -60.0  # 화면(720x1280) 위쪽 바깥
@@ -197,13 +198,18 @@ func _on_player_hit_by_bolt(damage: float) -> void:
 	_flash_screen()
 	$Player.take_damage(damage)
 
-func _on_enemy_died(pos: Vector2, color: Color, size: float) -> void:
+func _on_enemy_died(pos: Vector2, color: Color, size: float, tex: Texture2D) -> void:
 	$SfxEnemyDie.play()
 	var burst = DEATH_BURST_SCENE.instantiate()
 	burst.position = pos
 	burst.color = color
 	burst.amount = 12 + int(size / 4.0)  # 큰 적일수록 파편 많이 (보스 30개)
 	$Fx.add_child(burst)
+	# 찢긴 사체(좌/우 절반)를 남긴다 — 약 1.5초 후 스스로 사라짐
+	var remains = DEATH_REMAINS.new()
+	remains.position = pos
+	$Fx.add_child(remains)
+	remains.setup(tex)
 	if size >= 72.0:
 		_add_shake(10.0)  # 보스 사망은 화면이 울리도록
 	_unregister_enemy()

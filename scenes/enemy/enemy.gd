@@ -1,7 +1,7 @@
 extends Area2D
 ## 위에서 스폰되어 아래(플레이어 쪽)로 직진하는 적.
 
-signal died(pos: Vector2, color: Color, size: float)
+signal died(pos: Vector2, color: Color, size: float, tex: Texture2D)
 signal reached_player(contact_damage: float)
 signal summon(data: EnemyData, count: int, pos: Vector2)
 signal ranged_attack(damage: float, from_pos: Vector2)
@@ -83,7 +83,7 @@ func take_damage(amount: float) -> void:
 		# 마지막 적이 분열할 때 웨이브 클리어가 새끼 생성 전에 판정되는 것을 막는다.
 		if split_count > 0 and split_enemy != null:
 			summon.emit(split_enemy, split_count, global_position)
-		died.emit(global_position, effect_color, body_size)
+		died.emit(global_position, effect_color, body_size, $Sprite2D.texture)
 		queue_free()
 
 func _on_summon_timer(data: EnemyData) -> void:
