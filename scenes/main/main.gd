@@ -3,6 +3,8 @@ extends Node2D
 
 const ENEMY_SCENE := preload("res://scenes/enemy/enemy.tscn")
 const DEATH_BURST_SCENE := preload("res://scenes/fx/death_burst.tscn")
+const ENEMY_BOLT_SCENE := preload("res://scenes/projectile/enemy_bolt.tscn")
+const SAVE_PATH := "user://save.cfg"
 const SPAWN_Y := -60.0  # 화면(720x1280) 위쪽 바깥
 const SPAWN_X_MIN := 60.0  # 스폰 가로 범위 (가장자리 여백 확보)
 const SPAWN_X_MAX := 660.0
@@ -41,6 +43,7 @@ var spawned := 0
 var alive := 0
 var game_over := false
 var shake := 0.0  # 화면 흔들림 세기(px), 매 프레임 감쇠
+var best_wave := 0  # 최고 도달 웨이브 (user://에 저장)
 
 @onready var spawn_timer: Timer = $SpawnTimer
 @onready var card_select = $HUD/CardSelect
@@ -48,6 +51,7 @@ var shake := 0.0  # 화면 흔들림 세기(px), 매 프레임 감쇠
 @onready var hp_label: Label = $HUD/HpLabel
 @onready var restart_button: Button = $HUD/RestartButton
 @onready var flash_overlay: ColorRect = $HUD/FlashOverlay
+@onready var best_label: Label = $HUD/BestLabel
 
 func _ready() -> void:
 	$Player.fired.connect(_on_player_fired)
@@ -57,7 +61,22 @@ func _ready() -> void:
 	card_select.card_chosen.connect(_on_card_chosen)
 	restart_button.pressed.connect(_on_restart_pressed)
 	_on_player_hp_changed($Player.hp, $Player.max_hp)  # HP 초기 표시
+	_load_best()
+	_update_best_label()
 	_start_wave(0)
+
+func _load_best() -> void:
+	var cf := ConfigFile.new()
+	if cf.load(SAVE_PATH) == OK:
+		best_wave = cf.get_value("record", "best_wave", 0)
+
+func _save_best() -> void:
+	var cf := ConfigFile.new()
+	cf.set_value("record", "best_wave", best_wave)
+	cf.save(SAVE_PATH)
+
+func _update_best_label() -> void:
+	best_label.text = "최고: Wave %d" % best_wave if best_wave > 0 else ""
 
 func _process(delta: float) -> void:
 	# 화면 흔들림: 월드(Main)만 움직임 — HUD(CanvasLayer)는 영향 없음
@@ -145,6 +164,7 @@ func _create_enemy(data: EnemyData, pos: Vector2) -> void:
 	enemy.died.connect(_on_enemy_died)
 	enemy.reached_player.connect(_on_enemy_reached_player)
 	enemy.summon.connect(_on_summon)
+	enemy.ranged_attack.connect(_on_enemy_ranged_attack)
 	$Enemies.add_child(enemy)
 
 ## 보스 소환·분열: 생성은 물리 콜백 밖으로 미루되(call_deferred — 분열은 충돌 콜백 중에
@@ -159,6 +179,23 @@ func _on_summon(data: EnemyData, count: int, pos: Vector2) -> void:
 		p.x = clampf(p.x, SPAWN_X_MIN, SPAWN_X_MAX)
 		alive += 1
 		_create_enemy.call_deferred(data, p)
+
+## 마술사 원거리 공격: 발사 시점의 플레이어를 향해 마탄 생성 (타이머 콜백이라 즉시 생성 안전)
+func _on_enemy_ranged_attack(damage: float, from_pos: Vector2) -> void:
+	if game_over:
+		return
+	var b = ENEMY_BOLT_SCENE.instantiate()
+	b.position = from_pos
+	b.direction = (Vector2($Player.position) - from_pos).normalized()
+	b.damage = damage
+	b.hit_player.connect(_on_player_hit_by_bolt)
+	$Projectiles.add_child(b)
+
+func _on_player_hit_by_bolt(damage: float) -> void:
+	$SfxPlayerHit.play()
+	_add_shake(6.0)
+	_flash_screen()
+	$Player.take_damage(damage)
 
 func _on_enemy_died(pos: Vector2, color: Color, size: float) -> void:
 	$SfxEnemyDie.play()
@@ -191,9 +228,23 @@ func _on_wave_cleared() -> void:
 	# 보스 웨이브 보상은 희귀 카드 확정
 	card_select.open(_draw_cards(CHOICES_PER_CLEAR, _is_boss_wave(wave_index)))
 
+## 현재 빌드에서 의미 있는 카드인지 — 죽은 픽(조건 미충족 시너지 등)을 드래프트에서 제외
+func _is_card_useful(card: CardData) -> bool:
+	if card.fire_rate_per_pierce_bonus > 0.0 and $Player.build.pierce == 0:
+		return false  # 관통이 없으면 격노는 무의미
+	if card.damage_per_target_bonus > 0.0 and $Player.build.projectile_count < 2:
+		return false  # 동시 표적 1이면 연쇄의 가치가 없음
+	if card.heal > 0.0 and $Player.hp >= $Player.max_hp:
+		return false  # 만피에 회복 카드 금지
+	if card.max_hp_bonus < 0.0 and $Player.max_hp + card.max_hp_bonus < 30.0:
+		return false  # 트레이드오프로 체력이 너무 낮아지면 제외
+	return true
+
 ## 풀에서 희귀도 가중치로 count장 중복 없이 뽑기. rare_only면 희귀 카드만.
 func _draw_cards(count: int, rare_only: bool = false) -> Array:
-	var pool := card_pool.filter(func(c): return c.rarity == "rare") if rare_only else card_pool.duplicate()
+	var pool := card_pool.filter(_is_card_useful)
+	if rare_only:
+		pool = pool.filter(func(c): return c.rarity == "rare")
 	var picked: Array = []
 	while picked.size() < count and not pool.is_empty():
 		var total := 0.0
@@ -220,6 +271,11 @@ func _on_player_died() -> void:
 	game_over = true
 	print("GAME OVER")
 	wave_label.text = "GAME OVER - Wave %d" % (wave_index + 1)
+	var reached := wave_index + 1
+	if reached > best_wave:
+		best_wave = reached
+		_save_best()
+		_update_best_label()
 	$SfxGameOver.play()  # process_mode=ALWAYS라 일시정지 중에도 재생됨
 	# 일시정지 직전 흔들림 원위치 + 붉은 톤 고정 (멈춘 화면 연출)
 	shake = 0.0

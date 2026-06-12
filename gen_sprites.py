@@ -224,6 +224,41 @@ BOSS_PAL = {
     "W": (255, 250, 235, 255),  # 이빨
 }
 
+# 마술사 (12x12 → 36x36): 후드 로브 + 빛나는 눈, 원거리 공격형
+CASTER = [
+    "....KKKK....",
+    "...KKKKKK...",
+    "..KKKKKKKK..",
+    "..KSSSSSSK..",
+    "..KSESSESK..",
+    "..KSSSSSSK..",
+    "..KKKKKKKK..",
+    ".KKKKKKKKKK.",
+    ".KKKPKKPKKK.",
+    "KKKKKKKKKKKK",
+    "KKKKKKKKKKKK",
+    ".KK.KKKK.KK.",
+]
+CASTER_PAL = {
+    "K": (50, 40, 70, 255),     # 로브 암보라
+    "S": (25, 20, 35, 255),     # 후드 그림자
+    "E": (235, 80, 200, 255),   # 빛나는 눈 마젠타
+    "P": (140, 60, 170, 255),   # 장식 띠
+}
+
+# 적 마탄 (5x5 → 15x15): 마젠타 구체
+DARK_BOLT = [
+    "..M..",
+    ".MWM.",
+    "MWWWM",
+    ".MWM.",
+    "..M..",
+]
+DARK_BOLT_PAL = {
+    "M": (220, 70, 200, 255),
+    "W": (255, 205, 250, 255),
+}
+
 # 마법탄 (5x5 → 15x15): 중심 흰빛 + 노란 광채
 BOLT = [
     "..Y..",
@@ -246,5 +281,7 @@ write_png("enemy_boss.png", BOSS, BOSS_PAL)
 write_png("enemy_ghost.png", GHOST, GHOST_PAL)
 write_png("enemy_slime_big.png", SLIME_BIG, SLIME_BIG_PAL)
 write_png("enemy_slime_mini.png", SLIME_MINI, SLIME_MINI_PAL)
+write_png("enemy_caster.png", CASTER, CASTER_PAL)
+write_png("dark_bolt.png", DARK_BOLT, DARK_BOLT_PAL)
 write_png("bolt.png", BOLT, BOLT_PAL)
 print("OK:", sorted(os.listdir(OUT)))

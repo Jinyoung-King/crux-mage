@@ -4,6 +4,7 @@ extends Area2D
 signal died(pos: Vector2, color: Color, size: float)
 signal reached_player(contact_damage: float)
 signal summon(data: EnemyData, count: int, pos: Vector2)
+signal ranged_attack(damage: float, from_pos: Vector2)
 
 @export var max_hp: float = 30.0
 @export var speed: float = 60.0  ## 이동 속도(px/s)
@@ -47,6 +48,12 @@ func setup(data: EnemyData, hp_scale: float = 1.0) -> void:
 		t.autostart = true  # 트리 진입 시 자동 시작
 		t.timeout.connect(_on_summon_timer.bind(data))
 		add_child(t)
+	if data.attack_interval > 0.0:
+		var at := Timer.new()
+		at.wait_time = data.attack_interval
+		at.autostart = true
+		at.timeout.connect(_on_ranged_timer.bind(data))
+		add_child(at)
 	$Sprite2D.texture = data.sprite
 	$Sprite2D.scale = Vector2(3, 3)  # 스프라이트는 size/3 픽셀 그리드로 제작됨
 	# 충돌 모양은 인스턴스 간 공유되므로 새로 만들어 크기 적용
@@ -82,6 +89,10 @@ func take_damage(amount: float) -> void:
 func _on_summon_timer(data: EnemyData) -> void:
 	if hp > 0.0:
 		summon.emit(data.summon_enemy, data.summon_count, global_position)
+
+func _on_ranged_timer(data: EnemyData) -> void:
+	if hp > 0.0:
+		ranged_attack.emit(data.attack_damage, global_position)
 
 ## 피격 플래시: 밝게 번쩍였다가 원색으로
 func _flash() -> void:

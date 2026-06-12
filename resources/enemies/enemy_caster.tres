@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://data/enemy_data.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/enemy_caster.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+display_name = "마술사"
+hp = 25.0
+speed = 35.0
+contact_damage = 10.0
+size = 36.0
+sprite = ExtResource("2")
+effect_color = Color(0.86, 0.31, 0.78, 1)
+attack_interval = 3.0
+attack_damage = 7.0

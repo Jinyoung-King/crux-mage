@@ -19,3 +19,6 @@ extends Resource
 # 분열 패턴: 처치 시(도달 제외) split_enemy를 split_count마리 생성
 @export var split_count: int = 0
 @export var split_enemy: EnemyData
+# 원거리 공격 패턴: attack_interval > 0이면 주기적으로 플레이어에게 마탄 발사
+@export var attack_interval: float = 0.0
+@export var attack_damage: float = 7.0
