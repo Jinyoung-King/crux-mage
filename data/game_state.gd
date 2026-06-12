@@ -28,13 +28,31 @@ var characters: Array = [
 var selected: CharacterData
 var best_wave := 0
 var game_speed := 1.0  ## 배속 설정(1/2/3x) — 씬 리로드·재시작에도 유지, user://에 영속
+var sfx_volume := 1.0  ## 효과음 음량(0~1) — 영속
+var muted := false  ## 음소거 — 영속
 var coins := 0  ## 영구 재화 (런 종료 시 누적)
 var upgrades := {}  ## 영구 강화 레벨 (id → level)
 
 func _ready() -> void:
 	_load()
+	apply_audio()  # 저장된 음량·음소거를 마스터 버스에 적용(게임 전체)
 	if selected == null:
 		selected = characters[0]
+
+## 마스터 버스에 음량·음소거 적용
+func apply_audio() -> void:
+	AudioServer.set_bus_mute(0, muted)
+	AudioServer.set_bus_volume_db(0, linear_to_db(clampf(sfx_volume, 0.0001, 1.0)))
+
+func set_sfx_volume(v: float) -> void:
+	sfx_volume = clampf(v, 0.0, 1.0)
+	apply_audio()
+	_save()
+
+func set_muted(b: bool) -> void:
+	muted = b
+	apply_audio()
+	_save()
 
 func is_unlocked(c: CharacterData) -> bool:
 	return best_wave >= c.unlock_wave
@@ -105,6 +123,8 @@ func _load() -> void:
 	if cf.load(SAVE_PATH) == OK:
 		best_wave = cf.get_value("record", "best_wave", 0)
 		game_speed = cf.get_value("settings", "game_speed", 1.0)
+		sfx_volume = cf.get_value("settings", "sfx_volume", 1.0)
+		muted = cf.get_value("settings", "muted", false)
 		coins = cf.get_value("meta", "coins", 0)
 		upgrades = cf.get_value("meta", "upgrades", {})
 
@@ -112,6 +132,8 @@ func _save() -> void:
 	var cf := ConfigFile.new()
 	cf.set_value("record", "best_wave", best_wave)
 	cf.set_value("settings", "game_speed", game_speed)
+	cf.set_value("settings", "sfx_volume", sfx_volume)
+	cf.set_value("settings", "muted", muted)
 	cf.set_value("meta", "coins", coins)
 	cf.set_value("meta", "upgrades", upgrades)
 	cf.save(SAVE_PATH)

@@ -70,6 +70,10 @@ var shake := 0.0  # 화면 흔들림 세기(px), 매 프레임 감쇠
 @onready var char_select_button: Button = $HUD/CharSelectButton
 @onready var speed_button: Button = $HUD/SpeedButton
 @onready var coin_label: Label = $HUD/CoinLabel
+@onready var pause_button: Button = $HUD/PauseButton
+@onready var pause_screen: Control = $HUD/PauseScreen
+@onready var volume_slider: HSlider = $HUD/PauseScreen/Center/VolumeSlider
+@onready var mute_button: Button = $HUD/PauseScreen/Center/MuteButton
 
 func _ready() -> void:
 	var ch: CharacterData = GameState.selected
@@ -85,6 +89,15 @@ func _ready() -> void:
 	char_select_button.pressed.connect(_on_char_select_pressed)
 	speed_button.pressed.connect(_on_speed_pressed)
 	_apply_speed(GameState.game_speed)  # 저장된 배속 복원
+	# 일시정지 메뉴 + 소리 설정
+	pause_button.pressed.connect(_on_pause_pressed)
+	$HUD/PauseScreen/Center/ResumeButton.pressed.connect(_on_resume_pressed)
+	$HUD/PauseScreen/Center/RestartButton.pressed.connect(_on_restart_pressed)
+	$HUD/PauseScreen/Center/MenuButton.pressed.connect(_on_char_select_pressed)
+	mute_button.pressed.connect(_on_mute_pressed)
+	volume_slider.value_changed.connect(_on_volume_changed)
+	volume_slider.value = GameState.sfx_volume
+	_update_mute_label()
 	_on_player_hp_changed($Player.hp, $Player.max_hp)  # HP 초기 표시
 	_update_best_label()
 	_update_coin_label()
@@ -368,6 +381,7 @@ func _on_player_hp_changed(hp: float, max_hp: float) -> void:
 func _on_player_died() -> void:
 	game_over = true
 	print("GAME OVER")
+	pause_button.hide()  # 사망 후엔 일시정지 불가(게임오버 UI 사용)
 	wave_label.text = "GAME OVER - Wave %d" % (wave_index + 1)
 	GameState.record_wave(wave_index + 1)  # 최고 기록 갱신·저장 (신규 해금 가능)
 	GameState.add_coins(run_coins)  # 이번 런 코인 정산·저장
@@ -403,6 +417,28 @@ func _on_speed_pressed() -> void:
 func _apply_speed(s: float) -> void:
 	Engine.time_scale = s
 	speed_button.text = "배속 %dx" % int(s)
+
+## 일시정지 메뉴 (PauseScreen은 process_mode=ALWAYS라 정지 중에도 버튼 동작)
+func _on_pause_pressed() -> void:
+	if game_over:
+		return
+	get_tree().paused = true
+	pause_screen.show()
+
+func _on_resume_pressed() -> void:
+	get_tree().paused = false
+	pause_screen.hide()
+
+## 소리: 마스터 버스 음량/음소거 (GameState가 적용+영속)
+func _on_volume_changed(v: float) -> void:
+	GameState.set_sfx_volume(v)
+
+func _on_mute_pressed() -> void:
+	GameState.set_muted(not GameState.muted)
+	_update_mute_label()
+
+func _update_mute_label() -> void:
+	mute_button.text = "음소거 해제" if GameState.muted else "음소거"
 
 func _on_player_fired(projectile) -> void:
 	$SfxShoot.play()

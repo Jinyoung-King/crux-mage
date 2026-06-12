@@ -126,6 +126,20 @@ theme_override_fonts/font = ExtResource("4")
 theme_override_font_sizes/font_size = 22
 text = "배속 1x"
 
+[node name="PauseButton" type="Button" parent="HUD"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -126.0
+offset_top = 68.0
+offset_right = -16.0
+offset_bottom = 112.0
+grow_horizontal = 0
+theme_override_fonts/font = ExtResource("4")
+theme_override_font_sizes/font_size = 20
+text = "일시정지"
+
 [node name="VersionLabel" type="Label" parent="HUD"]
 modulate = Color(1, 1, 1, 0.4)
 layout_mode = 1
@@ -142,7 +156,96 @@ grow_horizontal = 0
 grow_vertical = 0
 theme_override_font_sizes/font_size = 16
 horizontal_alignment = 2
-text = "v0.29"
+text = "v0.30"
+
+[node name="PauseScreen" type="Control" parent="HUD"]
+process_mode = 3
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Dim" type="ColorRect" parent="HUD/PauseScreen"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.6)
+
+[node name="Center" type="VBoxContainer" parent="HUD/PauseScreen"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -160.0
+offset_top = -210.0
+offset_right = 160.0
+offset_bottom = 210.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 18
+alignment = 1
+
+[node name="Title" type="Label" parent="HUD/PauseScreen/Center"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("4")
+theme_override_font_sizes/font_size = 40
+horizontal_alignment = 1
+text = "일시정지"
+
+[node name="SoundLabel" type="Label" parent="HUD/PauseScreen/Center"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("4")
+theme_override_font_sizes/font_size = 20
+horizontal_alignment = 1
+text = "소리"
+
+[node name="VolumeSlider" type="HSlider" parent="HUD/PauseScreen/Center"]
+custom_minimum_size = Vector2(280, 36)
+layout_mode = 2
+size_flags_horizontal = 4
+max_value = 1.0
+step = 0.05
+value = 1.0
+
+[node name="MuteButton" type="Button" parent="HUD/PauseScreen/Center"]
+custom_minimum_size = Vector2(280, 52)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_fonts/font = ExtResource("4")
+theme_override_font_sizes/font_size = 22
+text = "음소거"
+
+[node name="ResumeButton" type="Button" parent="HUD/PauseScreen/Center"]
+custom_minimum_size = Vector2(280, 60)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_fonts/font = ExtResource("4")
+theme_override_font_sizes/font_size = 26
+text = "계속하기"
+
+[node name="RestartButton" type="Button" parent="HUD/PauseScreen/Center"]
+custom_minimum_size = Vector2(280, 50)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_fonts/font = ExtResource("4")
+theme_override_font_sizes/font_size = 22
+text = "다시 시작"
+
+[node name="MenuButton" type="Button" parent="HUD/PauseScreen/Center"]
+custom_minimum_size = Vector2(280, 50)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_fonts/font = ExtResource("4")
+theme_override_font_sizes/font_size = 22
+text = "캐릭터 선택"
 
 [node name="SpawnTimer" type="Timer" parent="."]
 
