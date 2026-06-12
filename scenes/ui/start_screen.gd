@@ -15,6 +15,7 @@ var wave_idx := 0
 @onready var start_wave_button: Button = $Center/StartWaveButton
 
 func _ready() -> void:
+	$VersionLabel.text = GameState.VERSION  # 빌드 버전 표기(단일 출처)
 	best_label.text = "최고 기록: Wave %d" % GameState.best_wave if GameState.best_wave > 0 else "첫 도전을 시작하세요"
 	for i in GameState.characters.size():
 		var card := _make_card(GameState.characters[i], i)

@@ -107,6 +107,7 @@ func _ready() -> void:
 	_on_player_hp_changed($Player.hp, $Player.max_hp)  # HP 초기 표시
 	_update_best_label()
 	_update_coin_label()
+	$HUD/VersionLabel.text = GameState.VERSION  # 빌드 버전 표기(단일 출처)
 	# 테스트 편의: 웹 URL에 ?auto=1이면 카드 자동선택 (일반 유저·출시 빌드엔 비노출)
 	if OS.has_feature("web"):
 		auto_pick = str(JavaScriptBridge.eval("window.location.search")).contains("auto=1")

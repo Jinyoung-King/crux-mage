@@ -34,5 +34,5 @@
   (--fixed-fps 없으면 게임 시간이 흐르지 않음. 클릭 UI는 임시 오토로드로 시그널 발화 후 제거)
 - 각 작업 후 무엇을 어떻게 실행 확인하면 되는지 한 줄로 알려줄 것
 - 웹 빌드: `godot --headless --export-release "Web" build/web/index.html --path .`
-  배포 확인용 버전 표기(main.tscn의 VersionLabel)를 빌드마다 올릴 것
+  배포 확인용 버전은 `GameState.VERSION` 한 곳만 올리면 메인·시작 화면에 함께 반영됨(빌드마다 올릴 것)
 - 아트는 단색 도형 placeholder 유지 (스프라이트/연출은 추후 단계)
