@@ -46,6 +46,7 @@ var spawned := 0
 var alive := 0
 var run_coins := 0  # 이번 런 누적 코인 (사망 시 GameState에 정산)
 var start_drafts_left := 0  # 웨이브 전 시작 드래프트 남은 횟수 (1 + 추가 시작 카드 레벨)
+var auto_pick := false  # 테스트 편의: 웹에서 ?auto=1로 열면 카드 자동선택(숨김 개발 옵션)
 var game_over := false
 var shake := 0.0  # 화면 흔들림 세기(px), 매 프레임 감쇠
 
@@ -76,10 +77,13 @@ func _ready() -> void:
 	_on_player_hp_changed($Player.hp, $Player.max_hp)  # HP 초기 표시
 	_update_best_label()
 	_update_coin_label()
+	# 테스트 편의: 웹 URL에 ?auto=1이면 카드 자동선택 (일반 유저·출시 빌드엔 비노출)
+	if OS.has_feature("web"):
+		auto_pick = str(JavaScriptBridge.eval("window.location.search")).contains("auto=1")
 	# 게임 시작: 웨이브 전 카드 드래프트 (추가 시작 카드 강화만큼 반복) → 마지막 선택이 Wave 1
 	wave_index = -1
 	start_drafts_left = 1 + GameState.upgrade_level("extra_card")
-	card_select.open(_draw_cards(CHOICES_PER_CLEAR))
+	_open_draft(_draw_cards(CHOICES_PER_CLEAR))
 
 func _update_best_label() -> void:
 	best_label.text = "최고: Wave %d" % GameState.best_wave if GameState.best_wave > 0 else ""
@@ -280,7 +284,7 @@ func _on_wave_cleared() -> void:
 	run_coins += wave_index + 1  # 웨이브 클리어 보너스 = 웨이브 번호
 	_update_coin_label()
 	# 보스 웨이브 보상은 희귀 카드 확정
-	card_select.open(_draw_cards(CHOICES_PER_CLEAR, _wave_kind(wave_index) == "boss"))
+	_open_draft(_draw_cards(CHOICES_PER_CLEAR, _wave_kind(wave_index) == "boss"))
 
 ## 현재 빌드에서 의미 있는 카드인지 — 죽은 픽(조건 미충족 시너지 등)을 드래프트에서 제외
 func _is_card_useful(card: CardData) -> bool:
@@ -313,6 +317,12 @@ func _draw_cards(count: int, rare_only: bool = false) -> Array:
 				break
 	return picked
 
+## 카드 드래프트 표시. 테스트 자동선택(auto_pick) 시 잠깐 보여준 뒤 무작위 1장.
+func _open_draft(cards: Array) -> void:
+	card_select.open(cards)
+	if auto_pick and not cards.is_empty():
+		get_tree().create_timer(0.25).timeout.connect(card_select.pick_random)
+
 func _on_card_chosen(card: CardData) -> void:
 	$SfxCardPick.play()
 	$Player.apply_card(card)
@@ -320,7 +330,7 @@ func _on_card_chosen(card: CardData) -> void:
 	if wave_index == -1:
 		start_drafts_left -= 1
 		if start_drafts_left > 0:
-			card_select.open(_draw_cards(CHOICES_PER_CLEAR))
+			_open_draft(_draw_cards(CHOICES_PER_CLEAR))
 			return
 	_start_wave(wave_index + 1)
 

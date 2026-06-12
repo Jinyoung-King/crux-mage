@@ -98,3 +98,8 @@ func _card_style(rare: bool, hl: bool) -> StyleBoxFlat:
 func _on_button_pressed(index: int) -> void:
 	hide()
 	card_chosen.emit(shown_cards[index])
+
+## 테스트용 자동선택: 정상 선택 경로(hide + emit)와 동일하게 무작위 1장
+func pick_random() -> void:
+	if not shown_cards.is_empty():
+		_on_button_pressed(randi() % shown_cards.size())
