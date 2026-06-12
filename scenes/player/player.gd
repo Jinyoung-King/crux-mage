@@ -13,6 +13,16 @@ var build: BuildState
 var hp: float
 var character: CharacterData
 var lifesteal := 0.0  ## 입힌 피해의 흡혈 비율 (영구 강화)
+var relics: Array = []  ## 이번 런 보유 유물 id (보스 보상)
+
+## 유물 획득 (중복 없음)
+func grant_relic(id: String) -> void:
+	if not relics.has(id):
+		relics.append(id)
+
+func _process(delta: float) -> void:
+	if relics.has("regen") and hp > 0.0 and hp < max_hp:
+		heal(RelicLib.REGEN_PER_SEC * delta)  # 재생의 룬
 
 @onready var attack_timer: Timer = $AttackTimer
 
@@ -45,7 +55,10 @@ func on_wave_start() -> void:
 
 ## 시너지 반영 실효 데미지: 기본 + (동시 표적당 데미지 × 동시 표적 수)
 func effective_damage() -> float:
-	return build.damage + build.damage_per_target * build.projectile_count
+	var d := build.damage + build.damage_per_target * build.projectile_count
+	if relics.has("berserk") and hp < max_hp * RelicLib.BERSERK_HP_RATIO:
+		d *= RelicLib.BERSERK_MULT  # 격노의 룬
+	return d
 
 ## 시너지 반영 실효 연사: 기본 + (관통당 연사 × 관통 수)
 func effective_fire_rate() -> float:
@@ -126,7 +139,22 @@ func _fire_at(target) -> void:
 	p.lifesteal = lifesteal
 	if lifesteal > 0.0:
 		p.dealt.connect(_on_lifesteal)  # 명중 시 흡혈 회복
+	_apply_relics_to(p)
 	fired.emit(p)
+
+## 유물 효과를 발사체에 적용 (캐릭터 패시브 위에 가산/강화)
+func _apply_relics_to(p) -> void:
+	if relics.is_empty():
+		return
+	if relics.has("execute"):
+		p.execute_threshold = RelicLib.EXECUTE_THRESHOLD
+	if relics.has("chain"):
+		p.chain_count += 1
+		p.chain_factor = maxf(p.chain_factor, RelicLib.RELIC_CHAIN_FACTOR)
+		p.chain_range = maxf(p.chain_range, 220.0)
+	if relics.has("ignite"):
+		p.burn_dps = maxf(p.burn_dps, RelicLib.RELIC_BURN_DPS)
+		p.burn_duration = maxf(p.burn_duration, RelicLib.RELIC_BURN_DUR)
 
 ## 흡혈 회복 (발사체가 적에 피해를 입힐 때마다)
 func _on_lifesteal(amount: float) -> void:

@@ -24,6 +24,7 @@ var size_scale := 1.0  ## 발사체 크기 배율 (시각 + 충돌)
 var chain_count := 0
 var chain_factor := 0.0
 var chain_range := 220.0
+var execute_threshold := 0.0  ## 수확의 룬: 적 체력이 이 비율 이하면 즉사
 
 func _ready() -> void:
 	rotation = direction.angle()
@@ -47,6 +48,8 @@ func _on_area_entered(area) -> void:
 	area.take_damage(dmg)
 	if lifesteal > 0.0:
 		dealt.emit(dmg * lifesteal)  # 흡혈: 입힌 피해(치명타 포함) 비율만큼 회복
+	if execute_threshold > 0.0 and area.hp > 0.0 and area.hp <= area.max_hp * execute_threshold:
+		area.take_damage(area.hp)  # 수확의 룬: 즉사
 	if burn_dps > 0.0:
 		area.apply_burn(burn_dps, burn_duration)
 	if slow_duration > 0.0:

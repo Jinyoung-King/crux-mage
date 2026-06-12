@@ -64,6 +64,7 @@ var shake := 0.0  # 화면 흔들림 세기(px), 매 프레임 감쇠
 
 @onready var spawn_timer: Timer = $SpawnTimer
 @onready var card_select = $HUD/CardSelect
+@onready var relic_select = $HUD/RelicSelect
 @onready var wave_label: Label = $HUD/WaveLabel
 @onready var hp_label: Label = $HUD/HpLabel
 @onready var restart_button: Button = $HUD/RestartButton
@@ -87,6 +88,7 @@ func _ready() -> void:
 	spawn_timer.timeout.connect(_spawn_enemy)
 	card_select.card_chosen.connect(_on_card_chosen)
 	card_select.reroll_requested.connect(_on_reroll_requested)
+	relic_select.relic_chosen.connect(_on_relic_chosen)
 	restart_button.pressed.connect(_on_restart_pressed)
 	char_select_button.pressed.connect(_on_char_select_pressed)
 	speed_button.pressed.connect(_on_speed_pressed)
@@ -297,7 +299,10 @@ func _on_enemy_died(pos: Vector2, color: Color, size: float, tex: Texture2D, coi
 	remains.setup(tex, size)
 	if size >= 42.0:
 		_add_shake(size / 8.0)  # 큰 적이 죽을수록 화면이 더 울리도록 (보스 9)
-	run_coins += coins  # 처치 코인 (엘리트는 보너스, 도달한 적은 _unregister만 — 코인 없음)
+	var gain := coins  # 처치 코인 (엘리트 보너스 포함, 도달한 적은 _unregister만)
+	if $Player.relics.has("greed"):
+		gain *= RelicLib.GREED_MULT  # 황금의 룬
+	run_coins += gain
 	_update_coin_label()
 	_unregister_enemy()
 
@@ -318,10 +323,29 @@ func _unregister_enemy() -> void:
 
 func _on_wave_cleared() -> void:
 	print("WAVE CLEAR")
-	run_coins += wave_index + 1  # 웨이브 클리어 보너스 = 웨이브 번호
+	var bonus := wave_index + 1  # 웨이브 클리어 보너스 = 웨이브 번호
+	if $Player.relics.has("greed"):
+		bonus *= RelicLib.GREED_MULT
+	run_coins += bonus
 	_update_coin_label()
-	# 보스 웨이브 보상은 희귀 카드 확정
+	# 보스 클리어: 안 가진 유물이 있으면 유물 선택, 없으면 카드(희귀 확정)
+	if _wave_kind(wave_index) == "boss":
+		var pool := _relic_pool()
+		if not pool.is_empty():
+			relic_select.open(pool)
+			return
 	_open_draft(_wave_kind(wave_index) == "boss")
+
+## 아직 안 가진 유물 중 최대 3개 무작위
+func _relic_pool() -> Array:
+	var avail := RelicLib.RELICS.filter(func(r): return not $Player.relics.has(r.id))
+	avail.shuffle()
+	return avail.slice(0, 3)
+
+func _on_relic_chosen(id: String) -> void:
+	$SfxCardPick.play()
+	$Player.grant_relic(id)
+	_start_wave(wave_index + 1)
 
 ## 현재 빌드에서 의미 있는 카드인지 — 죽은 픽(조건 미충족 시너지 등)을 드래프트에서 제외
 func _is_card_useful(card: CardData) -> bool:
