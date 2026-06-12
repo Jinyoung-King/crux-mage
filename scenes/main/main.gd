@@ -108,10 +108,21 @@ func _ready() -> void:
 	# 테스트 편의: 웹 URL에 ?auto=1이면 카드 자동선택 (일반 유저·출시 빌드엔 비노출)
 	if OS.has_feature("web"):
 		auto_pick = str(JavaScriptBridge.eval("window.location.search")).contains("auto=1")
-	# 게임 시작: 웨이브 전 카드 드래프트 (추가 시작 카드 강화만큼 반복) → 마지막 선택이 Wave 1
-	wave_index = -1
+	# 게임 시작: 시작 웨이브 도약 보정(건너뛴 분 무작위 카드 자동 지급) 후 카드 드래프트
+	var sw: int = GameState.start_wave
+	if sw > 1:
+		_grant_head_start(int((sw - 1) * 0.7))
+		$Player.heal($Player.max_hp)  # 만피로 시작
+	wave_index = sw - 2  # 시작 드래프트 후 _start_wave(sw-1) = Wave sw
 	start_drafts_left = 1 + GameState.upgrade_level("extra_card")
 	_open_draft()
+
+## 시작 웨이브 도약 보정: 건너뛴 웨이브분의 무작위 유효 카드를 자동 지급(빠른 복귀)
+func _grant_head_start(n: int) -> void:
+	for i in n:
+		var drawn := _draw_cards(1)
+		if not drawn.is_empty():
+			$Player.apply_card(drawn[0])
 
 func _update_best_label() -> void:
 	best_label.text = "최고: Wave %d" % GameState.best_wave if GameState.best_wave > 0 else ""
@@ -393,8 +404,8 @@ func _on_reroll_requested() -> void:
 func _on_card_chosen(card: CardData) -> void:
 	$SfxCardPick.play()
 	$Player.apply_card(card)
-	# 웨이브 전 시작 드래프트가 더 남아 있으면 다음 드래프트를 열고 Wave는 미룸
-	if wave_index == -1:
+	# 시작 드래프트(웨이브 시작 전)가 남아 있으면 다음 드래프트, 아니면 다음 웨이브
+	if start_drafts_left > 0:
 		start_drafts_left -= 1
 		if start_drafts_left > 0:
 			_open_draft()

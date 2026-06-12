@@ -5,11 +5,14 @@ const FONT := preload("res://assets/fonts/NotoSansKR.ttf")
 
 var selected_index := 0
 var cards: Array = []
+var wave_options: Array = []  ## 시작 웨이브 도약 선택지 (1, best_wave 이하 5단위)
+var wave_idx := 0
 
 @onready var grid: GridContainer = $Center/Grid
 @onready var play_button: Button = $Center/PlayButton
 @onready var best_label: Label = $Center/BestLabel
 @onready var upgrade_button: Button = $Center/UpgradeButton
+@onready var start_wave_button: Button = $Center/StartWaveButton
 
 func _ready() -> void:
 	best_label.text = "최고 기록: Wave %d" % GameState.best_wave if GameState.best_wave > 0 else "첫 도전을 시작하세요"
@@ -23,7 +26,29 @@ func _ready() -> void:
 	play_button.pressed.connect(_on_play)
 	upgrade_button.pressed.connect(_on_upgrade)
 	upgrade_button.text = "강화 (코인 %d)" % GameState.coins
+	# 시작 웨이브 도약: 1, 그리고 best_wave 이하 5단위
+	wave_options = [1]
+	var w := 5
+	while w <= GameState.best_wave:
+		wave_options.append(w)
+		w += 5
+	if wave_options.size() <= 1:
+		start_wave_button.hide()  # 아직 스킵 가능 구간 없음
+		GameState.start_wave = 1
+	else:
+		start_wave_button.pressed.connect(_on_start_wave_pressed)
+		wave_idx = maxi(wave_options.find(GameState.start_wave), 0)
+		GameState.start_wave = wave_options[wave_idx]
+		_refresh_start_wave()
 	_refresh()
+
+func _on_start_wave_pressed() -> void:
+	wave_idx = (wave_idx + 1) % wave_options.size()
+	GameState.start_wave = wave_options[wave_idx]
+	_refresh_start_wave()
+
+func _refresh_start_wave() -> void:
+	start_wave_button.text = "시작: Wave %d" % wave_options[wave_idx]
 
 func _make_card(c: CharacterData, idx: int) -> Button:
 	var unlocked := GameState.is_unlocked(c)

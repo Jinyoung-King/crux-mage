@@ -26,6 +26,7 @@ var characters: Array = [
 	preload("res://resources/characters/char_arc.tres"),
 ]
 var selected: CharacterData
+var start_wave := 1  ## 이번 게임 시작 웨이브 (시작 화면에서 선택, 인메모리 — best_wave 이하)
 var best_wave := 0
 var game_speed := 1.0  ## 배속 설정(1/2/3x) — 씬 리로드·재시작에도 유지, user://에 영속
 var sfx_volume := 1.0  ## 효과음 음량(0~1) — 영속

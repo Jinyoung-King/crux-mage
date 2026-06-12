@@ -52,6 +52,14 @@ theme_override_constants/h_separation = 16
 theme_override_constants/v_separation = 16
 columns = 2
 
+[node name="StartWaveButton" type="Button" parent="Center"]
+custom_minimum_size = Vector2(260, 48)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_fonts/font = ExtResource("2")
+theme_override_font_sizes/font_size = 22
+text = "시작: Wave 1"
+
 [node name="PlayButton" type="Button" parent="Center"]
 custom_minimum_size = Vector2(260, 64)
 layout_mode = 2
