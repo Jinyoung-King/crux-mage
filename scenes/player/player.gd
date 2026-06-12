@@ -73,6 +73,7 @@ func _nearest_enemies(count: int) -> Array:
 func take_damage(amount: float) -> void:
 	if hp <= 0.0:
 		return  # 사망 후 같은 프레임에 도달한 적의 중복 피해 방지
+	amount = maxf(amount - build.defense, 1.0)  # 방어력: 받는 피해 감소(최소 1)
 	hp = maxf(hp - amount, 0.0)
 	hp_changed.emit(hp, max_hp)
 	if hp <= 0.0:
@@ -86,6 +87,9 @@ func apply_card(card: CardData) -> void:
 	build.pierce += card.pierce_bonus
 	build.damage_per_target += card.damage_per_target_bonus
 	build.fire_rate_per_pierce += card.fire_rate_per_pierce_bonus
+	build.projectile_size += card.projectile_size_bonus
+	build.projectile_speed_bonus += card.projectile_speed_bonus
+	build.defense += card.defense_bonus
 	attack_timer.wait_time = 1.0 / effective_fire_rate()
 	if card.max_hp_bonus != 0.0:
 		max_hp = maxf(max_hp + card.max_hp_bonus, 10.0)  # 트레이드오프로도 최소 10은 보장
@@ -108,6 +112,8 @@ func _fire_at(target) -> void:
 		p.slow_factor = character.passive_slow_factor
 		p.slow_duration = character.passive_slow_duration
 	p.position = global_position  # Projectiles 컨테이너가 원점에 있어 전역 좌표와 동일
+	p.speed += build.projectile_speed_bonus  # 발사체 속도 카드 (예측 조준도 이 속도로 계산)
+	p.size_scale = build.projectile_size  # 발사체 크기 카드
 	# 적이 아래로 이동 중이므로 비행시간만큼 앞질러 조준 (1회 예측으로 충분)
 	var flight_time: float = global_position.distance_to(target.global_position) / p.speed
 	var predicted: Vector2 = target.global_position + Vector2.DOWN * target.speed * flight_time

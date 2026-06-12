@@ -11,3 +11,7 @@ extends Resource
 # 시너지 스탯 (다른 스탯과 곱해져 효과 발생 — 실효값 계산은 player의 effective_*)
 @export var damage_per_target: float = 0.0  ## 동시 표적 1마다 추가 데미지
 @export var fire_rate_per_pierce: float = 0.0  ## 관통 1마다 추가 연사
+# 뱀서 스타일 추가 스탯
+@export var projectile_size: float = 1.0  ## 발사체 크기 배율 (1.0=기본, 시각+충돌)
+@export var projectile_speed_bonus: float = 0.0  ## 발사체 기본 속도(600)에 더해지는 px/s
+@export var defense: float = 0.0  ## 받는 피해 감소(flat, 최소 1은 들어옴)

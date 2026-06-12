@@ -15,3 +15,7 @@ extends Resource
 @export var damage_per_target_bonus: float = 0.0  ## 동시 표적 1마다 데미지
 @export var fire_rate_per_pierce_bonus: float = 0.0  ## 관통 1마다 연사
 @export var max_hp_bonus: float = 0.0  ## 최대 체력 증감 (음수 가능 — 트레이드오프 카드)
+# 뱀서 스타일 추가 스탯
+@export var projectile_size_bonus: float = 0.0  ## 발사체 크기 배율 증가 (예: +0.4 = +40%)
+@export var projectile_speed_bonus: float = 0.0  ## 발사체 속도(px/s) 증가
+@export var defense_bonus: float = 0.0  ## 방어력(받는 피해 감소) 증가

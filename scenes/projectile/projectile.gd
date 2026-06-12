@@ -18,9 +18,15 @@ var burn_dps := 0.0
 var burn_duration := 0.0
 var slow_factor := 1.0
 var slow_duration := 0.0
+var size_scale := 1.0  ## 발사체 크기 배율 (시각 + 충돌)
 
 func _ready() -> void:
 	rotation = direction.angle()
+	if size_scale != 1.0:
+		$Sprite2D.scale *= size_scale
+		var sh: RectangleShape2D = $CollisionShape2D.shape.duplicate()  # 공유 리소스 복제 후 확대
+		sh.size *= size_scale
+		$CollisionShape2D.shape = sh
 	area_entered.connect(_on_area_entered)
 	$VisibleOnScreenNotifier2D.screen_exited.connect(queue_free)
 

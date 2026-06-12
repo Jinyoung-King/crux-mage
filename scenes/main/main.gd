@@ -43,6 +43,9 @@ var card_pool: Array = [
 	preload("res://resources/cards/card_fury.tres"),
 	preload("res://resources/cards/card_blood.tres"),
 	preload("res://resources/cards/card_crystal.tres"),
+	preload("res://resources/cards/card_proj_size.tres"),
+	preload("res://resources/cards/card_proj_speed.tres"),
+	preload("res://resources/cards/card_defense.tres"),
 ]
 
 var wave_index := 0
