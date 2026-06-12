@@ -357,6 +357,9 @@ func _unregister_enemy() -> void:
 
 func _on_wave_cleared() -> void:
 	print("WAVE CLEAR")
+	# 남은 적 탄막 제거 — 웨이브 사이 카드 선택 중 잔여 탄막에 맞지 않도록
+	for b in get_tree().get_nodes_in_group("enemy_bolts"):
+		b.queue_free()
 	var bonus := wave_index + 1  # 웨이브 클리어 보너스 = 웨이브 번호
 	if $Player.relics.has("greed"):
 		bonus *= RelicLib.GREED_MULT

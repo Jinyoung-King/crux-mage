@@ -10,6 +10,7 @@ var damage := 7.0
 var visual_scale := 1.0  ## 보스 탄막은 더 굵게(생성 전 main이 지정)
 
 func _ready() -> void:
+	add_to_group("enemy_bolts")  # 웨이브 클리어 시 일괄 제거용
 	rotation = direction.angle()
 	$Sprite2D.scale *= visual_scale
 	area_entered.connect(_on_area_entered)

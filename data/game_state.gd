@@ -3,7 +3,7 @@ extends Node
 ## 씬을 새로 로드해도 유지되며, 최고 기록은 user://에 영속 저장된다.
 
 const SAVE_PATH := "user://save.cfg"
-const VERSION := "v0.41"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
+const VERSION := "v0.42"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
 
 # 영구 강화 정의 (id / 이름 / 레벨당 효과 per / 최대 레벨(-1=무한) / 기본 비용 base / 표시 접미사).
 # 다음 레벨 비용 = base × UPGRADE_GROWTH^현재레벨 (초반 저렴·후반 가파름).
