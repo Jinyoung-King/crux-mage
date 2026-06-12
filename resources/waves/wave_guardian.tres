@@ -1,0 +1,39 @@
+[gd_resource type="Resource" script_class="WaveData" load_steps=13 format=3]
+
+[ext_resource type="Script" path="res://data/wave_data.gd" id="1"]
+[ext_resource type="Script" path="res://data/wave_entry.gd" id="2"]
+[ext_resource type="Resource" path="res://resources/enemies/enemy_guardian.tres" id="3"]
+[ext_resource type="Resource" path="res://resources/enemies/enemy_basic.tres" id="4"]
+[ext_resource type="Resource" path="res://resources/enemies/enemy_fast.tres" id="5"]
+[ext_resource type="Resource" path="res://resources/enemies/enemy_slime_big.tres" id="6"]
+[ext_resource type="Resource" path="res://resources/enemies/enemy_caster.tres" id="7"]
+
+[sub_resource type="Resource" id="entry_boss"]
+script = ExtResource("2")
+enemy = ExtResource("3")
+count = 1
+
+[sub_resource type="Resource" id="entry_basic"]
+script = ExtResource("2")
+enemy = ExtResource("4")
+count = 8
+
+[sub_resource type="Resource" id="entry_fast"]
+script = ExtResource("2")
+enemy = ExtResource("5")
+count = 6
+
+[sub_resource type="Resource" id="entry_slime"]
+script = ExtResource("2")
+enemy = ExtResource("6")
+count = 2
+
+[sub_resource type="Resource" id="entry_caster"]
+script = ExtResource("2")
+enemy = ExtResource("7")
+count = 2
+
+[resource]
+script = ExtResource("1")
+spawn_interval = 0.7
+entries = [SubResource("entry_boss"), SubResource("entry_basic"), SubResource("entry_fast"), SubResource("entry_slime"), SubResource("entry_caster")]

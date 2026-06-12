@@ -32,3 +32,9 @@ extends Resource
 @export var charge_interval: float = 0.0
 @export var charge_speed: float = 600.0  ## 돌진/복귀 속도(px/s)
 @export var charge_damage: float = 0.0  ## 돌진이 플레이어에 닿을 때 피해(접촉피해와 별개)
+# 보호막 패턴(수호 마왕): shield_interval > 0이면 주기적으로 예고 후 보호막을 둘러 플레이어 탄을 흡수.
+# shield_duration 내에 shield_hp(무한 스케일 적용)를 못 깨면 shield_heal만큼 회복 → 버스트 DPS 체크.
+@export var shield_interval: float = 0.0
+@export var shield_hp: float = 0.0  ## 보호막 흡수량(체력처럼 hp_scale 배율 적용)
+@export var shield_duration: float = 4.0  ## 보호막 유지 시간(초)
+@export var shield_heal: float = 0.0  ## 시간 내 못 깨면 회복하는 체력

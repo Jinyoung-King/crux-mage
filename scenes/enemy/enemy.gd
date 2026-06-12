@@ -42,6 +42,14 @@ var charge_state := Charge.NONE
 var charge_speed := 0.0
 var charge_damage := 0.0
 var charge_home_y := 0.0  ## 돌진 시작 y(복귀 목표)
+# 보호막 (수호 마왕): 활성 시 플레이어 탄을 hp 대신 흡수
+var shield_duration := 0.0
+var shield_heal := 0.0
+var shield_active := false
+var shield_hp_cur := 0.0
+var shield_hp_max := 0.0
+var shield_time_left := 0.0
+var shield_node: ColorRect
 
 func _ready() -> void:
 	add_to_group("enemies")
@@ -85,6 +93,15 @@ func setup(data: EnemyData, hp_scale: float = 1.0) -> void:
 		ct.autostart = true
 		ct.timeout.connect(_on_charge_timer)
 		add_child(ct)
+	if data.shield_interval > 0.0:
+		shield_hp_max = data.shield_hp * hp_scale  # 보호막도 무한 스케일과 함께 커짐
+		shield_duration = data.shield_duration
+		shield_heal = data.shield_heal
+		var st := Timer.new()
+		st.wait_time = data.shield_interval
+		st.autostart = true
+		st.timeout.connect(_on_shield_timer)
+		add_child(st)
 	$Sprite2D.texture = data.sprite
 	# 표시 배율 = 크기/텍스처폭 (대부분 적은 3배, 중간보스는 축소판이라 더 작음)
 	sprite_scale = data.size / float(data.sprite.get_width())
@@ -120,6 +137,11 @@ func _physics_process(delta: float) -> void:
 		if hp <= 0.0:
 			_die()
 			return
+	# 보호막 지속시간: 시간 내 안 깨지면 회복하고 해제 (버스트 못 넣으면 처치 지연)
+	if shield_active:
+		shield_time_left -= delta
+		if shield_time_left <= 0.0:
+			_resolve_shield_survived()
 	# 돌진 중에는 일반 하강·도달 판정을 건너뛰고 돌진 이동만 처리
 	if charge_state != Charge.NONE:
 		_process_charge(delta)
@@ -166,8 +188,16 @@ func _process_charge(delta: float) -> void:
 func take_damage(amount: float) -> void:
 	if hp <= 0.0:
 		return  # 같은 프레임에 여러 발 맞았을 때 중복 사망 처리 방지
-	hp -= amount
 	_flash()
+	# 보호막 활성 시: 탄을 hp 대신 보호막이 먼저 흡수, 깨지면 초과분만 본체로
+	if shield_active:
+		shield_hp_cur -= amount
+		if shield_hp_cur > 0.0:
+			_update_shield_visual()
+			return
+		amount = -shield_hp_cur  # 초과 피해
+		_break_shield()
+	hp -= amount
 	if hp <= 0.0:
 		_die()
 
@@ -246,6 +276,54 @@ func _telegraph(then: Callable) -> void:
 ## 예고·돌진이 진행 중이면 다른 특수공격을 시작하지 않도록
 func _busy() -> bool:
 	return _telegraphing or charge_state != Charge.NONE
+
+## 보호막 타이머: 예고 후 보호막 전개 (예고·돌진 중이거나 이미 보호막이 있으면 건너뜀)
+func _on_shield_timer() -> void:
+	if hp <= 0.0 or _busy() or shield_active:
+		return
+	_telegraph(_raise_shield)
+
+func _raise_shield() -> void:
+	if hp <= 0.0:
+		return
+	shield_active = true
+	shield_hp_cur = shield_hp_max
+	shield_time_left = shield_duration
+	var s := body_size * 1.5
+	shield_node = ColorRect.new()
+	shield_node.color = Color(0.3, 0.8, 1.0, 0.45)
+	shield_node.size = Vector2(s, s)
+	shield_node.position = Vector2(-s / 2.0, -s / 2.0)
+	shield_node.pivot_offset = Vector2(s / 2.0, s / 2.0)
+	shield_node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(shield_node)
+	# 팝인 (노드에 묶인 트윈이라 보호막이 곧 깨져도 안전)
+	shield_node.scale = Vector2(0.6, 0.6)
+	shield_node.create_tween().tween_property(shield_node, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	print("%s SHIELD UP (hp=%.0f)" % [display_name, shield_hp_max])
+
+## 보호막이 시간 내 격파됨 — 본체 노출
+func _break_shield() -> void:
+	shield_active = false
+	if shield_node:
+		shield_node.queue_free()
+		shield_node = null
+	print("%s SHIELD BROKEN" % display_name)
+
+## 보호막이 시간 내 안 깨짐 — 회복하고 해제 (버스트 실패 시 압박)
+func _resolve_shield_survived() -> void:
+	shield_active = false
+	if shield_node:
+		shield_node.queue_free()
+		shield_node = null
+	hp = minf(hp + shield_heal, max_hp)
+	print("%s SHIELD HELD → HEAL +%.0f" % [display_name, shield_heal])
+
+## 보호막 잔량에 따라 투명도 갱신 (탄을 맞을수록 옅어짐)
+func _update_shield_visual() -> void:
+	if shield_node and shield_hp_max > 0.0:
+		var frac := clampf(shield_hp_cur / shield_hp_max, 0.0, 1.0)
+		shield_node.color.a = 0.15 + 0.35 * frac
 
 ## 상태이상에 따른 색조: 화상=주황 끼, 둔화=푸른 끼, 둘 다면 혼합
 func _update_tint() -> void:

@@ -132,7 +132,7 @@ grow_horizontal = 0
 grow_vertical = 0
 theme_override_font_sizes/font_size = 16
 horizontal_alignment = 2
-text = "v0.18"
+text = "v0.19"
 
 [node name="SpawnTimer" type="Timer" parent="."]
 
