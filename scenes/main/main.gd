@@ -12,6 +12,12 @@ const CHOICES_PER_CLEAR := 3
 const RARITY_WEIGHT := {"common": 3.0, "rare": 1.0}  # 카드 등장 가중치
 const ENDLESS_HP_GROWTH := 0.15  # 무한 모드 단계당 적 체력 증가율
 const SPEEDS := [1.0, 2.0, 3.0]  # 배속 순환 단계(탭마다 1→2→3→1x)
+# 무한 모드 엘리트 수식어 (잡몹이 일정 확률로 하나를 달고 등장). 누락 배수는 1.0 취급.
+const MODIFIERS := [
+	{"name": "신속", "color": Color(1.0, 0.9, 0.3), "speed_mul": 1.7, "coins": 3},
+	{"name": "강철", "color": Color(0.5, 0.85, 0.95), "hp_mul": 2.5, "coins": 3},
+	{"name": "거대", "color": Color(1.0, 0.45, 0.4), "size_mul": 1.4, "hp_mul": 1.8, "contact_mul": 1.5, "coins": 4},
+]
 
 # 정의된 일반 웨이브들 (5의 배수 웨이브는 보스, 그 외 이후는 무한 모드로 증폭 생성)
 var waves: Array = [
@@ -125,6 +131,15 @@ func _boss_wave_for(index: int) -> WaveData:
 	var ordinal := (index + 1) / 10  # 보스 등장 회차(정수 나눗셈): wave10→1, 20→2…
 	return boss_wave if ordinal % 2 == 1 else guardian_wave
 
+## 무한 모드 엘리트 굴림: 단계가 깊을수록 자주(최대 50%). 무한 전(단계 0)에는 없음.
+func _roll_elite() -> Dictionary:
+	var lvl := _endless_level(wave_index)
+	if lvl <= 0:
+		return {}
+	if randf() < minf(0.12 + 0.04 * lvl, 0.5):
+		return MODIFIERS[randi() % MODIFIERS.size()]
+	return {}
+
 func _start_wave(index: int) -> void:
 	wave_index = index
 	spawn_list = _build_spawn_list(index)
@@ -187,13 +202,15 @@ func _spawn_enemy() -> void:
 ## 적 1마리 생성 공통 처리 (웨이브 스폰용 — 즉시 생성)
 func _spawn_one(data: EnemyData, pos: Vector2) -> void:
 	alive += 1
-	_create_enemy(data, pos)
+	# 무한 모드 잡몹(보스·중간보스 제외)은 일정 확률로 엘리트 수식어를 달고 등장
+	var elite := _roll_elite() if not data.show_hp_bar else {}
+	_create_enemy(data, pos, elite)
 
-func _create_enemy(data: EnemyData, pos: Vector2) -> void:
+func _create_enemy(data: EnemyData, pos: Vector2, elite: Dictionary = {}) -> void:
 	if game_over:
 		return  # 게임오버 이후 도착한 예약 스폰은 무시
 	var enemy = ENEMY_SCENE.instantiate()
-	enemy.setup(data, endless_hp_scale)
+	enemy.setup(data, endless_hp_scale, elite)
 	enemy.position = pos
 	enemy.goal_y = $Player.position.y - 30.0 - data.size / 2.0  # 플레이어 반높이 + 적 반높이
 	enemy.died.connect(_on_enemy_died)
@@ -246,7 +263,7 @@ func _on_enemy_charge_hit(damage: float) -> void:
 	_flash_screen()
 	$Player.take_damage(damage)
 
-func _on_enemy_died(pos: Vector2, color: Color, size: float, tex: Texture2D) -> void:
+func _on_enemy_died(pos: Vector2, color: Color, size: float, tex: Texture2D, coins: int) -> void:
 	$SfxEnemyDie.play()
 	var burst = DEATH_BURST_SCENE.instantiate()
 	burst.position = pos
@@ -260,7 +277,7 @@ func _on_enemy_died(pos: Vector2, color: Color, size: float, tex: Texture2D) -> 
 	remains.setup(tex, size)
 	if size >= 42.0:
 		_add_shake(size / 8.0)  # 큰 적이 죽을수록 화면이 더 울리도록 (보스 9)
-	run_coins += 1  # 처치 코인 (도달한 적은 _unregister만 — 코인 없음)
+	run_coins += coins  # 처치 코인 (엘리트는 보너스, 도달한 적은 _unregister만 — 코인 없음)
 	_update_coin_label()
 	_unregister_enemy()
 

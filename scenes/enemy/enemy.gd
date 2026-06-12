@@ -1,7 +1,7 @@
 extends Area2D
 ## 위에서 스폰되어 아래(플레이어 쪽)로 직진하는 적.
 
-signal died(pos: Vector2, color: Color, size: float, tex: Texture2D)
+signal died(pos: Vector2, color: Color, size: float, tex: Texture2D, coins: int)
 signal reached_player(contact_damage: float)
 signal summon(data: EnemyData, count: int, pos: Vector2)
 signal ranged_attack(damage: float, from_pos: Vector2, count: int, spread_deg: float, bolt_scale: float)
@@ -50,6 +50,8 @@ var shield_hp_cur := 0.0
 var shield_hp_max := 0.0
 var shield_time_left := 0.0
 var shield_node: ColorRect
+# 엘리트 수식어 (무한 모드 잡몹): 처치 시 줄 코인
+var coin_value := 1
 
 func _ready() -> void:
 	add_to_group("enemies")
@@ -61,7 +63,7 @@ func _ready() -> void:
 
 ## 스폰 시 적 종류 데이터 적용 (add_child 전에 호출할 것)
 ## hp_scale: 무한 모드 체력 배율
-func setup(data: EnemyData, hp_scale: float = 1.0) -> void:
+func setup(data: EnemyData, hp_scale: float = 1.0, elite: Dictionary = {}) -> void:
 	max_hp = data.hp * hp_scale
 	speed = data.speed
 	contact_damage = data.contact_damage
@@ -102,16 +104,26 @@ func setup(data: EnemyData, hp_scale: float = 1.0) -> void:
 		st.autostart = true
 		st.timeout.connect(_on_shield_timer)
 		add_child(st)
+	# 엘리트 수식어(무한 모드 잡몹): 스탯 배수·보너스 코인·색 (main이 결정해 전달)
+	if not elite.is_empty():
+		coin_value = elite.get("coins", 1)
+		max_hp *= elite.get("hp_mul", 1.0)
+		speed *= elite.get("speed_mul", 1.0)
+		contact_damage *= elite.get("contact_mul", 1.0)
+		body_size *= elite.get("size_mul", 1.0)
+		effect_color = elite.get("color", effect_color)
 	$Sprite2D.texture = data.sprite
-	# 표시 배율 = 크기/텍스처폭 (대부분 적은 3배, 중간보스는 축소판이라 더 작음)
-	sprite_scale = data.size / float(data.sprite.get_width())
+	# 표시 배율 = 크기/텍스처폭 (엘리트 거대 수식어면 body_size가 커져 함께 확대)
+	sprite_scale = body_size / float(data.sprite.get_width())
 	$Sprite2D.scale = Vector2(sprite_scale, sprite_scale)
 	# 충돌 모양은 인스턴스 간 공유되므로 새로 만들어 크기 적용
 	var shape := RectangleShape2D.new()
-	shape.size = Vector2(data.size, data.size)
+	shape.size = Vector2(body_size, body_size)
 	$CollisionShape2D.shape = shape
 	if data.show_hp_bar:
-		_build_hp_bar(data.size)
+		_build_hp_bar(body_size)
+	if not elite.is_empty():
+		_build_elite_aura(elite.get("color", Color.WHITE))
 
 ## 머리 위 HP바 생성 (중간보스·보스). 스프라이트 위에 그려지도록 마지막에 add.
 func _build_hp_bar(enemy_size: float) -> void:
@@ -126,6 +138,17 @@ func _build_hp_bar(enemy_size: float) -> void:
 	hp_fill.size = Vector2(HP_BAR_W, 6.0)
 	hp_fill.position = Vector2(-HP_BAR_W / 2.0, top)
 	add_child(hp_fill)
+
+## 엘리트 오라: 수식어 색의 반투명 사각을 스프라이트 뒤에 깔아 한눈에 구분
+func _build_elite_aura(color: Color) -> void:
+	var s := body_size * 1.35
+	var aura := ColorRect.new()
+	aura.color = Color(color.r, color.g, color.b, 0.35)
+	aura.size = Vector2(s, s)
+	aura.position = Vector2(-s / 2.0, -s / 2.0)
+	aura.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(aura)
+	move_child(aura, 0)  # 맨 뒤로 (스프라이트 뒤에 그려지도록)
 
 func _physics_process(delta: float) -> void:
 	if hp <= 0.0:
@@ -217,7 +240,7 @@ func _die() -> void:
 	# 마지막 적이 분열할 때 웨이브 클리어가 새끼 생성 전에 판정되는 것을 막는다.
 	if split_count > 0 and split_enemy != null:
 		summon.emit(split_enemy, split_count, global_position)
-	died.emit(global_position, effect_color, body_size, $Sprite2D.texture)
+	died.emit(global_position, effect_color, body_size, $Sprite2D.texture, coin_value)
 	queue_free()
 
 func _on_summon_timer(data: EnemyData) -> void:
