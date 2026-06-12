@@ -44,6 +44,8 @@ var spawn_list: Array = []  # 이번 웨이브에서 스폰할 EnemyData 순서
 var endless_hp_scale := 1.0  # 이번 웨이브의 적 체력 배율 (무한 모드에서 상승)
 var spawned := 0
 var alive := 0
+var run_coins := 0  # 이번 런 누적 코인 (사망 시 GameState에 정산)
+var start_drafts_left := 0  # 웨이브 전 시작 드래프트 남은 횟수 (1 + 추가 시작 카드 레벨)
 var game_over := false
 var shake := 0.0  # 화면 흔들림 세기(px), 매 프레임 감쇠
 
@@ -56,6 +58,7 @@ var shake := 0.0  # 화면 흔들림 세기(px), 매 프레임 감쇠
 @onready var best_label: Label = $HUD/BestLabel
 @onready var char_select_button: Button = $HUD/CharSelectButton
 @onready var speed_button: Button = $HUD/SpeedButton
+@onready var coin_label: Label = $HUD/CoinLabel
 
 func _ready() -> void:
 	var ch: CharacterData = GameState.selected
@@ -72,12 +75,17 @@ func _ready() -> void:
 	_apply_speed(GameState.game_speed)  # 저장된 배속 복원
 	_on_player_hp_changed($Player.hp, $Player.max_hp)  # HP 초기 표시
 	_update_best_label()
-	# 게임 시작: 웨이브 전에 카드부터 1장 선택 (선택 시 _on_card_chosen이 _start_wave(0)=Wave 1)
+	_update_coin_label()
+	# 게임 시작: 웨이브 전 카드 드래프트 (추가 시작 카드 강화만큼 반복) → 마지막 선택이 Wave 1
 	wave_index = -1
+	start_drafts_left = 1 + GameState.upgrade_level("extra_card")
 	card_select.open(_draw_cards(CHOICES_PER_CLEAR))
 
 func _update_best_label() -> void:
 	best_label.text = "최고: Wave %d" % GameState.best_wave if GameState.best_wave > 0 else ""
+
+func _update_coin_label() -> void:
+	coin_label.text = "코인 %d" % run_coins
 
 func _process(delta: float) -> void:
 	# 화면 흔들림: 월드(Main)만 움직임 — HUD(CanvasLayer)는 영향 없음
@@ -248,6 +256,8 @@ func _on_enemy_died(pos: Vector2, color: Color, size: float, tex: Texture2D) -> 
 	remains.setup(tex, size)
 	if size >= 42.0:
 		_add_shake(size / 8.0)  # 큰 적이 죽을수록 화면이 더 울리도록 (보스 9)
+	run_coins += 1  # 처치 코인 (도달한 적은 _unregister만 — 코인 없음)
+	_update_coin_label()
 	_unregister_enemy()
 
 func _on_enemy_reached_player(contact_damage: float) -> void:
@@ -267,6 +277,8 @@ func _unregister_enemy() -> void:
 
 func _on_wave_cleared() -> void:
 	print("WAVE CLEAR")
+	run_coins += wave_index + 1  # 웨이브 클리어 보너스 = 웨이브 번호
+	_update_coin_label()
 	# 보스 웨이브 보상은 희귀 카드 확정
 	card_select.open(_draw_cards(CHOICES_PER_CLEAR, _wave_kind(wave_index) == "boss"))
 
@@ -304,6 +316,12 @@ func _draw_cards(count: int, rare_only: bool = false) -> Array:
 func _on_card_chosen(card: CardData) -> void:
 	$SfxCardPick.play()
 	$Player.apply_card(card)
+	# 웨이브 전 시작 드래프트가 더 남아 있으면 다음 드래프트를 열고 Wave는 미룸
+	if wave_index == -1:
+		start_drafts_left -= 1
+		if start_drafts_left > 0:
+			card_select.open(_draw_cards(CHOICES_PER_CLEAR))
+			return
 	_start_wave(wave_index + 1)
 
 func _on_player_hp_changed(hp: float, max_hp: float) -> void:
@@ -314,6 +332,8 @@ func _on_player_died() -> void:
 	print("GAME OVER")
 	wave_label.text = "GAME OVER - Wave %d" % (wave_index + 1)
 	GameState.record_wave(wave_index + 1)  # 최고 기록 갱신·저장 (신규 해금 가능)
+	GameState.add_coins(run_coins)  # 이번 런 코인 정산·저장
+	coin_label.text = "코인 +%d 획득!" % run_coins
 	_update_best_label()
 	$SfxGameOver.play()  # process_mode=ALWAYS라 일시정지 중에도 재생됨
 	# 일시정지 직전 흔들림 원위치 + 붉은 톤 고정 (멈춘 화면 연출)

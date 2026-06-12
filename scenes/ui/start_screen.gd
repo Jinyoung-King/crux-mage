@@ -9,6 +9,7 @@ var cards: Array = []
 @onready var grid: GridContainer = $Center/Grid
 @onready var play_button: Button = $Center/PlayButton
 @onready var best_label: Label = $Center/BestLabel
+@onready var upgrade_button: Button = $Center/UpgradeButton
 
 func _ready() -> void:
 	best_label.text = "최고 기록: Wave %d" % GameState.best_wave if GameState.best_wave > 0 else "첫 도전을 시작하세요"
@@ -20,6 +21,8 @@ func _ready() -> void:
 	if not GameState.is_unlocked(GameState.characters[selected_index]):
 		selected_index = 0  # 해금된 캐릭터로 보정
 	play_button.pressed.connect(_on_play)
+	upgrade_button.pressed.connect(_on_upgrade)
+	upgrade_button.text = "강화 (코인 %d)" % GameState.coins
 	_refresh()
 
 func _make_card(c: CharacterData, idx: int) -> Button:
@@ -84,3 +87,6 @@ func _refresh() -> void:
 func _on_play() -> void:
 	GameState.selected = GameState.characters[selected_index]
 	get_tree().change_scene_to_file("res://scenes/main/main.tscn")
+
+func _on_upgrade() -> void:
+	get_tree().change_scene_to_file("res://scenes/ui/meta_upgrade.tscn")

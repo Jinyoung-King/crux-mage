@@ -4,6 +4,16 @@ extends Node
 
 const SAVE_PATH := "user://save.cfg"
 
+# 영구 강화 정의 (id / 이름 / 레벨당 효과 per / 최대 레벨 / 레벨별 비용 / 표시 접미사).
+# 비용은 초반 저렴·후반 가파른 기하급수형.
+const UPGRADES := [
+	{"id": "damage", "name": "시작 공격력", "per": 2.0, "max": 5, "costs": [5, 12, 25, 50, 100], "suffix": " 공격력"},
+	{"id": "max_hp", "name": "시작 체력", "per": 20.0, "max": 5, "costs": [5, 12, 25, 50, 100], "suffix": " 체력"},
+	{"id": "fire_rate", "name": "시작 연사", "per": 0.2, "max": 5, "costs": [8, 18, 36, 70, 130], "suffix": "/s 연사"},
+	{"id": "pierce", "name": "시작 관통", "per": 1.0, "max": 3, "costs": [20, 50, 120], "suffix": " 관통"},
+	{"id": "extra_card", "name": "추가 시작 카드", "per": 1.0, "max": 2, "costs": [50, 150], "suffix": "장(웨이브 전)"},
+]
+
 # 컬렉션 로스터 (unlock_wave 오름차순)
 var characters: Array = [
 	preload("res://resources/characters/char_apprentice.tres"),
@@ -14,6 +24,8 @@ var characters: Array = [
 var selected: CharacterData
 var best_wave := 0
 var game_speed := 1.0  ## 배속 설정(1/2/3x) — 씬 리로드·재시작에도 유지, user://에 영속
+var coins := 0  ## 영구 재화 (런 종료 시 누적)
+var upgrades := {}  ## 영구 강화 레벨 (id → level)
 
 func _ready() -> void:
 	_load()
@@ -41,14 +53,60 @@ func set_game_speed(s: float) -> void:
 	game_speed = s
 	_save()
 
+## --- 영구 강화 ---
+func upgrade_def(id: String) -> Dictionary:
+	for u in UPGRADES:
+		if u.id == id:
+			return u
+	return {}
+
+func upgrade_level(id: String) -> int:
+	return upgrades.get(id, 0)
+
+## 현재 레벨의 누적 보너스 값 (레벨 × 레벨당 효과)
+func upgrade_value(id: String) -> float:
+	return upgrade_level(id) * upgrade_def(id).get("per", 0.0)
+
+## 다음 레벨 비용 (만렙이면 -1)
+func next_cost(id: String) -> int:
+	var lv := upgrade_level(id)
+	var def := upgrade_def(id)
+	if lv >= int(def.get("max", 0)):
+		return -1
+	return def["costs"][lv]
+
+func can_buy(id: String) -> bool:
+	var c := next_cost(id)
+	return c >= 0 and coins >= c
+
+## 구매 성공 시 코인 차감·레벨↑·저장하고 true 반환
+func buy_upgrade(id: String) -> bool:
+	if not can_buy(id):
+		return false
+	coins -= next_cost(id)
+	upgrades[id] = upgrade_level(id) + 1
+	_save()
+	return true
+
+## 런 종료 시 획득 코인 적립 + 저장
+func add_coins(n: int) -> void:
+	if n <= 0:
+		return
+	coins += n
+	_save()
+
 func _load() -> void:
 	var cf := ConfigFile.new()
 	if cf.load(SAVE_PATH) == OK:
 		best_wave = cf.get_value("record", "best_wave", 0)
 		game_speed = cf.get_value("settings", "game_speed", 1.0)
+		coins = cf.get_value("meta", "coins", 0)
+		upgrades = cf.get_value("meta", "upgrades", {})
 
 func _save() -> void:
 	var cf := ConfigFile.new()
 	cf.set_value("record", "best_wave", best_wave)
 	cf.set_value("settings", "game_speed", game_speed)
+	cf.set_value("meta", "coins", coins)
+	cf.set_value("meta", "upgrades", upgrades)
 	cf.save(SAVE_PATH)

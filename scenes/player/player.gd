@@ -25,10 +25,13 @@ func _ready() -> void:
 ## 선택 캐릭터의 무기·기본 빌드·외형 적용 (게임 시작 시 main이 호출)
 func apply_character(c: CharacterData) -> void:
 	character = c
-	build.damage = c.base_damage
-	build.fire_rate = c.base_fire_rate
+	# 캐릭터 기본 빌드 + 영구 강화(메타) 보너스 가산
+	build.damage = c.base_damage + GameState.upgrade_value("damage")
+	build.fire_rate = c.base_fire_rate + GameState.upgrade_value("fire_rate")
 	build.projectile_count = c.base_projectile_count
-	build.pierce = c.base_pierce
+	build.pierce = c.base_pierce + int(GameState.upgrade_value("pierce"))
+	max_hp += GameState.upgrade_value("max_hp")  # 기본 100 위에 가산
+	hp = max_hp
 	attack_timer.wait_time = 1.0 / effective_fire_rate()
 	$Sprite2D.texture = c.mage_sprite
 
