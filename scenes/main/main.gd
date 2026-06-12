@@ -10,14 +10,14 @@ const CHOICES_PER_CLEAR := 3
 const RARITY_WEIGHT := {"common": 3.0, "rare": 1.0}  # 카드 등장 가중치
 const ENDLESS_HP_GROWTH := 0.15  # 무한 모드 단계당 적 체력 증가율
 
-# 정의된 웨이브들 (다 깨면 무한 모드로 증폭 생성)
+# 정의된 일반 웨이브들 (5의 배수 웨이브는 보스, 그 외 이후는 무한 모드로 증폭 생성)
 var waves: Array = [
 	preload("res://resources/waves/wave_01.tres"),
 	preload("res://resources/waves/wave_02.tres"),
 	preload("res://resources/waves/wave_03.tres"),
 	preload("res://resources/waves/wave_04.tres"),
-	preload("res://resources/waves/wave_05.tres"),
 ]
+var boss_wave: WaveData = preload("res://resources/waves/wave_boss.tres")
 # 보상 후보 카드 풀 (소모되지 않으므로 같은 카드가 다시 나올 수 있음)
 var card_pool: Array = [
 	preload("res://resources/cards/card_damage_up.tres"),
@@ -27,6 +27,7 @@ var card_pool: Array = [
 	preload("res://resources/cards/card_heal.tres"),
 	preload("res://resources/cards/card_damage_big.tres"),
 	preload("res://resources/cards/card_fire_rate_big.tres"),
+	preload("res://resources/cards/card_multi_big.tres"),
 ]
 
 var wave_index := 0
@@ -70,56 +71,92 @@ func _flash_screen() -> void:
 	flash_overlay.color.a = 0.35
 	create_tween().tween_property(flash_overlay, "color:a", 0.0, 0.25)
 
+## 5의 배수 웨이브가 보스 웨이브
+func _is_boss_wave(index: int) -> bool:
+	return (index + 1) % 5 == 0
+
+## 웨이브 5 이후의 증폭 단계 (웨이브 6 → 1, 7 → 2, ...)
+func _endless_level(index: int) -> int:
+	return maxi(index + 1 - 5, 0)
+
 func _start_wave(index: int) -> void:
 	wave_index = index
 	spawn_list = _build_spawn_list(index)
-	var endless_level: int = maxi(index - waves.size() + 1, 0)
-	endless_hp_scale = pow(1.0 + ENDLESS_HP_GROWTH, endless_level)  # 복리: 후반 빌드 성장을 따라잡도록
+	endless_hp_scale = pow(1.0 + ENDLESS_HP_GROWTH, _endless_level(index))  # 복리: 후반 빌드 성장을 따라잡도록
 	spawned = 0
 	alive = 0
-	wave_label.text = "Wave %d" % (index + 1)
+	if _is_boss_wave(index):
+		wave_label.text = "Wave %d - 보스" % (index + 1)
+		_add_shake(6.0)  # 보스 등장 예고
+		print("BOSS WAVE")
+	else:
+		wave_label.text = "Wave %d" % (index + 1)
 	spawn_timer.wait_time = _wave_interval(index)
 	spawn_timer.start()
 	print("WAVE %d START" % (index + 1))
 
-## 정의된 웨이브는 데이터에서, 그 이후(무한 모드)는 마지막 웨이브를 증폭해 생성
+## 정의된 웨이브는 데이터에서, 보스/무한 웨이브는 기준 구성을 증폭해 생성
 func _build_spawn_list(index: int) -> Array:
-	if index < waves.size():
+	var base: Array
+	if _is_boss_wave(index):
+		base = boss_wave.build_spawn_list()
+	elif index < waves.size():
 		return waves[index].build_spawn_list()
-	var level: int = index - waves.size() + 1  # 무한 1단계, 2단계, ...
-	var list: Array = waves.back().build_spawn_list()
-	var extra := int(list.size() * 0.25 * level)
+	else:
+		base = waves.back().build_spawn_list()
+	var extra := int(base.size() * 0.25 * _endless_level(index))
 	for i in extra:
-		list.append(list[randi() % list.size()])  # 기존 구성 비율대로 증원
-	list.shuffle()
-	return list
+		base.append(base[randi() % base.size()])  # 기존 구성 비율대로 증원
+	base.shuffle()
+	return base
 
 func _wave_interval(index: int) -> float:
-	if index < waves.size():
-		return waves[index].spawn_interval
-	var level: int = index - waves.size() + 1
-	return maxf(waves.back().spawn_interval * pow(0.95, level), 0.25)
+	var base_interval: float
+	if _is_boss_wave(index):
+		base_interval = boss_wave.spawn_interval
+	elif index < waves.size():
+		base_interval = waves[index].spawn_interval
+	else:
+		base_interval = waves.back().spawn_interval
+	return maxf(base_interval * pow(0.95, _endless_level(index)), 0.25)
 
 func _spawn_enemy() -> void:
-	var data: EnemyData = spawn_list[spawned]
-	var enemy = ENEMY_SCENE.instantiate()
-	enemy.setup(data, endless_hp_scale)
-	enemy.position = Vector2(randf_range(SPAWN_X_MIN, SPAWN_X_MAX), SPAWN_Y)
-	enemy.goal_y = $Player.position.y - 30.0 - data.size / 2.0  # 플레이어 반높이 + 적 반높이
-	enemy.died.connect(_on_enemy_died)
-	enemy.reached_player.connect(_on_enemy_reached_player)
-	$Enemies.add_child(enemy)
+	_spawn_one(spawn_list[spawned], Vector2(randf_range(SPAWN_X_MIN, SPAWN_X_MAX), SPAWN_Y))
 	spawned += 1
-	alive += 1
 	if spawned >= spawn_list.size():
 		spawn_timer.stop()
 
-func _on_enemy_died(pos: Vector2, color: Color) -> void:
+## 적 1마리 생성 공통 처리 (웨이브 스폰·보스 소환 양쪽에서 사용)
+func _spawn_one(data: EnemyData, pos: Vector2) -> void:
+	var enemy = ENEMY_SCENE.instantiate()
+	enemy.setup(data, endless_hp_scale)
+	enemy.position = pos
+	enemy.goal_y = $Player.position.y - 30.0 - data.size / 2.0  # 플레이어 반높이 + 적 반높이
+	enemy.died.connect(_on_enemy_died)
+	enemy.reached_player.connect(_on_enemy_reached_player)
+	enemy.summon.connect(_on_summon)
+	$Enemies.add_child(enemy)
+	alive += 1
+
+## 보스 소환: 보스 위치 주변에 소환수 생성 (생존 집계에 포함되어 웨이브 클리어 조건에 반영)
+func _on_summon(data: EnemyData, count: int, pos: Vector2) -> void:
+	if game_over:
+		return
+	for i in count:
+		var offset := Vector2(randf_range(-60, 60), randf_range(-10, 30))
+		var p := pos + offset
+		p.x = clampf(p.x, SPAWN_X_MIN, SPAWN_X_MAX)
+		_spawn_one(data, p)
+
+func _on_enemy_died(pos: Vector2, color: Color, size: float) -> void:
 	$SfxEnemyDie.play()
 	var burst = DEATH_BURST_SCENE.instantiate()
 	burst.position = pos
 	burst.color = color
+	burst.amount = 12 + int(size / 4.0)  # 큰 적일수록 파편 많이 (보스 30개)
 	$Fx.add_child(burst)
+	if size >= 72.0:
+		_add_shake(10.0)  # 보스 사망은 화면이 울리도록
 	_unregister_enemy()
 
 func _on_enemy_reached_player(contact_damage: float) -> void:
@@ -139,11 +176,12 @@ func _unregister_enemy() -> void:
 
 func _on_wave_cleared() -> void:
 	print("WAVE CLEAR")
-	card_select.open(_draw_cards(CHOICES_PER_CLEAR))
+	# 보스 웨이브 보상은 희귀 카드 확정
+	card_select.open(_draw_cards(CHOICES_PER_CLEAR, _is_boss_wave(wave_index)))
 
-## 풀에서 희귀도 가중치로 count장 중복 없이 뽑기
-func _draw_cards(count: int) -> Array:
-	var pool := card_pool.duplicate()
+## 풀에서 희귀도 가중치로 count장 중복 없이 뽑기. rare_only면 희귀 카드만.
+func _draw_cards(count: int, rare_only: bool = false) -> Array:
+	var pool := card_pool.filter(func(c): return c.rarity == "rare") if rare_only else card_pool.duplicate()
 	var picked: Array = []
 	while picked.size() < count and not pool.is_empty():
 		var total := 0.0

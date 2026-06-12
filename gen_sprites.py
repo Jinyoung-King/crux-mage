@@ -130,6 +130,42 @@ TANK_PAL = {
     "R": (255, 80, 80, 255),   # 눈동자(성난 빨강)
 }
 
+# 보스 마왕 (24x24 → 72x72): 뿔 + 붉은 눈 + 이빨
+BOSS = [
+    "...HH..............HH...",
+    "..HHH..............HHH..",
+    "..HH....KKKKKKKK....HH..",
+    "......KKKKKKKKKKKK......",
+    ".....KKKKKKKKKKKKKK.....",
+    "....KKKKKKKKKKKKKKKK....",
+    "....KKRRRKKKKKKRRRKK....",
+    "....KKRRRKKKKKKRRRKK....",
+    "....KKKKKKKKKKKKKKKK....",
+    "...KKKKKKKKKKKKKKKKKK...",
+    "...KKKKPPPPPPPPPPKKKK...",
+    "...KKKPPPPPPPPPPPPKKK...",
+    "...KKKPPMMMMMMMMPPKKK...",
+    "...KKKPPMWMWMWMWPPKKK...",
+    "...KKKPPMMMMMMMMPPKKK...",
+    "...KKKKPPPPPPPPPPKKKK...",
+    "....KKKKKKKKKKKKKKKK....",
+    "....KKKKKKKKKKKKKKKK....",
+    ".....KKKKKKKKKKKKKK.....",
+    "....KKK..KKKKKK..KKK....",
+    "....KK....KKKK....KK....",
+    "...KKK....KKKK....KKK...",
+    "...KK......KK......KK...",
+    "........................",
+]
+BOSS_PAL = {
+    "K": (60, 35, 75, 255),     # 몸통 암보라
+    "P": (110, 60, 130, 255),   # 가슴 보라
+    "R": (255, 60, 60, 255),    # 눈 빨강
+    "H": (230, 220, 200, 255),  # 뿔
+    "M": (135, 25, 45, 255),    # 입
+    "W": (255, 250, 235, 255),  # 이빨
+}
+
 # 마법탄 (5x5 → 15x15): 중심 흰빛 + 노란 광채
 BOLT = [
     "..Y..",
@@ -148,5 +184,6 @@ write_png("wizard.png", WIZARD, WIZARD_PAL)
 write_png("enemy_basic.png", BASIC, BASIC_PAL)
 write_png("enemy_fast.png", FAST, FAST_PAL)
 write_png("enemy_tank.png", TANK, TANK_PAL)
+write_png("enemy_boss.png", BOSS, BOSS_PAL)
 write_png("bolt.png", BOLT, BOLT_PAL)
 print("OK:", sorted(os.listdir(OUT)))

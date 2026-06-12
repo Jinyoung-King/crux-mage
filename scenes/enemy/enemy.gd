@@ -1,8 +1,9 @@
 extends Area2D
 ## 위에서 스폰되어 아래(플레이어 쪽)로 직진하는 적.
 
-signal died(pos: Vector2, color: Color)
+signal died(pos: Vector2, color: Color, size: float)
 signal reached_player(contact_damage: float)
+signal summon(data: EnemyData, count: int, pos: Vector2)
 
 @export var max_hp: float = 30.0
 @export var speed: float = 60.0  ## 이동 속도(px/s)
@@ -11,6 +12,7 @@ signal reached_player(contact_damage: float)
 var hp: float
 var goal_y: float = 2000.0  ## 이 y까지 내려오면 플레이어에 도달 (스폰 시 main이 설정)
 var effect_color := Color(0.85, 0.25, 0.25)  ## 사망 파편 색 (setup에서 지정)
+var body_size := 36.0  ## 파편 양 계산용 (setup에서 지정)
 
 func _ready() -> void:
 	add_to_group("enemies")
@@ -26,6 +28,13 @@ func setup(data: EnemyData, hp_scale: float = 1.0) -> void:
 	speed = data.speed
 	contact_damage = data.contact_damage
 	effect_color = data.effect_color
+	body_size = data.size
+	if data.summon_interval > 0.0:
+		var t := Timer.new()
+		t.wait_time = data.summon_interval
+		t.autostart = true  # 트리 진입 시 자동 시작
+		t.timeout.connect(_on_summon_timer.bind(data))
+		add_child(t)
 	$Sprite2D.texture = data.sprite
 	$Sprite2D.scale = Vector2(3, 3)  # 스프라이트는 size/3 픽셀 그리드로 제작됨
 	# 충돌 모양은 인스턴스 간 공유되므로 새로 만들어 크기 적용
@@ -48,8 +57,12 @@ func take_damage(amount: float) -> void:
 	hp -= amount
 	_flash()
 	if hp <= 0.0:
-		died.emit(global_position, effect_color)
+		died.emit(global_position, effect_color, body_size)
 		queue_free()
+
+func _on_summon_timer(data: EnemyData) -> void:
+	if hp > 0.0:
+		summon.emit(data.summon_enemy, data.summon_count, global_position)
 
 ## 피격 플래시: 밝게 번쩍였다가 원색으로
 func _flash() -> void:
