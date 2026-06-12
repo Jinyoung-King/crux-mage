@@ -64,3 +64,11 @@ custom_minimum_size = Vector2(200, 200)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_fonts/font = ExtResource("2")
+
+[node name="RerollButton" type="Button" parent="Center"]
+custom_minimum_size = Vector2(220, 52)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_fonts/font = ExtResource("2")
+theme_override_font_sizes/font_size = 22
+text = "다시 뽑기 (1회)"

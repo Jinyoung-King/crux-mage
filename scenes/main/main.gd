@@ -53,6 +53,7 @@ var alive := 0
 var run_coins := 0  # 이번 런 누적 코인 (사망 시 GameState에 정산)
 var start_drafts_left := 0  # 웨이브 전 시작 드래프트 남은 횟수 (1 + 추가 시작 카드 레벨)
 var auto_pick := false  # 테스트 편의: 웹에서 ?auto=1로 열면 카드 자동선택(숨김 개발 옵션)
+var _draft_rare := false  # 현재 드래프트가 희귀 확정(보스)인지 — 리롤 시 동일 조건으로 재추첨
 var game_over := false
 var shake := 0.0  # 화면 흔들림 세기(px), 매 프레임 감쇠
 
@@ -76,6 +77,7 @@ func _ready() -> void:
 	$Player.died.connect(_on_player_died)
 	spawn_timer.timeout.connect(_spawn_enemy)
 	card_select.card_chosen.connect(_on_card_chosen)
+	card_select.reroll_requested.connect(_on_reroll_requested)
 	restart_button.pressed.connect(_on_restart_pressed)
 	char_select_button.pressed.connect(_on_char_select_pressed)
 	speed_button.pressed.connect(_on_speed_pressed)
@@ -89,7 +91,7 @@ func _ready() -> void:
 	# 게임 시작: 웨이브 전 카드 드래프트 (추가 시작 카드 강화만큼 반복) → 마지막 선택이 Wave 1
 	wave_index = -1
 	start_drafts_left = 1 + GameState.upgrade_level("extra_card")
-	_open_draft(_draw_cards(CHOICES_PER_CLEAR))
+	_open_draft()
 
 func _update_best_label() -> void:
 	best_label.text = "최고: Wave %d" % GameState.best_wave if GameState.best_wave > 0 else ""
@@ -301,7 +303,7 @@ func _on_wave_cleared() -> void:
 	run_coins += wave_index + 1  # 웨이브 클리어 보너스 = 웨이브 번호
 	_update_coin_label()
 	# 보스 웨이브 보상은 희귀 카드 확정
-	_open_draft(_draw_cards(CHOICES_PER_CLEAR, _wave_kind(wave_index) == "boss"))
+	_open_draft(_wave_kind(wave_index) == "boss")
 
 ## 현재 빌드에서 의미 있는 카드인지 — 죽은 픽(조건 미충족 시너지 등)을 드래프트에서 제외
 func _is_card_useful(card: CardData) -> bool:
@@ -334,11 +336,17 @@ func _draw_cards(count: int, rare_only: bool = false) -> Array:
 				break
 	return picked
 
-## 카드 드래프트 표시. 테스트 자동선택(auto_pick) 시 잠깐 보여준 뒤 무작위 1장.
-func _open_draft(cards: Array) -> void:
+## 카드 드래프트 표시(희귀 확정 여부 rare). 테스트 자동선택(auto_pick) 시 잠깐 뒤 무작위 1장.
+func _open_draft(rare: bool = false) -> void:
+	_draft_rare = rare
+	var cards := _draw_cards(CHOICES_PER_CLEAR, rare)
 	card_select.open(cards)
 	if auto_pick and not cards.is_empty():
 		get_tree().create_timer(0.25).timeout.connect(card_select.pick_random)
+
+## 리롤(드래프트당 1회): 같은 조건으로 새 카드를 뽑아 교체
+func _on_reroll_requested() -> void:
+	card_select.refill(_draw_cards(CHOICES_PER_CLEAR, _draft_rare))
 
 func _on_card_chosen(card: CardData) -> void:
 	$SfxCardPick.play()
@@ -347,7 +355,7 @@ func _on_card_chosen(card: CardData) -> void:
 	if wave_index == -1:
 		start_drafts_left -= 1
 		if start_drafts_left > 0:
-			_open_draft(_draw_cards(CHOICES_PER_CLEAR))
+			_open_draft()
 			return
 	_start_wave(wave_index + 1)
 

@@ -3,21 +3,42 @@ extends Control
 ## 희귀도에 따라 카드 프레임이 달라진다(일반=강철 테두리 / 희귀=금테+발광).
 
 signal card_chosen(card)
+signal reroll_requested  ## 드래프트당 무료 1회 — main이 새 카드를 뽑아 refill
 
 const FONT := preload("res://assets/fonts/NotoSansKR.ttf")
 const GOLD := Color(1.0, 0.84, 0.4)
 const STEEL := Color(0.62, 0.72, 0.88)
 
 @onready var buttons: Array = [$Center/Cards/Card1, $Center/Cards/Card2, $Center/Cards/Card3]
+@onready var reroll_button: Button = $Center/RerollButton
 
 var shown_cards: Array = []
+var can_reroll := false
 
 func _ready() -> void:
 	for i in buttons.size():
 		buttons[i].pressed.connect(_on_button_pressed.bind(i))
+	reroll_button.pressed.connect(_on_reroll_pressed)
 
-## cards(CardData 배열, 최대 3장)를 꾸며서 표시
+## cards(CardData 배열, 최대 3장)를 꾸며서 표시 + 리롤 1회 초기화
 func open(cards: Array) -> void:
+	can_reroll = true
+	reroll_button.disabled = false
+	reroll_button.text = "다시 뽑기 (1회)"
+	_render_cards(cards)
+	show()
+	# 패널 팝
+	var center: Control = $Center
+	center.pivot_offset = center.size / 2.0
+	center.scale = Vector2(0.9, 0.9)
+	create_tween().tween_property(center, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+## 리롤: 카드만 교체 (리롤 1회는 이미 소진된 상태로 유지)
+func refill(cards: Array) -> void:
+	_render_cards(cards)
+
+## 카드 버튼 스타일링 + 순차 등장(딜링 느낌)
+func _render_cards(cards: Array) -> void:
 	shown_cards = cards
 	for i in buttons.size():
 		var btn: Button = buttons[i]
@@ -26,17 +47,19 @@ func open(cards: Array) -> void:
 			btn.visible = true
 		else:
 			btn.visible = false
-	show()
-	# 패널 팝 + 카드 순차 등장(딜링 느낌)
-	var center: Control = $Center
-	center.pivot_offset = center.size / 2.0
-	center.scale = Vector2(0.9, 0.9)
-	create_tween().tween_property(center, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	for i in cards.size():
 		buttons[i].modulate.a = 0.0
 		var t := create_tween()
 		t.tween_interval(0.05 + 0.07 * i)
 		t.tween_property(buttons[i], "modulate:a", 1.0, 0.18)
+
+func _on_reroll_pressed() -> void:
+	if not can_reroll:
+		return
+	can_reroll = false
+	reroll_button.disabled = true
+	reroll_button.text = "다시 뽑기 (소진)"
+	reroll_requested.emit()
 
 ## 카드 한 장을 희귀도에 맞춰 꾸민다 (프레임 + 뱃지/이름/설명)
 func _style_card(btn: Button, card) -> void:

@@ -55,7 +55,13 @@ func _refresh() -> void:
 		var id: String = def["id"]
 		var lv := GameState.upgrade_level(id)
 		var bonus := GameState.upgrade_value(id)
-		var bonus_str := ("%.1f" % bonus) if id == "fire_rate" else str(int(bonus))
+		var bonus_str: String
+		if id == "fire_rate":
+			bonus_str = "%.1f" % bonus
+		elif id == "lifesteal":
+			bonus_str = str(int(round(bonus * 100.0)))  # 비율 → 퍼센트
+		else:
+			bonus_str = str(int(bonus))
 		row_labels[id].text = "%s  Lv %d/%d  (현재 +%s%s)" % [def["name"], lv, def["max"], bonus_str, def["suffix"]]
 		var btn: Button = row_buttons[id]
 		var cost := GameState.next_cost(id)

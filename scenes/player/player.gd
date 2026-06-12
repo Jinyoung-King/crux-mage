@@ -12,6 +12,7 @@ const PROJECTILE_SCENE := preload("res://scenes/projectile/projectile.tscn")
 var build: BuildState
 var hp: float
 var character: CharacterData
+var lifesteal := 0.0  ## 입힌 피해의 흡혈 비율 (영구 강화)
 
 @onready var attack_timer: Timer = $AttackTimer
 
@@ -32,6 +33,7 @@ func apply_character(c: CharacterData) -> void:
 	build.pierce = c.base_pierce + int(GameState.upgrade_value("pierce"))
 	max_hp += GameState.upgrade_value("max_hp")  # 기본 100 위에 가산
 	hp = max_hp
+	lifesteal = GameState.upgrade_value("lifesteal")
 	attack_timer.wait_time = 1.0 / effective_fire_rate()
 	$Sprite2D.texture = c.mage_sprite
 
@@ -112,4 +114,17 @@ func _fire_at(target) -> void:
 	p.direction = (predicted - global_position).normalized()
 	p.damage = effective_damage()
 	p.pierce = build.pierce
+	p.lifesteal = lifesteal
+	if lifesteal > 0.0:
+		p.dealt.connect(_on_lifesteal)  # 명중 시 흡혈 회복
 	fired.emit(p)
+
+## 흡혈 회복 (발사체가 적에 피해를 입힐 때마다)
+func _on_lifesteal(amount: float) -> void:
+	heal(amount)
+
+func heal(amount: float) -> void:
+	if hp <= 0.0:
+		return  # 사망 후에는 회복 없음
+	hp = minf(hp + amount, max_hp)
+	hp_changed.emit(hp, max_hp)

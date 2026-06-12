@@ -3,11 +3,14 @@ extends Area2D
 ## 적과 충돌하면 데미지를 주고, pierce(추가 관통 수)가 남아 있으면 통과한다.
 ## 캐릭터 패시브(치명타/화상/둔화)는 플레이어가 발사 시 설정한다.
 
+signal dealt(heal: float)  ## 적에 피해를 입힐 때 흡혈 회복량(피해×흡혈률)을 알림
+
 @export var speed: float = 600.0
 
 var direction := Vector2.RIGHT
 var damage := 10.0
 var pierce := 0
+var lifesteal := 0.0  ## 입힌 피해의 흡혈 비율 (플레이어가 발사 시 설정)
 # 패시브 효과 (플레이어가 발사 시 캐릭터에서 채움)
 var crit_chance := 0.0
 var crit_mult := 1.0
@@ -31,6 +34,8 @@ func _on_area_entered(area) -> void:
 	if crit_chance > 0.0 and randf() < crit_chance:
 		dmg *= crit_mult  # 치명타
 	area.take_damage(dmg)
+	if lifesteal > 0.0:
+		dealt.emit(dmg * lifesteal)  # 흡혈: 입힌 피해(치명타 포함) 비율만큼 회복
 	if burn_dps > 0.0:
 		area.apply_burn(burn_dps, burn_duration)
 	if slow_duration > 0.0:

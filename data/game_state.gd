@@ -11,6 +11,7 @@ const UPGRADES := [
 	{"id": "max_hp", "name": "시작 체력", "per": 20.0, "max": 5, "costs": [5, 12, 25, 50, 100], "suffix": " 체력"},
 	{"id": "fire_rate", "name": "시작 연사", "per": 0.2, "max": 5, "costs": [8, 18, 36, 70, 130], "suffix": "/s 연사"},
 	{"id": "pierce", "name": "시작 관통", "per": 1.0, "max": 3, "costs": [20, 50, 120], "suffix": " 관통"},
+	{"id": "lifesteal", "name": "흡혈", "per": 0.03, "max": 4, "costs": [30, 70, 140, 260], "suffix": "% 흡혈"},
 	{"id": "extra_card", "name": "추가 시작 카드", "per": 1.0, "max": 2, "costs": [50, 150], "suffix": "장(웨이브 전)"},
 ]
 
