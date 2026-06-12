@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+card_name = "폭풍의 핵"
+description = "동시 표적 +2 · 관통 +2"
+rarity = "legendary"
+projectile_count_bonus = 2
+pierce_bonus = 2

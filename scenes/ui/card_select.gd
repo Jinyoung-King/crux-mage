@@ -8,6 +8,7 @@ signal reroll_requested  ## 드래프트당 무료 1회 — main이 새 카드�
 const FONT := preload("res://assets/fonts/NotoSansKR.ttf")
 const GOLD := Color(1.0, 0.84, 0.4)
 const STEEL := Color(0.62, 0.72, 0.88)
+const LEGEND := Color(0.8, 0.52, 1.0)  ## 전설 등급(보라)
 
 @onready var buttons: Array = [$Center/Cards/Card1, $Center/Cards/Card2, $Center/Cards/Card3]
 @onready var reroll_button: Button = $Center/RerollButton
@@ -67,9 +68,9 @@ func _style_card(btn: Button, card) -> void:
 		btn.remove_child(c)
 		c.queue_free()
 	btn.text = ""
-	var rare: bool = card.rarity == "rare"
+	var rarity: String = card.rarity
 	for state in ["normal", "hover", "pressed", "focus"]:
-		btn.add_theme_stylebox_override(state, _card_style(rare, state == "hover" or state == "pressed"))
+		btn.add_theme_stylebox_override(state, _card_style(rarity, state == "hover" or state == "pressed"))
 
 	var box := VBoxContainer.new()
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -82,8 +83,9 @@ func _style_card(btn: Button, card) -> void:
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_theme_constant_override("separation", 10)
 
-	box.add_child(_label("★ 희귀" if rare else "일반", 15, GOLD if rare else STEEL))
-	box.add_child(_label(card.card_name, 23, GOLD if rare else Color(0.95, 0.97, 1.0)))
+	var tier := _tier_color(rarity)
+	box.add_child(_label(_tier_badge(rarity), 15, tier))
+	box.add_child(_label(card.card_name, 23, tier if rarity != "common" else Color(0.95, 0.97, 1.0)))
 	var desc := _label(card.description, 15, Color(0.78, 0.81, 0.86))
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(desc)
@@ -99,10 +101,30 @@ func _label(text: String, size: int, color: Color) -> Label:
 	l.add_theme_color_override("font_color", color)
 	return l
 
+func _tier_color(rarity: String) -> Color:
+	if rarity == "legendary":
+		return LEGEND
+	if rarity == "rare":
+		return GOLD
+	return STEEL
+
+func _tier_badge(rarity: String) -> String:
+	if rarity == "legendary":
+		return "★★ 전설"
+	if rarity == "rare":
+		return "★ 희귀"
+	return "일반"
+
 ## 희귀도별 카드 프레임 StyleBox. hl=true면 호버/눌림 강조 변형.
-func _card_style(rare: bool, hl: bool) -> StyleBoxFlat:
+func _card_style(rarity: String, hl: bool) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
-	if rare:
+	if rarity == "legendary":
+		sb.bg_color = Color(0.30, 0.16, 0.36) if hl else Color(0.23, 0.12, 0.30)
+		sb.border_color = Color(0.95, 0.75, 1.0) if hl else LEGEND
+		sb.set_border_width_all(4)
+		sb.shadow_color = Color(0.8, 0.45, 1.0, 0.6)  # 보랏빛 발광
+		sb.shadow_size = 18
+	elif rarity == "rare":
 		sb.bg_color = Color(0.30, 0.23, 0.11) if hl else Color(0.23, 0.17, 0.08)
 		sb.border_color = Color(1.0, 0.9, 0.55) if hl else GOLD
 		sb.set_border_width_all(3)

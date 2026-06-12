@@ -9,7 +9,7 @@ const SPAWN_Y := -60.0  # 화면(720x1280) 위쪽 바깥
 const SPAWN_X_MIN := 60.0  # 스폰 가로 범위 (가장자리 여백 확보)
 const SPAWN_X_MAX := 660.0
 const CHOICES_PER_CLEAR := 3
-const RARITY_WEIGHT := {"common": 3.0, "rare": 1.0}  # 카드 등장 가중치
+const RARITY_WEIGHT := {"common": 3.0, "rare": 1.0, "legendary": 0.3}  # 카드 등장 가중치(전설 희소)
 const ENDLESS_HP_GROWTH := 0.15  # 무한 모드 단계당 적 체력 증가율
 const SPEEDS := [1.0, 2.0, 3.0]  # 배속 순환 단계(탭마다 1→2→3→1x)
 # 무한 모드 엘리트 수식어 (잡몹이 일정 확률로 하나를 달고 등장). 누락 배수는 1.0 취급.
@@ -46,6 +46,8 @@ var card_pool: Array = [
 	preload("res://resources/cards/card_proj_size.tres"),
 	preload("res://resources/cards/card_proj_speed.tres"),
 	preload("res://resources/cards/card_defense.tres"),
+	preload("res://resources/cards/card_legendary_arcane.tres"),
+	preload("res://resources/cards/card_legendary_storm.tres"),
 ]
 
 var wave_index := 0
@@ -337,7 +339,7 @@ func _is_card_useful(card: CardData) -> bool:
 func _draw_cards(count: int, rare_only: bool = false) -> Array:
 	var pool := card_pool.filter(_is_card_useful)
 	if rare_only:
-		pool = pool.filter(func(c): return c.rarity == "rare")
+		pool = pool.filter(func(c): return c.rarity == "rare" or c.rarity == "legendary")
 	var picked: Array = []
 	while picked.size() < count and not pool.is_empty():
 		var total := 0.0
