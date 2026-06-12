@@ -313,7 +313,10 @@ func _on_enemy_charge_hit(damage: float) -> void:
 	$Player.take_damage(damage)
 
 func _on_enemy_died(pos: Vector2, color: Color, size: float, tex: Texture2D, coins: int) -> void:
-	$SfxEnemyDie.play()
+	if _wave_kind(wave_index) == "bonus":
+		$SfxCoin.play()  # 보너스 웨이브 보물: 코인 픽업음
+	else:
+		$SfxEnemyDie.play()
 	var burst = DEATH_BURST_SCENE.instantiate()
 	burst.position = pos
 	burst.color = color
@@ -441,8 +444,12 @@ func _on_player_died() -> void:
 	wave_label.text = "GAME OVER - Wave %d" % (wave_index + 1)
 	GameState.record_wave(wave_index + 1)  # 최고 기록 갱신·저장 (신규 해금 가능)
 	GameState.add_coins(run_coins)  # 이번 런 코인 정산·저장
+	var lvl_before: int = GameState.char_level(GameState.selected)
 	GameState.add_xp(GameState.selected, wave_index + 1)  # 캐릭터 숙련 경험치(= 도달 웨이브)
-	coin_label.text = "코인 +%d 획득!" % run_coins
+	var lvl_after: int = GameState.char_level(GameState.selected)
+	coin_label.text = "코인 +%d · 숙련 +%d" % [run_coins, wave_index + 1]
+	if lvl_after > lvl_before:  # 레벨업: 강조 표기 + 금색 펄스
+		coin_label.text += "  → %s 숙련 Lv %d!" % [GameState.selected.display_name, lvl_after]
 	_update_best_label()
 	$SfxGameOver.play()  # process_mode=ALWAYS라 일시정지 중에도 재생됨
 	# 일시정지 직전 흔들림 원위치 + 붉은 톤 고정 (멈춘 화면 연출)

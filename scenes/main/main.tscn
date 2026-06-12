@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://scenes/main/main.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2"]
@@ -11,6 +11,7 @@
 [ext_resource type="AudioStream" path="res://assets/audio/game_over.wav" id="9"]
 [ext_resource type="PackedScene" path="res://scenes/ui/relic_select.tscn" id="10"]
 [ext_resource type="Script" path="res://scenes/fx/background.gd" id="11"]
+[ext_resource type="AudioStream" path="res://assets/audio/coin.wav" id="12"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1")
@@ -281,3 +282,8 @@ volume_db = -6.0
 process_mode = 3
 stream = ExtResource("9")
 volume_db = -4.0
+
+[node name="SfxCoin" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("12")
+volume_db = -9.0
+max_polyphony = 6

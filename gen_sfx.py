@@ -47,4 +47,7 @@ write_wav("game_over.wav", square_sweep(420, 70, 0.8, 0.35))
 write_wav("shoot_fire.wav", square_sweep(320, 110, 0.13, 0.22))   # 화염: 낮고 묵직
 write_wav("shoot_arrow.wav", square_sweep(1700, 1150, 0.05, 0.16))  # 화살: 높고 짧게
 write_wav("shoot_frost.wav", square_sweep(700, 1500, 0.09, 0.16))   # 서리: 차갑게 상승
+write_wav("coin.wav",
+          square_sweep(988, 988, 0.04, 0.2)
+          + square_sweep(1319, 1319, 0.1, 0.2))  # 보물 처치: 밝은 2음 코인 픽업
 print("OK:", sorted(f for f in os.listdir(OUT) if f.endswith(".wav")))
