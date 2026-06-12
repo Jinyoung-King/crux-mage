@@ -6,6 +6,7 @@ signal hp_changed(hp: float, max_hp: float)
 signal died
 
 const PROJECTILE_SCENE := preload("res://scenes/projectile/projectile.tscn")
+const FOCUS_SPREAD := PI / 90.0  ## 표적보다 발사 수가 많을 때 같은 표적에 겹쳐 쏘는 발사의 부채 각(≈2°)
 
 @export var max_hp: float = 100.0
 
@@ -65,11 +66,21 @@ func effective_fire_rate() -> float:
 	return build.fire_rate + build.fire_rate_per_pierce * build.pierce
 
 func _on_attack_timer_timeout() -> void:
-	var targets := _nearest_enemies(build.projectile_count)
-	if not targets.is_empty():
-		_recoil()
-	for target in targets:
-		_fire_at(target)
+	var shots := build.projectile_count
+	var targets := _nearest_enemies(shots)  # 가까운 순 최대 shots명
+	if targets.is_empty():
+		return
+	_recoil()
+	# 발사 수가 표적보다 많으면 남는 발사를 기존 표적에 집중사격(낭비 방지).
+	# 같은 표적에 겹치는 발사는 살짝 부채꼴로 흩뿌려 시각 구분 + 인근 적 산탄 효과.
+	for i in shots:
+		var target = targets[i % targets.size()]
+		var dup := i / targets.size()  # 같은 표적에 몇 번째 발사인지(0=첫 발)
+		var offset := 0.0
+		if dup > 0:
+			var mag: float = ((dup + 1) / 2) * FOCUS_SPREAD
+			offset = mag if dup % 2 == 1 else -mag
+		_fire_at(target, offset)
 
 ## 발사 반동: 살짝 눌렸다가 복귀
 func _recoil() -> void:
@@ -112,7 +123,7 @@ func apply_card(card: CardData) -> void:
 		hp = minf(hp + card.heal, max_hp)
 		hp_changed.emit(hp, max_hp)
 
-func _fire_at(target) -> void:
+func _fire_at(target, aim_offset := 0.0) -> void:
 	var p = PROJECTILE_SCENE.instantiate()
 	if character and character.projectile_sprite:
 		p.get_node("Sprite2D").texture = character.projectile_sprite  # 캐릭터 전용 발사체 외형
@@ -134,6 +145,8 @@ func _fire_at(target) -> void:
 	var flight_time: float = global_position.distance_to(target.global_position) / p.speed
 	var predicted: Vector2 = target.global_position + Vector2.DOWN * target.speed * flight_time
 	p.direction = (predicted - global_position).normalized()
+	if aim_offset != 0.0:
+		p.direction = p.direction.rotated(aim_offset)  # 집중사격 부채 흩뿌림
 	p.damage = effective_damage()
 	p.pierce = build.pierce
 	p.lifesteal = lifesteal
