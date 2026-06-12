@@ -176,6 +176,7 @@ func _create_enemy(data: EnemyData, pos: Vector2) -> void:
 	enemy.reached_player.connect(_on_enemy_reached_player)
 	enemy.summon.connect(_on_summon)
 	enemy.ranged_attack.connect(_on_enemy_ranged_attack)
+	enemy.charge_hit.connect(_on_enemy_charge_hit)
 	$Enemies.add_child(enemy)
 
 ## 보스 소환·분열: 생성은 물리 콜백 밖으로 미루되(call_deferred — 분열은 충돌 콜백 중에
@@ -191,20 +192,33 @@ func _on_summon(data: EnemyData, count: int, pos: Vector2) -> void:
 		alive += 1
 		_create_enemy.call_deferred(data, p)
 
-## 마술사 원거리 공격: 발사 시점의 플레이어를 향해 마탄 생성 (타이머 콜백이라 즉시 생성 안전)
-func _on_enemy_ranged_attack(damage: float, from_pos: Vector2) -> void:
+## 원거리 공격: 발사 시점의 플레이어를 향해 마탄 생성. count>1이면 플레이어 방향을
+## 중심으로 ±spread/2 부채꼴 탄막(중간보스·보스). 타이머/예고 콜백이라 즉시 생성 안전.
+func _on_enemy_ranged_attack(damage: float, from_pos: Vector2, count: int, spread_deg: float, bolt_scale: float) -> void:
 	if game_over:
 		return
-	var b = ENEMY_BOLT_SCENE.instantiate()
-	b.position = from_pos
-	b.direction = (Vector2($Player.position) - from_pos).normalized()
-	b.damage = damage
-	b.hit_player.connect(_on_player_hit_by_bolt)
-	$Projectiles.add_child(b)
+	var base_angle := (Vector2($Player.position) - from_pos).angle()
+	var spread := deg_to_rad(spread_deg)
+	for i in count:
+		var t := 0.0 if count <= 1 else float(i) / float(count - 1) - 0.5  # -0.5..0.5 (중앙=정면)
+		var b = ENEMY_BOLT_SCENE.instantiate()
+		b.position = from_pos
+		b.direction = Vector2.from_angle(base_angle + t * spread)
+		b.damage = damage
+		b.visual_scale = bolt_scale
+		b.hit_player.connect(_on_player_hit_by_bolt)
+		$Projectiles.add_child(b)
 
 func _on_player_hit_by_bolt(damage: float) -> void:
 	$SfxPlayerHit.play()
 	_add_shake(6.0)
+	_flash_screen()
+	$Player.take_damage(damage)
+
+## 보스 돌진 적중: 마탄보다 크게 울리도록 흔들림 강화
+func _on_enemy_charge_hit(damage: float) -> void:
+	$SfxPlayerHit.play()
+	_add_shake(10.0)
 	_flash_screen()
 	$Player.take_damage(damage)
 
