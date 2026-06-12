@@ -3,7 +3,19 @@ extends Node
 ## 씬을 새로 로드해도 유지되며, 최고 기록은 user://에 영속 저장된다.
 
 const SAVE_PATH := "user://save.cfg"
-const VERSION := "v0.43"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
+const VERSION := "v0.44"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
+
+# 패치노트 (최신이 위). 새 버전 추가 시 맨 앞에 한 항목 추가. 시작 화면 "패치노트" + 업데이트 시 자동 안내.
+const CHANGELOG := [
+	{"v": "v0.44", "notes": ["패치노트 화면 추가 — 업데이트 시 변경 내용을 안내"]},
+	{"v": "v0.43", "notes": ["일시정지 화면에 현재 빌드 요약(실효 스탯·유물) 표시"]},
+	{"v": "v0.42", "notes": ["웨이브 클리어 시 남은 적 탄막을 즉시 제거"]},
+	{"v": "v0.41", "notes": ["적 명중 시 데미지 숫자 표시 (치명타는 금색·확대)"]},
+	{"v": "v0.40", "notes": ["보물 처치 전용 코인 사운드", "게임오버에 획득 숙련 경험치·레벨업 표시"]},
+	{"v": "v0.39", "notes": ["캐릭터별 강화 + 숙련도(경험치) 시스템", "기존 글로벌 강화는 코인으로 환불"]},
+	{"v": "v0.38", "notes": ["보너스 코인 스테이지 (끝자리 8 웨이브, 무해한 황금 보물)"]},
+	{"v": "v0.37", "notes": ["멀티샷 개편 — 표적보다 발사 수가 많으면 집중사격"]},
+]
 
 # 영구 강화 정의 (id / 이름 / 레벨당 효과 per / 최대 레벨(-1=무한) / 기본 비용 base / 표시 접미사).
 # 다음 레벨 비용 = base × UPGRADE_GROWTH^현재레벨 (초반 저렴·후반 가파름).
@@ -41,6 +53,7 @@ var muted := false  ## 음소거 — 영속
 var coins := 0  ## 영구 재화 (런 종료 시 누적, 캐릭터 공용 지갑)
 var upgrades := {}  ## 영구 강화 레벨 — 캐릭터별 {char_key: {id: level}}
 var char_xp := {}  ## 캐릭터별 누적 경험치 {char_key: xp} → 숙련도 레벨(자동 패시브)
+var seen_version := ""  ## 마지막으로 패치노트를 본 버전 — 다르면 시작 시 자동 안내
 
 func _ready() -> void:
 	_load()
@@ -169,6 +182,7 @@ func _load() -> void:
 		coins = cf.get_value("meta", "coins", 0)
 		upgrades = cf.get_value("meta", "upgrades", {})
 		char_xp = cf.get_value("meta", "char_xp", {})
+		seen_version = cf.get_value("meta", "seen_version", "")
 		_migrate_upgrades()  # 구형(글로벌) 강화 → 코인 환불 후 캐릭터별로 전환
 
 func _save() -> void:
@@ -180,7 +194,14 @@ func _save() -> void:
 	cf.set_value("meta", "coins", coins)
 	cf.set_value("meta", "upgrades", upgrades)
 	cf.set_value("meta", "char_xp", char_xp)
+	cf.set_value("meta", "seen_version", seen_version)
 	cf.save(SAVE_PATH)
+
+## 현재 버전의 패치노트를 본 것으로 기록(자동 안내 1회용)
+func mark_version_seen() -> void:
+	if seen_version != VERSION:
+		seen_version = VERSION
+		_save()
 
 ## 구형 세이브(글로벌 {id:level}) → 캐릭터별 구조 전환.
 ## 기존 강화에 쓴 코인을 전부 환불하고 강화를 초기화(코인 환불 마이그레이션).

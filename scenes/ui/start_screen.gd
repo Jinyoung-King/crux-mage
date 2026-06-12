@@ -15,6 +15,10 @@ var wave_idx := 0
 @onready var start_wave_button: Button = $Center/StartWaveButton
 
 func _ready() -> void:
+	# 업데이트 후 첫 진입이면 패치노트를 먼저 보여줌(버전당 1회)
+	if GameState.seen_version != GameState.VERSION:
+		get_tree().change_scene_to_file("res://scenes/ui/patch_notes.tscn")
+		return
 	$VersionLabel.text = GameState.VERSION  # 빌드 버전 표기(단일 출처)
 	best_label.text = "최고 기록: Wave %d" % GameState.best_wave if GameState.best_wave > 0 else "첫 도전을 시작하세요"
 	for i in GameState.characters.size():
@@ -27,6 +31,7 @@ func _ready() -> void:
 	play_button.pressed.connect(_on_play)
 	upgrade_button.pressed.connect(_on_upgrade)
 	upgrade_button.text = "강화 (코인 %d)" % GameState.coins
+	$Center/PatchButton.pressed.connect(_on_patch)
 	# 시작 웨이브 도약: 1, 그리고 best_wave 이하 5단위
 	wave_options = [1]
 	var w := 5
@@ -120,3 +125,6 @@ func _on_play() -> void:
 func _on_upgrade() -> void:
 	GameState.selected = GameState.characters[selected_index]  # 강조 중인 캐릭터를 강화 대상으로
 	get_tree().change_scene_to_file("res://scenes/ui/meta_upgrade.tscn")
+
+func _on_patch() -> void:
+	get_tree().change_scene_to_file("res://scenes/ui/patch_notes.tscn")
