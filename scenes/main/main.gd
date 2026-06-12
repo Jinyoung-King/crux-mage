@@ -499,8 +499,38 @@ func _apply_speed(s: float) -> void:
 func _on_pause_pressed() -> void:
 	if game_over:
 		return
+	$HUD/PauseScreen/Center/BuildLabel.text = _build_summary()
 	get_tree().paused = true
 	pause_screen.show()
+
+## 현재 빌드 요약(일시정지 표시) — 카드·강화·숙련·유물이 반영된 실효 스탯
+func _build_summary() -> String:
+	var p = $Player
+	var b = p.build
+	var lines := []
+	lines.append("공격력 %d   ·   연사 %.1f/s" % [roundi(p.effective_damage()), p.effective_fire_rate()])
+	lines.append("동시표적 %d   ·   관통 %d   ·   방어 %d" % [b.projectile_count, b.pierce, int(b.defense)])
+	var extras := []
+	if p.lifesteal > 0.0:
+		extras.append("흡혈 %d%%" % roundi(p.lifesteal * 100.0))
+	if b.projectile_size != 1.0:
+		extras.append("탄 크기 %.2f배" % b.projectile_size)
+	if b.projectile_speed_bonus != 0.0:
+		extras.append("탄속 +%d" % int(b.projectile_speed_bonus))
+	if not extras.is_empty():
+		lines.append("   ·   ".join(extras))
+	if not p.relics.is_empty():
+		var names := []
+		for id in p.relics:
+			names.append(_relic_name(id))
+		lines.append("유물: " + ", ".join(names))
+	return "\n".join(lines)
+
+func _relic_name(id: String) -> String:
+	for r in RelicLib.RELICS:
+		if r.id == id:
+			return r.name
+	return id
 
 func _on_resume_pressed() -> void:
 	get_tree().paused = false
