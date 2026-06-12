@@ -209,9 +209,9 @@ func _on_enemy_died(pos: Vector2, color: Color, size: float, tex: Texture2D) -> 
 	var remains = DEATH_REMAINS.new()
 	remains.position = pos
 	$Fx.add_child(remains)
-	remains.setup(tex)
-	if size >= 72.0:
-		_add_shake(10.0)  # 보스 사망은 화면이 울리도록
+	remains.setup(tex, size)
+	if size >= 42.0:
+		_add_shake(size / 8.0)  # 큰 적이 죽을수록 화면이 더 울리도록 (보스 9)
 	_unregister_enemy()
 
 func _on_enemy_reached_player(contact_damage: float) -> void:
