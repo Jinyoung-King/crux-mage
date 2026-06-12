@@ -25,3 +25,5 @@ extends Resource
 @export var passive_chain_count: int = 0         ## 뇌전: 명중 시 인근 적에게 연쇄하는 횟수
 @export var passive_chain_factor: float = 0.0    ## 연쇄 1회당 데미지 비율
 @export var passive_chain_range: float = 220.0   ## 연쇄 사정거리(px)
+@export var passive_splash_factor: float = 0.0   ## 포격: 명중 시 반경 내 적에게 (명중피해×이 비율) 광역 피해
+@export var passive_splash_radius: float = 90.0  ## 광역 반경(px)

@@ -342,12 +342,29 @@ TREASURE_PAL = {
     "W": (255, 250, 210, 255),  # 광채 흰빛
 }
 
+# 포탄 (7x7) — 포격술사: 작열하는 무쇠 구체
+CANNONBALL = [
+    ".OOOOO.",
+    "OKKKKKO",
+    "OKWWKKO",
+    "OKWKKKO",
+    "OKKKKKO",
+    "OKKKKKO",
+    ".OOOOO.",
+]
+CANNONBALL_PAL = {
+    "O": (225, 120, 40, 255),   # 작열 주황 테두리
+    "K": (45, 42, 52, 255),     # 어두운 금속 본체
+    "W": (205, 210, 220, 255),  # 하이라이트
+}
+
 os.makedirs(OUT, exist_ok=True)
 write_png("wizard.png", WIZARD, _wizard_pal((40, 70, 160), (60, 100, 200), (35, 60, 130), (255, 230, 120)))
 write_png("mage_fire.png", WIZARD, _wizard_pal((150, 40, 40), (205, 75, 60), (115, 30, 35), (255, 180, 80)))
 write_png("mage_storm.png", WIZARD, _wizard_pal((40, 115, 70), (70, 175, 95), (35, 95, 55), (190, 255, 150)))
 write_png("mage_frost.png", WIZARD, _wizard_pal((50, 110, 150), (85, 175, 205), (40, 90, 130), (190, 240, 255)))
 write_png("mage_arc.png", WIZARD, _wizard_pal((90, 60, 150), (140, 95, 215), (70, 45, 120), (210, 180, 255)))
+write_png("mage_bomb.png", WIZARD, _wizard_pal((70, 55, 40), (125, 95, 55), (50, 40, 28), (255, 150, 60)))
 write_png("fireball.png", FIREBALL, FIREBALL_PAL)
 write_png("arrow.png", ARROW, ARROW_PAL)
 write_png("frost.png", FROST, FROST_PAL)
@@ -363,4 +380,5 @@ write_png("enemy_treasure.png", TREASURE, TREASURE_PAL)
 write_png("dark_bolt.png", DARK_BOLT, DARK_BOLT_PAL)
 write_png("bolt.png", BOLT, BOLT_PAL)
 write_png("spark.png", BOLT, SPARK_PAL)
+write_png("cannonball.png", CANNONBALL, CANNONBALL_PAL)
 print("OK:", sorted(os.listdir(OUT)))

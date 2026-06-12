@@ -3,10 +3,11 @@ extends Node
 ## 씬을 새로 로드해도 유지되며, 최고 기록은 user://에 영속 저장된다.
 
 const SAVE_PATH := "user://save.cfg"
-const VERSION := "v0.47"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
+const VERSION := "v0.48"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
 
 # 패치노트 (최신이 위). 새 버전 추가 시 맨 앞에 한 항목 추가. 시작 화면 "패치노트" + 업데이트 시 자동 안내.
 const CHANGELOG := [
+	{"v": "v0.48", "notes": ["새 캐릭터 포격술사 — 느린 강타 + 광역 폭발(splash). Wave 20 도달 시 해금"]},
 	{"v": "v0.47", "notes": ["유물 슬롯 강화 — 코인으로 장착 슬롯을 최대 4칸까지 확장"]},
 	{"v": "v0.46", "notes": ["PWA 자동 업데이트 — 새 버전 배포 시 앱을 다시 열면 자동 반영"]},
 	{"v": "v0.45", "notes": ["유물 개편 — 코인으로 영구 해금 후 런마다 장착(시작 화면 '유물')", "보스는 유물 드래프트 대신 희귀 카드 확정"]},
@@ -48,6 +49,7 @@ var characters: Array = [
 	preload("res://resources/characters/char_archer.tres"),
 	preload("res://resources/characters/char_frost.tres"),
 	preload("res://resources/characters/char_arc.tres"),
+	preload("res://resources/characters/char_bomb.tres"),
 ]
 var selected: CharacterData
 var start_wave := 1  ## 이번 게임 시작 웨이브 (시작 화면에서 선택, 인메모리 — best_wave 이하)

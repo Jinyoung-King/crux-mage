@@ -26,6 +26,8 @@ var chain_count := 0
 var chain_factor := 0.0
 var chain_range := 220.0
 var execute_threshold := 0.0  ## 수확의 룬: 적 체력이 이 비율 이하면 즉사
+var splash_factor := 0.0  ## 포격술사: 명중 시 반경 내 적에게 (명중피해×이 비율) 광역 피해
+var splash_radius := 90.0
 
 func _ready() -> void:
 	rotation = direction.angle()
@@ -60,6 +62,8 @@ func _on_area_entered(area) -> void:
 		area.apply_slow(slow_factor, slow_duration)
 	if chain_count > 0:
 		_chain_from(area, dmg)
+	if splash_factor > 0.0:
+		_splash_from(area, dmg, area.global_position)
 	if pierce > 0:
 		pierce -= 1
 	else:
@@ -83,3 +87,15 @@ func _chain_from(hit, dmg: float) -> void:
 			dealt.emit(dmg * chain_factor * lifesteal)
 		chained.emit(origin, ep)
 		n += 1
+
+## 포격 광역: 명중 지점 반경 내 다른 적들에게 비례 피해 + 데미지 숫자 (비물리라 충돌 콜백 안전)
+func _splash_from(hit, dmg: float, center: Vector2) -> void:
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if e == hit or not is_instance_valid(e):
+			continue
+		if center.distance_to(e.global_position) <= splash_radius:
+			var sd := dmg * splash_factor
+			e.take_damage(sd)
+			damaged.emit(sd, false, e.global_position)
+			if lifesteal > 0.0:
+				dealt.emit(sd * lifesteal)
