@@ -4,15 +4,17 @@ extends Node
 
 const SAVE_PATH := "user://save.cfg"
 
-# 영구 강화 정의 (id / 이름 / 레벨당 효과 per / 최대 레벨 / 레벨별 비용 / 표시 접미사).
-# 비용은 초반 저렴·후반 가파른 기하급수형.
+# 영구 강화 정의 (id / 이름 / 레벨당 효과 per / 최대 레벨(-1=무한) / 기본 비용 base / 표시 접미사).
+# 다음 레벨 비용 = base × UPGRADE_GROWTH^현재레벨 (초반 저렴·후반 가파름).
+# 공격력·체력은 무한(max=-1) — 적 체력은 기하급수로 커지므로 고정값 강화는 결국 뒤처져 자가 밸런싱됨.
+const UPGRADE_GROWTH := 1.5
 const UPGRADES := [
-	{"id": "damage", "name": "시작 공격력", "per": 2.0, "max": 5, "costs": [5, 12, 25, 50, 100], "suffix": " 공격력"},
-	{"id": "max_hp", "name": "시작 체력", "per": 20.0, "max": 5, "costs": [5, 12, 25, 50, 100], "suffix": " 체력"},
-	{"id": "fire_rate", "name": "시작 연사", "per": 0.2, "max": 5, "costs": [8, 18, 36, 70, 130], "suffix": "/s 연사"},
-	{"id": "pierce", "name": "시작 관통", "per": 1.0, "max": 3, "costs": [20, 50, 120], "suffix": " 관통"},
-	{"id": "lifesteal", "name": "흡혈", "per": 0.03, "max": 4, "costs": [30, 70, 140, 260], "suffix": "% 흡혈"},
-	{"id": "extra_card", "name": "추가 시작 카드", "per": 1.0, "max": 2, "costs": [50, 150], "suffix": "장(웨이브 전)"},
+	{"id": "damage", "name": "시작 공격력", "per": 2.0, "max": -1, "base": 6, "suffix": " 공격력"},
+	{"id": "max_hp", "name": "시작 체력", "per": 20.0, "max": -1, "base": 6, "suffix": " 체력"},
+	{"id": "fire_rate", "name": "시작 연사", "per": 0.2, "max": 20, "base": 10, "suffix": "/s 연사"},
+	{"id": "pierce", "name": "시작 관통", "per": 1.0, "max": 20, "base": 14, "suffix": " 관통"},
+	{"id": "lifesteal", "name": "흡혈", "per": 0.03, "max": 12, "base": 24, "suffix": "% 흡혈"},
+	{"id": "extra_card", "name": "추가 시작 카드", "per": 1.0, "max": 3, "base": 60, "suffix": "장(웨이브 전)"},
 ]
 
 # 컬렉션 로스터 (unlock_wave 오름차순)
@@ -68,13 +70,14 @@ func upgrade_level(id: String) -> int:
 func upgrade_value(id: String) -> float:
 	return upgrade_level(id) * upgrade_def(id).get("per", 0.0)
 
-## 다음 레벨 비용 (만렙이면 -1)
+## 다음 레벨 비용 (상한 있는 항목이 만렙이면 -1). 비용 = base × growth^현재레벨.
 func next_cost(id: String) -> int:
-	var lv := upgrade_level(id)
 	var def := upgrade_def(id)
-	if lv >= int(def.get("max", 0)):
-		return -1
-	return def["costs"][lv]
+	var mx := int(def.get("max", 0))
+	var lv := upgrade_level(id)
+	if mx >= 0 and lv >= mx:
+		return -1  # 상한 도달
+	return int(round(def.get("base", 10) * pow(UPGRADE_GROWTH, lv)))
 
 func can_buy(id: String) -> bool:
 	var c := next_cost(id)

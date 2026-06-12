@@ -62,7 +62,9 @@ func _refresh() -> void:
 			bonus_str = str(int(round(bonus * 100.0)))  # 비율 → 퍼센트
 		else:
 			bonus_str = str(int(bonus))
-		row_labels[id].text = "%s  Lv %d/%d  (현재 +%s%s)" % [def["name"], lv, def["max"], bonus_str, def["suffix"]]
+		var mx := int(def["max"])
+		var lv_str := ("Lv %d/%d" % [lv, mx]) if mx >= 0 else ("Lv %d" % lv)
+		row_labels[id].text = "%s  %s  (현재 +%s%s)" % [def["name"], lv_str, bonus_str, def["suffix"]]
 		var btn: Button = row_buttons[id]
 		var cost := GameState.next_cost(id)
 		if cost < 0:
