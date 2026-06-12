@@ -38,13 +38,14 @@ func _ready() -> void:
 func apply_character(c: CharacterData) -> void:
 	character = c
 	# 캐릭터 기본 빌드 + 영구 강화(메타) 보너스 가산
-	build.damage = c.base_damage + GameState.upgrade_value("damage")
-	build.fire_rate = c.base_fire_rate + GameState.upgrade_value("fire_rate")
+	var mastery := GameState.mastery_mult(c)  # 캐릭터 숙련도: 공격력·체력 +2%/레벨
+	build.damage = (c.base_damage + GameState.upgrade_value("damage", c)) * mastery
+	build.fire_rate = c.base_fire_rate + GameState.upgrade_value("fire_rate", c)
 	build.projectile_count = c.base_projectile_count
-	build.pierce = c.base_pierce + int(GameState.upgrade_value("pierce"))
-	max_hp += GameState.upgrade_value("max_hp")  # 기본 100 위에 가산
+	build.pierce = c.base_pierce + int(GameState.upgrade_value("pierce", c))
+	max_hp = (max_hp + GameState.upgrade_value("max_hp", c)) * mastery  # 기본 100 + 강화, 숙련 배율
 	hp = max_hp
-	lifesteal = GameState.upgrade_value("lifesteal")
+	lifesteal = GameState.upgrade_value("lifesteal", c)
 	attack_timer.wait_time = 1.0 / effective_fire_rate()
 	$Sprite2D.texture = c.mage_sprite
 

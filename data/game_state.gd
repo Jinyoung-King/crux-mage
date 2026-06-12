@@ -3,7 +3,7 @@ extends Node
 ## 씬을 새로 로드해도 유지되며, 최고 기록은 user://에 영속 저장된다.
 
 const SAVE_PATH := "user://save.cfg"
-const VERSION := "v0.38"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
+const VERSION := "v0.39"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
 
 # 영구 강화 정의 (id / 이름 / 레벨당 효과 per / 최대 레벨(-1=무한) / 기본 비용 base / 표시 접미사).
 # 다음 레벨 비용 = base × UPGRADE_GROWTH^현재레벨 (초반 저렴·후반 가파름).
@@ -17,6 +17,12 @@ const UPGRADES := [
 	{"id": "lifesteal", "name": "흡혈", "per": 0.03, "max": 12, "base": 24, "suffix": "% 흡혈"},
 	{"id": "extra_card", "name": "추가 시작 카드", "per": 1.0, "max": 3, "base": 60, "suffix": "장(웨이브 전)"},
 ]
+
+# 캐릭터 숙련도(경험치): 플레이만 해도 경험치가 쌓여 레벨업 → 레벨당 공격력·체력 패시브 증가.
+# 경험치 획득 = 그 런의 도달 웨이브. 레벨 L→L+1 필요치 = XP_BASE + XP_STEP*L.
+const XP_BASE := 50
+const XP_STEP := 25
+const MASTERY_PER_LEVEL := 0.02  ## 숙련 레벨당 공격력·체력 +2%
 
 # 컬렉션 로스터 (unlock_wave 오름차순)
 var characters: Array = [
@@ -32,8 +38,9 @@ var best_wave := 0
 var game_speed := 1.0  ## 배속 설정(1/2/3x) — 씬 리로드·재시작에도 유지, user://에 영속
 var sfx_volume := 1.0  ## 효과음 음량(0~1) — 영속
 var muted := false  ## 음소거 — 영속
-var coins := 0  ## 영구 재화 (런 종료 시 누적)
-var upgrades := {}  ## 영구 강화 레벨 (id → level)
+var coins := 0  ## 영구 재화 (런 종료 시 누적, 캐릭터 공용 지갑)
+var upgrades := {}  ## 영구 강화 레벨 — 캐릭터별 {char_key: {id: level}}
+var char_xp := {}  ## 캐릭터별 누적 경험치 {char_key: xp} → 숙련도 레벨(자동 패시브)
 
 func _ready() -> void:
 	_load()
@@ -77,41 +84,73 @@ func set_game_speed(s: float) -> void:
 	game_speed = s
 	_save()
 
-## --- 영구 강화 ---
+## --- 영구 강화 (캐릭터별 / 코인은 공용) ---
+## 캐릭터 식별 키 = .tres 파일명(확장자 제외). 예: char_apprentice
+func char_key(c: CharacterData) -> String:
+	return c.resource_path.get_file().get_basename() if c else ""
+
 func upgrade_def(id: String) -> Dictionary:
 	for u in UPGRADES:
 		if u.id == id:
 			return u
 	return {}
 
-func upgrade_level(id: String) -> int:
-	return upgrades.get(id, 0)
+func upgrade_level(id: String, c: CharacterData = selected) -> int:
+	return upgrades.get(char_key(c), {}).get(id, 0)
 
 ## 현재 레벨의 누적 보너스 값 (레벨 × 레벨당 효과)
-func upgrade_value(id: String) -> float:
-	return upgrade_level(id) * upgrade_def(id).get("per", 0.0)
+func upgrade_value(id: String, c: CharacterData = selected) -> float:
+	return upgrade_level(id, c) * upgrade_def(id).get("per", 0.0)
 
 ## 다음 레벨 비용 (상한 있는 항목이 만렙이면 -1). 비용 = base × growth^현재레벨.
-func next_cost(id: String) -> int:
+func next_cost(id: String, c: CharacterData = selected) -> int:
 	var def := upgrade_def(id)
 	var mx := int(def.get("max", 0))
-	var lv := upgrade_level(id)
+	var lv := upgrade_level(id, c)
 	if mx >= 0 and lv >= mx:
 		return -1  # 상한 도달
 	return int(round(def.get("base", 10) * pow(UPGRADE_GROWTH, lv)))
 
-func can_buy(id: String) -> bool:
-	var c := next_cost(id)
-	return c >= 0 and coins >= c
+func can_buy(id: String, c: CharacterData = selected) -> bool:
+	var cost := next_cost(id, c)
+	return cost >= 0 and coins >= cost
 
-## 구매 성공 시 코인 차감·레벨↑·저장하고 true 반환
-func buy_upgrade(id: String) -> bool:
-	if not can_buy(id):
+## 구매 성공 시 코인(공용) 차감·해당 캐릭터 레벨↑·저장하고 true 반환
+func buy_upgrade(id: String, c: CharacterData = selected) -> bool:
+	if not can_buy(id, c):
 		return false
-	coins -= next_cost(id)
-	upgrades[id] = upgrade_level(id) + 1
+	coins -= next_cost(id, c)
+	var key := char_key(c)
+	if not upgrades.has(key):
+		upgrades[key] = {}
+	upgrades[key][id] = upgrade_level(id, c) + 1
 	_save()
 	return true
+
+## --- 캐릭터 숙련도(경험치) ---
+## 누적 경험치 → [레벨, 레벨 내 경험치, 다음 레벨 필요치]
+func _xp_state(c: CharacterData) -> Array:
+	var xp: int = char_xp.get(char_key(c), 0)
+	var lvl := 0
+	while xp >= XP_BASE + XP_STEP * lvl:
+		xp -= XP_BASE + XP_STEP * lvl
+		lvl += 1
+	return [lvl, xp, XP_BASE + XP_STEP * lvl]
+
+func char_level(c: CharacterData = selected) -> int:
+	return _xp_state(c)[0]
+
+## 숙련 레벨당 공격력·체력 배율
+func mastery_mult(c: CharacterData = selected) -> float:
+	return 1.0 + MASTERY_PER_LEVEL * char_level(c)
+
+## 런 종료 시 경험치 적립(= 도달 웨이브) + 저장
+func add_xp(c: CharacterData, amount: int) -> void:
+	if amount <= 0 or c == null:
+		return
+	var key := char_key(c)
+	char_xp[key] = int(char_xp.get(key, 0)) + amount
+	_save()
 
 ## 런 종료 시 획득 코인 적립 + 저장
 func add_coins(n: int) -> void:
@@ -129,6 +168,8 @@ func _load() -> void:
 		muted = cf.get_value("settings", "muted", false)
 		coins = cf.get_value("meta", "coins", 0)
 		upgrades = cf.get_value("meta", "upgrades", {})
+		char_xp = cf.get_value("meta", "char_xp", {})
+		_migrate_upgrades()  # 구형(글로벌) 강화 → 코인 환불 후 캐릭터별로 전환
 
 func _save() -> void:
 	var cf := ConfigFile.new()
@@ -138,4 +179,23 @@ func _save() -> void:
 	cf.set_value("settings", "muted", muted)
 	cf.set_value("meta", "coins", coins)
 	cf.set_value("meta", "upgrades", upgrades)
+	cf.set_value("meta", "char_xp", char_xp)
 	cf.save(SAVE_PATH)
+
+## 구형 세이브(글로벌 {id:level}) → 캐릭터별 구조 전환.
+## 기존 강화에 쓴 코인을 전부 환불하고 강화를 초기화(코인 환불 마이그레이션).
+func _migrate_upgrades() -> void:
+	if upgrades.is_empty():
+		return
+	if upgrades.values()[0] is Dictionary:
+		return  # 이미 캐릭터별(신형)
+	var refund := 0
+	for id in upgrades.keys():
+		var lv: int = upgrades[id]
+		var base: int = int(upgrade_def(id).get("base", 10))
+		for k in range(lv):
+			refund += int(round(base * pow(UPGRADE_GROWTH, k)))
+	coins += refund
+	upgrades = {}
+	_save()
+	print("[migrate] 구형 강화 → 코인 %d 환불, 캐릭터별로 전환" % refund)

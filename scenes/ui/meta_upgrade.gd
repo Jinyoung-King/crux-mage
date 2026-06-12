@@ -12,6 +12,9 @@ var row_buttons := {}  # id → 구매 Button
 
 func _ready() -> void:
 	back_button.pressed.connect(_on_back)
+	var c := GameState.selected
+	if c:
+		$Center/Title.text = "%s 강화 · 숙련 Lv %d" % [c.display_name, GameState.char_level(c)]
 	for def in GameState.UPGRADES:
 		_make_row(def)
 	_refresh()

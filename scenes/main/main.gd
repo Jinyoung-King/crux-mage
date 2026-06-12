@@ -441,6 +441,7 @@ func _on_player_died() -> void:
 	wave_label.text = "GAME OVER - Wave %d" % (wave_index + 1)
 	GameState.record_wave(wave_index + 1)  # 최고 기록 갱신·저장 (신규 해금 가능)
 	GameState.add_coins(run_coins)  # 이번 런 코인 정산·저장
+	GameState.add_xp(GameState.selected, wave_index + 1)  # 캐릭터 숙련 경험치(= 도달 웨이브)
 	coin_label.text = "코인 +%d 획득!" % run_coins
 	_update_best_label()
 	$SfxGameOver.play()  # process_mode=ALWAYS라 일시정지 중에도 재생됨
@@ -461,6 +462,7 @@ func _on_restart_pressed() -> void:
 func _on_give_up() -> void:
 	GameState.record_wave(wave_index + 1)  # 도달 웨이브 기록(영속)
 	GameState.add_coins(run_coins)  # 이번 런 코인 정산(영속)
+	GameState.add_xp(GameState.selected, wave_index + 1)  # 캐릭터 숙련 경험치(= 도달 웨이브)
 	get_tree().paused = false
 	Engine.time_scale = 1.0
 	get_tree().change_scene_to_file("res://scenes/ui/start_screen.tscn")

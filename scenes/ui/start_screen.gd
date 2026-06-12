@@ -82,6 +82,9 @@ func _make_card(c: CharacterData, idx: int) -> Button:
 	if unlocked:
 		var stats := "공%d · 연사%.1f · 표적%d · 관통%d" % [int(c.base_damage), c.base_fire_rate, c.base_projectile_count, c.base_pierce]
 		box.add_child(_label(stats, 13, Color(0.7, 0.7, 0.75)))
+		var lv := GameState.char_level(c)
+		if lv > 0:  # 숙련도(경험치) 표시 — 굴린 만큼 공·체 보너스
+			box.add_child(_label("숙련 Lv %d  (공·체 +%d%%)" % [lv, int(GameState.MASTERY_PER_LEVEL * lv * 100)], 13, Color(1.0, 0.85, 0.4)))
 
 	btn.add_child(box)
 	return btn
@@ -115,4 +118,5 @@ func _on_play() -> void:
 	get_tree().change_scene_to_file("res://scenes/main/main.tscn")
 
 func _on_upgrade() -> void:
+	GameState.selected = GameState.characters[selected_index]  # 강조 중인 캐릭터를 강화 대상으로
 	get_tree().change_scene_to_file("res://scenes/ui/meta_upgrade.tscn")
