@@ -225,6 +225,14 @@ BOSS_PAL = {
     "M": (135, 25, 45, 255),    # 입
     "W": (255, 250, 235, 255),  # 이빨
 }
+STORM_BOSS_PAL = {  # 폭풍 마왕 — 전기 청색 변형(BOSS 그리드 재사용)
+    "K": (35, 45, 80, 255),     # 몸통 암청
+    "P": (60, 110, 175, 255),   # 가슴 청
+    "R": (255, 240, 120, 255),  # 눈 번개 노랑
+    "H": (210, 225, 245, 255),  # 뿔 (창백)
+    "M": (25, 35, 70, 255),     # 입
+    "W": (235, 245, 255, 255),  # 이빨
+}
 
 # 마술사 (12x12 → 36x36): 후드 로브 + 빛나는 눈, 원거리 공격형
 CASTER = [
@@ -372,6 +380,7 @@ write_png("enemy_basic.png", BASIC, BASIC_PAL)
 write_png("enemy_fast.png", FAST, FAST_PAL)
 write_png("enemy_tank.png", TANK, TANK_PAL)
 write_png("enemy_boss.png", BOSS, BOSS_PAL)
+write_png("enemy_storm.png", BOSS, STORM_BOSS_PAL)
 write_png("enemy_ghost.png", GHOST, GHOST_PAL)
 write_png("enemy_slime_big.png", SLIME_BIG, SLIME_BIG_PAL)
 write_png("enemy_slime_mini.png", SLIME_MINI, SLIME_MINI_PAL)

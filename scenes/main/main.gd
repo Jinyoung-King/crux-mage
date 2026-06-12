@@ -30,6 +30,7 @@ var waves: Array = [
 ]
 var boss_wave: WaveData = preload("res://resources/waves/wave_boss.tres")
 var guardian_wave: WaveData = preload("res://resources/waves/wave_guardian.tres")
+var storm_wave: WaveData = preload("res://resources/waves/wave_storm.tres")
 var midboss_wave: WaveData = preload("res://resources/waves/wave_midboss.tres")
 var bonus_wave: WaveData = preload("res://resources/waves/wave_bonus.tres")  # 보너스(코인) 웨이브 — 무해한 보물 적
 # 보상 후보 카드 풀 (소모되지 않으므로 같은 카드가 다시 나올 수 있음)
@@ -167,10 +168,13 @@ func _wave_kind(index: int) -> String:
 func _endless_level(index: int) -> int:
 	return maxi(index + 1 - 5, 0)
 
-## 보스 웨이브 회차에 따라 보스 종류 교대: 10·30·50=마왕 / 20·40=수호 마왕
+## 보스 웨이브 회차에 따라 보스 3종 순환: 마왕(10·40) / 수호 마왕(20·50) / 폭풍 마왕(30·60)
 func _boss_wave_for(index: int) -> WaveData:
 	var ordinal := (index + 1) / 10  # 보스 등장 회차(정수 나눗셈): wave10→1, 20→2…
-	return boss_wave if ordinal % 2 == 1 else guardian_wave
+	match ordinal % 3:
+		1: return boss_wave
+		2: return guardian_wave
+		_: return storm_wave
 
 ## 무한 모드 엘리트 굴림: 단계가 깊을수록 자주(최대 50%). 무한 전(단계 0)에는 없음.
 func _roll_elite() -> Dictionary:

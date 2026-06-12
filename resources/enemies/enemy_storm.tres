@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://data/enemy_data.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/enemy_storm.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+display_name = "폭풍 마왕"
+hp = 580.0
+speed = 22.0
+contact_damage = 50.0
+size = 100.0
+sprite = ExtResource("2")
+effect_color = Color(0.45, 0.55, 0.95, 1)
+show_hp_bar = true
+attack_interval = 2.8
+attack_damage = 7.0
+attack_count = 9
+attack_spread_deg = 100.0
+attack_bolt_scale = 1.4
+telegraph_time = 0.6
+zigzag_amplitude = 120.0
+zigzag_period = 2.6
