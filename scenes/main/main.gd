@@ -52,6 +52,10 @@ var card_pool: Array = [
 	preload("res://resources/cards/card_defense.tres"),
 	preload("res://resources/cards/card_legendary_arcane.tres"),
 	preload("res://resources/cards/card_legendary_storm.tres"),
+	preload("res://resources/cards/card_glass_cannon.tres"),
+	preload("res://resources/cards/card_rapid.tres"),
+	preload("res://resources/cards/card_bulwark.tres"),
+	preload("res://resources/cards/card_precision.tres"),
 ]
 
 var wave_index := 0
