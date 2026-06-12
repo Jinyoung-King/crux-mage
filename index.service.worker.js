@@ -4,7 +4,7 @@
 // Incrementing CACHE_VERSION will kick off the install event and force
 // previously cached resources to be updated from the network.
 /** @type {string} */
-const CACHE_VERSION = '1781259333|1820566';
+const CACHE_VERSION = '1781260586|1778381';
 /** @type {string} */
 const CACHE_PREFIX = 'crux-mage-sw-cache-';
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
