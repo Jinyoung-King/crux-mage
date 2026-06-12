@@ -15,7 +15,6 @@ shoot_sound = ExtResource("4")
 base_damage = 4.0
 base_fire_rate = 5.0
 base_projectile_count = 1
-base_pierce = 0
 unlock_wave = 6
 accent_color = Color(0.4, 0.78, 0.45, 1)
 passive_crit_chance = 0.25

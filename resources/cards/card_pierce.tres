@@ -1,9 +1,0 @@
-[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
-
-[ext_resource type="Script" path="res://data/card_data.gd" id="1"]
-
-[resource]
-script = ExtResource("1")
-card_name = "꿰뚫는 마탄"
-description = "관통 +1"
-pierce_bonus = 1

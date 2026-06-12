@@ -1,6 +1,6 @@
 extends Area2D
 ## direction 방향으로 직진하는 발사체.
-## 적과 충돌하면 데미지를 주고, pierce(추가 관통 수)가 남아 있으면 통과한다.
+## 적과 충돌하면 데미지를 주고 사라진다.
 ## 캐릭터 패시브(치명타/화상/둔화)는 플레이어가 발사 시 설정한다.
 
 signal dealt(heal: float)  ## 적에 피해를 입힐 때 흡혈 회복량(피해×흡혈률)을 알림
@@ -11,7 +11,6 @@ signal damaged(amount: float, is_crit: bool, pos: Vector2)  ## 직격 피해 수
 
 var direction := Vector2.RIGHT
 var damage := 10.0
-var pierce := 0
 var lifesteal := 0.0  ## 입힌 피해의 흡혈 비율 (플레이어가 발사 시 설정)
 # 패시브 효과 (플레이어가 발사 시 캐릭터에서 채움)
 var crit_chance := 0.0
@@ -66,10 +65,7 @@ func _on_area_entered(area) -> void:
 		_chain_from(area, dmg)
 	if splash_factor > 0.0:
 		_splash_from(area, dmg, area.global_position)
-	if pierce > 0:
-		pierce -= 1
-	else:
-		queue_free()
+	queue_free()
 
 ## 뇌전 연쇄: 명중한 적 주변의 가까운 적들에게 연쇄 피해 + 시각 신호.
 ## take_damage는 일반 명중과 같은 경로(사망 시 died→main FX)라 물리 콜백에서 안전.

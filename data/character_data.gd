@@ -12,7 +12,6 @@ extends Resource
 @export var base_damage: float = 10.0
 @export var base_fire_rate: float = 2.0
 @export var base_projectile_count: int = 1
-@export var base_pierce: int = 0
 @export var unlock_wave: int = 0  ## 최고 도달 웨이브가 이 값 이상이면 해금 (0 = 기본 해금)
 @export var accent_color: Color = Color(0.3, 0.5, 1.0)
 # 전용 패시브 (캐릭터마다 하나씩, 해당 필드만 채움)

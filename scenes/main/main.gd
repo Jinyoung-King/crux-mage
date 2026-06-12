@@ -38,24 +38,20 @@ var card_pool: Array = [
 	preload("res://resources/cards/card_damage_up.tres"),
 	preload("res://resources/cards/card_fire_rate.tres"),
 	preload("res://resources/cards/card_multi_shot.tres"),
-	preload("res://resources/cards/card_pierce.tres"),
 	preload("res://resources/cards/card_heal.tres"),
 	preload("res://resources/cards/card_damage_big.tres"),
 	preload("res://resources/cards/card_fire_rate_big.tres"),
 	preload("res://resources/cards/card_multi_big.tres"),
 	preload("res://resources/cards/card_chain.tres"),
-	preload("res://resources/cards/card_fury.tres"),
 	preload("res://resources/cards/card_blood.tres"),
 	preload("res://resources/cards/card_crystal.tres"),
 	preload("res://resources/cards/card_proj_size.tres"),
-	preload("res://resources/cards/card_proj_speed.tres"),
 	preload("res://resources/cards/card_defense.tres"),
 	preload("res://resources/cards/card_legendary_arcane.tres"),
 	preload("res://resources/cards/card_legendary_storm.tres"),
 	preload("res://resources/cards/card_glass_cannon.tres"),
 	preload("res://resources/cards/card_rapid.tres"),
 	preload("res://resources/cards/card_bulwark.tres"),
-	preload("res://resources/cards/card_precision.tres"),
 ]
 
 var wave_index := 0
@@ -402,8 +398,6 @@ func _on_wave_cleared() -> void:
 
 ## 현재 빌드에서 의미 있는 카드인지 — 죽은 픽(조건 미충족 시너지 등)을 드래프트에서 제외
 func _is_card_useful(card: CardData) -> bool:
-	if card.fire_rate_per_pierce_bonus > 0.0 and $Player.build.pierce == 0:
-		return false  # 관통이 없으면 격노는 무의미
 	if card.damage_per_target_bonus > 0.0 and $Player.build.projectile_count < 2:
 		return false  # 동시 표적 1이면 연쇄의 가치가 없음
 	if card.heal > 0.0 and $Player.hp >= $Player.max_hp:
@@ -527,14 +521,12 @@ func _build_summary() -> String:
 	var b = p.build
 	var lines := []
 	lines.append("공격력 %d   ·   연사 %.1f/s" % [roundi(p.effective_damage()), p.effective_fire_rate()])
-	lines.append("동시표적 %d   ·   관통 %d   ·   방어 %d" % [b.projectile_count, b.pierce, int(b.defense)])
+	lines.append("동시표적 %d   ·   방어 %d" % [b.projectile_count, int(b.defense)])
 	var extras := []
 	if p.lifesteal > 0.0:
 		extras.append("흡혈 %d%%" % roundi(p.lifesteal * 100.0))
 	if b.projectile_size != 1.0:
 		extras.append("탄 크기 %.2f배" % b.projectile_size)
-	if b.projectile_speed_bonus != 0.0:
-		extras.append("탄속 +%d" % int(b.projectile_speed_bonus))
 	if not extras.is_empty():
 		lines.append("   ·   ".join(extras))
 	if not p.relics.is_empty():

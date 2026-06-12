@@ -42,7 +42,6 @@ func apply_character(c: CharacterData) -> void:
 	build.damage = (c.base_damage + GameState.upgrade_value("damage", c)) * mastery
 	build.fire_rate = c.base_fire_rate + GameState.upgrade_value("fire_rate", c)
 	build.projectile_count = c.base_projectile_count
-	build.pierce = c.base_pierce + int(GameState.upgrade_value("pierce", c))
 	max_hp = (max_hp + GameState.upgrade_value("max_hp", c)) * mastery  # 기본 100 + 강화, 숙련 배율
 	hp = max_hp
 	lifesteal = GameState.upgrade_value("lifesteal", c)
@@ -62,9 +61,8 @@ func effective_damage() -> float:
 		d *= RelicLib.BERSERK_MULT  # 격노의 룬
 	return d
 
-## 시너지 반영 실효 연사: 기본 + (관통당 연사 × 관통 수)
 func effective_fire_rate() -> float:
-	return build.fire_rate + build.fire_rate_per_pierce * build.pierce
+	return build.fire_rate
 
 func _on_attack_timer_timeout() -> void:
 	var shots := build.projectile_count
@@ -109,11 +107,8 @@ func apply_card(card: CardData) -> void:
 	build.damage += card.damage_bonus
 	build.fire_rate += card.fire_rate_bonus
 	build.projectile_count += card.projectile_count_bonus
-	build.pierce += card.pierce_bonus
 	build.damage_per_target += card.damage_per_target_bonus
-	build.fire_rate_per_pierce += card.fire_rate_per_pierce_bonus
 	build.projectile_size += card.projectile_size_bonus
-	build.projectile_speed_bonus += card.projectile_speed_bonus
 	build.defense += card.defense_bonus
 	attack_timer.wait_time = 1.0 / effective_fire_rate()
 	if card.max_hp_bonus != 0.0:
@@ -143,7 +138,6 @@ func _fire_at(target, aim_offset := 0.0) -> void:
 		p.splash_factor = character.passive_splash_factor
 		p.splash_radius = character.passive_splash_radius
 	p.position = global_position  # Projectiles 컨테이너가 원점에 있어 전역 좌표와 동일
-	p.speed += build.projectile_speed_bonus  # 발사체 속도 카드 (예측 조준도 이 속도로 계산)
 	p.size_scale = build.projectile_size  # 발사체 크기 카드
 	# 적이 아래로 이동 중이므로 비행시간만큼 앞질러 조준 (1회 예측으로 충분)
 	var flight_time: float = global_position.distance_to(target.global_position) / p.speed
@@ -152,7 +146,6 @@ func _fire_at(target, aim_offset := 0.0) -> void:
 	if aim_offset != 0.0:
 		p.direction = p.direction.rotated(aim_offset)  # 집중사격 부채 흩뿌림
 	p.damage = effective_damage()
-	p.pierce = build.pierce
 	p.lifesteal = lifesteal
 	if lifesteal > 0.0:
 		p.dealt.connect(_on_lifesteal)  # 명중 시 흡혈 회복
