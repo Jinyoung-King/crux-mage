@@ -176,6 +176,28 @@ func _boss_wave_for(index: int) -> WaveData:
 		2: return guardian_wave
 		_: return storm_wave
 
+## 보스 웨이브의 HP바 적(보스 본체) 이름 — 등장 배너용
+func _boss_enemy_name(index: int) -> String:
+	for entry in _boss_wave_for(index).entries:
+		if entry.enemy and entry.enemy.show_hp_bar:
+			return entry.enemy.display_name
+	return ""
+
+## 보스 등장 배너: 중앙 위쪽에 이름이 펀치 인 → 잠깐 유지 → 페이드 아웃
+func _show_boss_banner(boss_name: String) -> void:
+	if boss_name.is_empty():
+		return
+	var b: Label = $HUD/BossBanner
+	b.text = boss_name
+	b.pivot_offset = Vector2(300, 40)
+	b.modulate = Color(1, 0.55, 0.55, 0.0)
+	b.scale = Vector2(0.6, 0.6)
+	var t := create_tween()
+	t.tween_property(b, "modulate:a", 1.0, 0.2)
+	t.parallel().tween_property(b, "scale", Vector2(1, 1), 0.32).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	t.tween_interval(0.9)
+	t.tween_property(b, "modulate:a", 0.0, 0.4)
+
 ## 무한 모드 엘리트 굴림: 단계가 깊을수록 자주(최대 50%). 무한 전(단계 0)에는 없음.
 func _roll_elite() -> Dictionary:
 	var lvl := _endless_level(wave_index)
@@ -197,6 +219,7 @@ func _start_wave(index: int) -> void:
 	if kind == "boss":
 		wave_label.text = "Wave %d - 보스" % (index + 1)
 		_add_shake(6.0)  # 보스 등장 예고
+		_show_boss_banner(_boss_enemy_name(index))  # 보스 이름 등장 배너
 		print("BOSS WAVE")
 	elif kind == "midboss":
 		wave_label.text = "Wave %d - 중간보스" % (index + 1)
