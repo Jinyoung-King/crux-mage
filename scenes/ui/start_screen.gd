@@ -32,6 +32,7 @@ func _ready() -> void:
 	upgrade_button.pressed.connect(_on_upgrade)
 	upgrade_button.text = "강화 (코인 %d)" % GameState.coins
 	$Center/PatchButton.pressed.connect(_on_patch)
+	$Center/RelicButton.pressed.connect(_on_relics)
 	# 시작 웨이브 도약: 1, 그리고 best_wave 이하 5단위
 	wave_options = [1]
 	var w := 5
@@ -128,3 +129,6 @@ func _on_upgrade() -> void:
 
 func _on_patch() -> void:
 	get_tree().change_scene_to_file("res://scenes/ui/patch_notes.tscn")
+
+func _on_relics() -> void:
+	get_tree().change_scene_to_file("res://scenes/ui/relic_manage.tscn")

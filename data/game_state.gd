@@ -3,10 +3,11 @@ extends Node
 ## 씬을 새로 로드해도 유지되며, 최고 기록은 user://에 영속 저장된다.
 
 const SAVE_PATH := "user://save.cfg"
-const VERSION := "v0.44"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
+const VERSION := "v0.45"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
 
 # 패치노트 (최신이 위). 새 버전 추가 시 맨 앞에 한 항목 추가. 시작 화면 "패치노트" + 업데이트 시 자동 안내.
 const CHANGELOG := [
+	{"v": "v0.45", "notes": ["유물 개편 — 코인으로 영구 해금 후 런마다 장착(시작 화면 '유물')", "보스는 유물 드래프트 대신 희귀 카드 확정"]},
 	{"v": "v0.44", "notes": ["패치노트 화면 추가 — 업데이트 시 변경 내용을 안내"]},
 	{"v": "v0.43", "notes": ["일시정지 화면에 현재 빌드 요약(실효 스탯·유물) 표시"]},
 	{"v": "v0.42", "notes": ["웨이브 클리어 시 남은 적 탄막을 즉시 제거"]},
@@ -35,6 +36,7 @@ const UPGRADES := [
 const XP_BASE := 50
 const XP_STEP := 25
 const MASTERY_PER_LEVEL := 0.02  ## 숙련 레벨당 공격력·체력 +2%
+const RELIC_SLOTS := 2  ## 런마다 장착 가능한 유물 수
 
 # 컬렉션 로스터 (unlock_wave 오름차순)
 var characters: Array = [
@@ -54,6 +56,8 @@ var coins := 0  ## 영구 재화 (런 종료 시 누적, 캐릭터 공용 지갑
 var upgrades := {}  ## 영구 강화 레벨 — 캐릭터별 {char_key: {id: level}}
 var char_xp := {}  ## 캐릭터별 누적 경험치 {char_key: xp} → 숙련도 레벨(자동 패시브)
 var seen_version := ""  ## 마지막으로 패치노트를 본 버전 — 다르면 시작 시 자동 안내
+var unlocked_relics: Array = []  ## 코인으로 영구 해금한 유물 id
+var equipped_relics: Array = []  ## 이번 런에 장착할 유물 id (해금분 중 최대 RELIC_SLOTS개)
 
 func _ready() -> void:
 	_load()
@@ -172,6 +176,41 @@ func add_coins(n: int) -> void:
 	coins += n
 	_save()
 
+## --- 유물 (코인 영구 해금 + 런 장착) ---
+func relic_slots() -> int:
+	return RELIC_SLOTS
+
+func relic_cost(id: String) -> int:
+	return int(RelicLib.relic_def(id).get("cost", 100))
+
+func is_relic_unlocked(id: String) -> bool:
+	return unlocked_relics.has(id)
+
+func can_unlock_relic(id: String) -> bool:
+	return not is_relic_unlocked(id) and coins >= relic_cost(id)
+
+## 해금 성공 시 코인 차감·영속 저장하고 true
+func unlock_relic(id: String) -> bool:
+	if not can_unlock_relic(id):
+		return false
+	coins -= relic_cost(id)
+	unlocked_relics.append(id)
+	_save()
+	return true
+
+func is_relic_equipped(id: String) -> bool:
+	return equipped_relics.has(id)
+
+## 장착/해제 토글 (해금된 것만, 슬롯 한도 내). 변경 시 저장.
+func toggle_relic(id: String) -> void:
+	if is_relic_equipped(id):
+		equipped_relics.erase(id)
+	elif is_relic_unlocked(id) and equipped_relics.size() < relic_slots():
+		equipped_relics.append(id)
+	else:
+		return
+	_save()
+
 func _load() -> void:
 	var cf := ConfigFile.new()
 	if cf.load(SAVE_PATH) == OK:
@@ -183,6 +222,8 @@ func _load() -> void:
 		upgrades = cf.get_value("meta", "upgrades", {})
 		char_xp = cf.get_value("meta", "char_xp", {})
 		seen_version = cf.get_value("meta", "seen_version", "")
+		unlocked_relics = cf.get_value("meta", "unlocked_relics", [])
+		equipped_relics = cf.get_value("meta", "equipped_relics", [])
 		_migrate_upgrades()  # 구형(글로벌) 강화 → 코인 환불 후 캐릭터별로 전환
 
 func _save() -> void:
@@ -195,6 +236,8 @@ func _save() -> void:
 	cf.set_value("meta", "upgrades", upgrades)
 	cf.set_value("meta", "char_xp", char_xp)
 	cf.set_value("meta", "seen_version", seen_version)
+	cf.set_value("meta", "unlocked_relics", unlocked_relics)
+	cf.set_value("meta", "equipped_relics", equipped_relics)
 	cf.save(SAVE_PATH)
 
 ## 현재 버전의 패치노트를 본 것으로 기록(자동 안내 1회용)
