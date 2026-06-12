@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://data/enemy_data.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/enemy_ghost.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+display_name = "유령"
+hp = 15.0
+speed = 80.0
+contact_damage = 8.0
+size = 30.0
+sprite = ExtResource("2")
+effect_color = Color(0.69, 0.88, 0.94, 1)
+zigzag_amplitude = 60.0
+zigzag_period = 2.0

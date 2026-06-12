@@ -130,6 +130,64 @@ TANK_PAL = {
     "R": (255, 80, 80, 255),   # 눈동자(성난 빨강)
 }
 
+# 유령 (10x10 → 30x30): 지그재그 회피형
+GHOST = [
+    "..CCCCCC..",
+    ".CCCCCCCC.",
+    "CCCCCCCCCC",
+    "CCEECCEECC",
+    "CCEECCEECC",
+    "CCCCCCCCCC",
+    "CCCCCCCCCC",
+    "CCCCCCCCCC",
+    "CC.CCCC.CC",
+    "C...CC...C",
+]
+GHOST_PAL = {
+    "C": (175, 225, 240, 255),  # 몸통 창백한 청록
+    "E": (45, 65, 95, 255),     # 눈
+}
+
+# 분열 슬라임 (14x14 → 42x42)
+SLIME_BIG = [
+    ".....GGGG.....",
+    "...GGGGGGGG...",
+    "..GGGGGGGGGG..",
+    ".GGWWGGGGWWGG.",
+    ".GGWBGGGGWBGG.",
+    "GGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGG",
+    "GGGDDDDDDDDGGG",
+    "GGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGG",
+    ".GGGGGGGGGGGG.",
+    ".GDGGDGGDGGDG.",
+    "..D..D..D..D..",
+    "..............",
+]
+SLIME_BIG_PAL = {
+    "G": (95, 200, 95, 255),    # 몸통 초록
+    "D": (45, 130, 60, 255),    # 음영
+    "W": (255, 255, 255, 255),  # 눈 흰자
+    "B": (30, 45, 35, 255),     # 눈동자
+}
+
+# 새끼 슬라임 (7x7 → 21x21)
+SLIME_MINI = [
+    ".GGGGG.",
+    "GGWGWGG",
+    "GGGGGGG",
+    "GGGGGGG",
+    "GGDDDGG",
+    ".GGGGG.",
+    ".G.G.G.",
+]
+SLIME_MINI_PAL = {
+    "G": (130, 220, 110, 255),  # 연두 (대왕보다 밝게)
+    "D": (55, 145, 70, 255),
+    "W": (255, 255, 255, 255),
+}
+
 # 보스 마왕 (24x24 → 72x72): 뿔 + 붉은 눈 + 이빨
 BOSS = [
     "...HH..............HH...",
@@ -185,5 +243,8 @@ write_png("enemy_basic.png", BASIC, BASIC_PAL)
 write_png("enemy_fast.png", FAST, FAST_PAL)
 write_png("enemy_tank.png", TANK, TANK_PAL)
 write_png("enemy_boss.png", BOSS, BOSS_PAL)
+write_png("enemy_ghost.png", GHOST, GHOST_PAL)
+write_png("enemy_slime_big.png", SLIME_BIG, SLIME_BIG_PAL)
+write_png("enemy_slime_mini.png", SLIME_MINI, SLIME_MINI_PAL)
 write_png("bolt.png", BOLT, BOLT_PAL)
 print("OK:", sorted(os.listdir(OUT)))

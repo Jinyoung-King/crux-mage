@@ -11,3 +11,7 @@ extends Resource
 @export var fire_rate_bonus: float = 0.0
 @export var projectile_count_bonus: int = 0
 @export var pierce_bonus: int = 0
+# 시너지/체력 계열
+@export var damage_per_target_bonus: float = 0.0  ## 동시 표적 1마다 데미지
+@export var fire_rate_per_pierce_bonus: float = 0.0  ## 관통 1마다 연사
+@export var max_hp_bonus: float = 0.0  ## 최대 체력 증감 (음수 가능 — 트레이드오프 카드)

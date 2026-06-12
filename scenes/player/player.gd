@@ -17,9 +17,17 @@ var hp: float
 func _ready() -> void:
 	hp = max_hp
 	build = BuildState.new()  # 런타임 생성 (.tres 직접 참조 금지)
-	attack_timer.wait_time = 1.0 / build.fire_rate
+	attack_timer.wait_time = 1.0 / effective_fire_rate()
 	attack_timer.timeout.connect(_on_attack_timer_timeout)
 	attack_timer.start()
+
+## 시너지 반영 실효 데미지: 기본 + (동시 표적당 데미지 × 동시 표적 수)
+func effective_damage() -> float:
+	return build.damage + build.damage_per_target * build.projectile_count
+
+## 시너지 반영 실효 연사: 기본 + (관통당 연사 × 관통 수)
+func effective_fire_rate() -> float:
+	return build.fire_rate + build.fire_rate_per_pierce * build.pierce
 
 func _on_attack_timer_timeout() -> void:
 	var targets := _nearest_enemies(build.projectile_count)
@@ -54,7 +62,13 @@ func apply_card(card: CardData) -> void:
 	build.fire_rate += card.fire_rate_bonus
 	build.projectile_count += card.projectile_count_bonus
 	build.pierce += card.pierce_bonus
-	attack_timer.wait_time = 1.0 / build.fire_rate
+	build.damage_per_target += card.damage_per_target_bonus
+	build.fire_rate_per_pierce += card.fire_rate_per_pierce_bonus
+	attack_timer.wait_time = 1.0 / effective_fire_rate()
+	if card.max_hp_bonus != 0.0:
+		max_hp = maxf(max_hp + card.max_hp_bonus, 10.0)  # 트레이드오프로도 최소 10은 보장
+		hp = minf(hp, max_hp)
+		hp_changed.emit(hp, max_hp)
 	if card.heal > 0.0:
 		hp = minf(hp + card.heal, max_hp)
 		hp_changed.emit(hp, max_hp)
@@ -66,6 +80,6 @@ func _fire_at(target) -> void:
 	var flight_time: float = global_position.distance_to(target.global_position) / p.speed
 	var predicted: Vector2 = target.global_position + Vector2.DOWN * target.speed * flight_time
 	p.direction = (predicted - global_position).normalized()
-	p.damage = build.damage
+	p.damage = effective_damage()
 	p.pierce = build.pierce
 	fired.emit(p)

@@ -13,3 +13,9 @@ extends Resource
 @export var summon_interval: float = 0.0
 @export var summon_count: int = 2
 @export var summon_enemy: EnemyData
+# 지그재그 패턴: amplitude > 0이면 좌우로 흔들리며 하강
+@export var zigzag_amplitude: float = 0.0  ## 좌우 진폭(px)
+@export var zigzag_period: float = 2.0  ## 왕복 주기(초)
+# 분열 패턴: 처치 시(도달 제외) split_enemy를 split_count마리 생성
+@export var split_count: int = 0
+@export var split_enemy: EnemyData

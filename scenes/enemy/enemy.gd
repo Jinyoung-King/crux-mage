@@ -13,10 +13,18 @@ var hp: float
 var goal_y: float = 2000.0  ## 이 y까지 내려오면 플레이어에 도달 (스폰 시 main이 설정)
 var effect_color := Color(0.85, 0.25, 0.25)  ## 사망 파편 색 (setup에서 지정)
 var body_size := 36.0  ## 파편 양 계산용 (setup에서 지정)
+# 패턴 상태 (setup에서 지정)
+var zigzag_amplitude := 0.0
+var zigzag_period := 2.0
+var split_count := 0
+var split_enemy: EnemyData
+var base_x := 0.0  ## 지그재그 기준 x
+var zig_t := 0.0
 
 func _ready() -> void:
 	add_to_group("enemies")
 	hp = max_hp
+	base_x = position.x
 	# 등장 팝인 연출
 	$Sprite2D.scale = Vector2(1.2, 1.2)
 	create_tween().tween_property($Sprite2D, "scale", Vector2(3, 3), 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
@@ -29,6 +37,10 @@ func setup(data: EnemyData, hp_scale: float = 1.0) -> void:
 	contact_damage = data.contact_damage
 	effect_color = data.effect_color
 	body_size = data.size
+	zigzag_amplitude = data.zigzag_amplitude
+	zigzag_period = data.zigzag_period
+	split_count = data.split_count
+	split_enemy = data.split_enemy
 	if data.summon_interval > 0.0:
 		var t := Timer.new()
 		t.wait_time = data.summon_interval
@@ -46,6 +58,9 @@ func _physics_process(delta: float) -> void:
 	if hp <= 0.0:
 		return  # 이미 사망/도달 처리된 적
 	position.y += speed * delta
+	if zigzag_amplitude > 0.0:
+		zig_t += delta
+		position.x = clampf(base_x + sin(zig_t * TAU / zigzag_period) * zigzag_amplitude, 30.0, 690.0)
 	if position.y >= goal_y:
 		hp = 0.0  # 도달한 적은 이후 피격/사망 처리에서 제외
 		reached_player.emit(contact_damage)
@@ -57,6 +72,10 @@ func take_damage(amount: float) -> void:
 	hp -= amount
 	_flash()
 	if hp <= 0.0:
+		# 분열: 처치로 죽을 때만 (도달로 빠지면 분열 없음). died보다 먼저 emit해야
+		# 마지막 적이 분열할 때 웨이브 클리어가 새끼 생성 전에 판정되는 것을 막는다.
+		if split_count > 0 and split_enemy != null:
+			summon.emit(split_enemy, split_count, global_position)
 		died.emit(global_position, effect_color, body_size)
 		queue_free()
 

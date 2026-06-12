@@ -28,6 +28,10 @@ var card_pool: Array = [
 	preload("res://resources/cards/card_damage_big.tres"),
 	preload("res://resources/cards/card_fire_rate_big.tres"),
 	preload("res://resources/cards/card_multi_big.tres"),
+	preload("res://resources/cards/card_chain.tres"),
+	preload("res://resources/cards/card_fury.tres"),
+	preload("res://resources/cards/card_blood.tres"),
+	preload("res://resources/cards/card_crystal.tres"),
 ]
 
 var wave_index := 0
@@ -126,8 +130,14 @@ func _spawn_enemy() -> void:
 	if spawned >= spawn_list.size():
 		spawn_timer.stop()
 
-## 적 1마리 생성 공통 처리 (웨이브 스폰·보스 소환 양쪽에서 사용)
+## 적 1마리 생성 공통 처리 (웨이브 스폰용 — 즉시 생성)
 func _spawn_one(data: EnemyData, pos: Vector2) -> void:
+	alive += 1
+	_create_enemy(data, pos)
+
+func _create_enemy(data: EnemyData, pos: Vector2) -> void:
+	if game_over:
+		return  # 게임오버 이후 도착한 예약 스폰은 무시
 	var enemy = ENEMY_SCENE.instantiate()
 	enemy.setup(data, endless_hp_scale)
 	enemy.position = pos
@@ -136,9 +146,10 @@ func _spawn_one(data: EnemyData, pos: Vector2) -> void:
 	enemy.reached_player.connect(_on_enemy_reached_player)
 	enemy.summon.connect(_on_summon)
 	$Enemies.add_child(enemy)
-	alive += 1
 
-## 보스 소환: 보스 위치 주변에 소환수 생성 (생존 집계에 포함되어 웨이브 클리어 조건에 반영)
+## 보스 소환·분열: 생성은 물리 콜백 밖으로 미루되(call_deferred — 분열은 충돌 콜백 중에
+## 발생해 즉시 생성하면 물리 서버 오류), 생존 수는 즉시 예약해 마지막 적이 분열로 죽을 때
+## 새끼 생성 전에 웨이브 클리어가 판정되는 레이스를 막는다.
 func _on_summon(data: EnemyData, count: int, pos: Vector2) -> void:
 	if game_over:
 		return
@@ -146,7 +157,8 @@ func _on_summon(data: EnemyData, count: int, pos: Vector2) -> void:
 		var offset := Vector2(randf_range(-60, 60), randf_range(-10, 30))
 		var p := pos + offset
 		p.x = clampf(p.x, SPAWN_X_MIN, SPAWN_X_MAX)
-		_spawn_one(data, p)
+		alive += 1
+		_create_enemy.call_deferred(data, p)
 
 func _on_enemy_died(pos: Vector2, color: Color, size: float) -> void:
 	$SfxEnemyDie.play()

@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+card_name = "꿰뚫는 격노"
+description = "관통 1마다 초당 발사 +0.2"
+rarity = "rare"
+fire_rate_per_pierce_bonus = 0.2
