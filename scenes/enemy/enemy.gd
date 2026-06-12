@@ -52,6 +52,7 @@ var shield_time_left := 0.0
 var shield_node: ColorRect
 # 엘리트 수식어 (무한 모드 잡몹): 처치 시 줄 코인
 var coin_value := 1
+var dmg_scale := 1.0  ## 무한 모드 피해 배율 (접촉·탄막·돌진에 적용)
 
 func _ready() -> void:
 	add_to_group("enemies")
@@ -63,7 +64,8 @@ func _ready() -> void:
 
 ## 스폰 시 적 종류 데이터 적용 (add_child 전에 호출할 것)
 ## hp_scale: 무한 모드 체력 배율
-func setup(data: EnemyData, hp_scale: float = 1.0, elite: Dictionary = {}) -> void:
+func setup(data: EnemyData, hp_scale: float = 1.0, dscale: float = 1.0, elite: Dictionary = {}) -> void:
+	dmg_scale = dscale
 	max_hp = data.hp * hp_scale
 	speed = data.speed
 	contact_damage = data.contact_damage
@@ -89,7 +91,7 @@ func setup(data: EnemyData, hp_scale: float = 1.0, elite: Dictionary = {}) -> vo
 		add_child(at)
 	if data.charge_interval > 0.0:
 		charge_speed = data.charge_speed
-		charge_damage = data.charge_damage
+		charge_damage = data.charge_damage * dmg_scale
 		var ct := Timer.new()
 		ct.wait_time = data.charge_interval
 		ct.autostart = true
@@ -112,6 +114,7 @@ func setup(data: EnemyData, hp_scale: float = 1.0, elite: Dictionary = {}) -> vo
 		contact_damage *= elite.get("contact_mul", 1.0)
 		body_size *= elite.get("size_mul", 1.0)
 		effect_color = elite.get("color", effect_color)
+	contact_damage *= dmg_scale  # 무한 모드 피해 상승 (흡혈로 스테이지가 안 끝나는 현상 방지)
 	$Sprite2D.texture = data.sprite
 	# 표시 배율 = 크기/텍스처폭 (엘리트 거대 수식어면 body_size가 커져 함께 확대)
 	sprite_scale = body_size / float(data.sprite.get_width())
@@ -279,7 +282,7 @@ func _on_ranged_timer(data: EnemyData) -> void:
 func _emit_barrage(data: EnemyData) -> void:
 	if hp <= 0.0:
 		return
-	ranged_attack.emit(data.attack_damage, global_position, data.attack_count, data.attack_spread_deg, data.attack_bolt_scale)
+	ranged_attack.emit(data.attack_damage * dmg_scale, global_position, data.attack_count, data.attack_spread_deg, data.attack_bolt_scale)
 	if data.attack_count > 1:
 		print("%s BARRAGE x%d" % [display_name, data.attack_count])
 

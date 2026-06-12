@@ -160,7 +160,7 @@ grow_horizontal = 0
 grow_vertical = 0
 theme_override_font_sizes/font_size = 16
 horizontal_alignment = 2
-text = "v0.33"
+text = "v0.34"
 
 [node name="PauseScreen" type="Control" parent="HUD"]
 process_mode = 3
@@ -249,7 +249,7 @@ layout_mode = 2
 size_flags_horizontal = 4
 theme_override_fonts/font = ExtResource("4")
 theme_override_font_sizes/font_size = 22
-text = "캐릭터 선택"
+text = "나가기 (기록 저장)"
 
 [node name="SpawnTimer" type="Timer" parent="."]
 

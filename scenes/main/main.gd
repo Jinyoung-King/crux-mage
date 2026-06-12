@@ -11,6 +11,7 @@ const SPAWN_X_MAX := 660.0
 const CHOICES_PER_CLEAR := 3
 const RARITY_WEIGHT := {"common": 3.0, "rare": 1.0, "legendary": 0.3}  # 카드 등장 가중치(전설 희소)
 const ENDLESS_HP_GROWTH := 0.15  # 무한 모드 단계당 적 체력 증가율
+const ENDLESS_DMG_GROWTH := 0.10  # 무한 모드 단계당 적 피해 증가율(체력보다 완만, 흡혈 무한지속 방지)
 const SPEEDS := [1.0, 2.0, 3.0]  # 배속 순환 단계(탭마다 1→2→3→1x)
 # 무한 모드 엘리트 수식어 (잡몹이 일정 확률로 하나를 달고 등장). 누락 배수는 1.0 취급.
 const MODIFIERS := [
@@ -53,6 +54,7 @@ var card_pool: Array = [
 var wave_index := 0
 var spawn_list: Array = []  # 이번 웨이브에서 스폰할 EnemyData 순서
 var endless_hp_scale := 1.0  # 이번 웨이브의 적 체력 배율 (무한 모드에서 상승)
+var endless_dmg_scale := 1.0  # 이번 웨이브의 적 피해 배율 (무한 모드에서 상승)
 var spawned := 0
 var alive := 0
 var run_coins := 0  # 이번 런 누적 코인 (사망 시 GameState에 정산)
@@ -97,7 +99,7 @@ func _ready() -> void:
 	pause_button.pressed.connect(_on_pause_pressed)
 	$HUD/PauseScreen/Center/ResumeButton.pressed.connect(_on_resume_pressed)
 	$HUD/PauseScreen/Center/RestartButton.pressed.connect(_on_restart_pressed)
-	$HUD/PauseScreen/Center/MenuButton.pressed.connect(_on_char_select_pressed)
+	$HUD/PauseScreen/Center/MenuButton.pressed.connect(_on_give_up)
 	mute_button.pressed.connect(_on_mute_pressed)
 	volume_slider.value_changed.connect(_on_volume_changed)
 	volume_slider.value = GameState.sfx_volume
@@ -177,6 +179,7 @@ func _start_wave(index: int) -> void:
 	wave_index = index
 	spawn_list = _build_spawn_list(index)
 	endless_hp_scale = pow(1.0 + ENDLESS_HP_GROWTH, _endless_level(index))  # 복리: 후반 빌드 성장을 따라잡도록
+	endless_dmg_scale = pow(1.0 + ENDLESS_DMG_GROWTH, _endless_level(index))  # 적 피해도 상승
 	spawned = 0
 	alive = 0
 	var kind := _wave_kind(index)
@@ -243,7 +246,7 @@ func _create_enemy(data: EnemyData, pos: Vector2, elite: Dictionary = {}) -> voi
 	if game_over:
 		return  # 게임오버 이후 도착한 예약 스폰은 무시
 	var enemy = ENEMY_SCENE.instantiate()
-	enemy.setup(data, endless_hp_scale, elite)
+	enemy.setup(data, endless_hp_scale, endless_dmg_scale, elite)
 	enemy.position = pos
 	enemy.goal_y = $Player.position.y - 30.0 - data.size / 2.0  # 플레이어 반높이 + 적 반높이
 	enemy.died.connect(_on_enemy_died)
@@ -437,6 +440,14 @@ func _on_player_died() -> void:
 func _on_restart_pressed() -> void:
 	get_tree().paused = false
 	get_tree().reload_current_scene()
+
+## 나가기(일시정지 메뉴): 여태 도달 기록·획득 코인을 정산하고 시작 화면으로 (수동 종료)
+func _on_give_up() -> void:
+	GameState.record_wave(wave_index + 1)  # 도달 웨이브 기록(영속)
+	GameState.add_coins(run_coins)  # 이번 런 코인 정산(영속)
+	get_tree().paused = false
+	Engine.time_scale = 1.0
+	get_tree().change_scene_to_file("res://scenes/ui/start_screen.tscn")
 
 ## 캐릭터 선택 화면으로 (게임오버 후)
 func _on_char_select_pressed() -> void:
