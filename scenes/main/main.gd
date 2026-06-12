@@ -5,7 +5,6 @@ const ENEMY_SCENE := preload("res://scenes/enemy/enemy.tscn")
 const DEATH_BURST_SCENE := preload("res://scenes/fx/death_burst.tscn")
 const DEATH_REMAINS := preload("res://scenes/fx/death_remains.gd")
 const ENEMY_BOLT_SCENE := preload("res://scenes/projectile/enemy_bolt.tscn")
-const SAVE_PATH := "user://save.cfg"
 const SPAWN_Y := -60.0  # 화면(720x1280) 위쪽 바깥
 const SPAWN_X_MIN := 60.0  # 스폰 가로 범위 (가장자리 여백 확보)
 const SPAWN_X_MAX := 660.0
@@ -44,7 +43,6 @@ var spawned := 0
 var alive := 0
 var game_over := false
 var shake := 0.0  # 화면 흔들림 세기(px), 매 프레임 감쇠
-var best_wave := 0  # 최고 도달 웨이브 (user://에 저장)
 
 @onready var spawn_timer: Timer = $SpawnTimer
 @onready var card_select = $HUD/CardSelect
@@ -53,31 +51,25 @@ var best_wave := 0  # 최고 도달 웨이브 (user://에 저장)
 @onready var restart_button: Button = $HUD/RestartButton
 @onready var flash_overlay: ColorRect = $HUD/FlashOverlay
 @onready var best_label: Label = $HUD/BestLabel
+@onready var char_select_button: Button = $HUD/CharSelectButton
 
 func _ready() -> void:
+	var ch: CharacterData = GameState.selected
+	$Player.apply_character(ch)
+	$SfxShoot.stream = ch.shoot_sound  # 캐릭터 전용 발사음
 	$Player.fired.connect(_on_player_fired)
 	$Player.hp_changed.connect(_on_player_hp_changed)
 	$Player.died.connect(_on_player_died)
 	spawn_timer.timeout.connect(_spawn_enemy)
 	card_select.card_chosen.connect(_on_card_chosen)
 	restart_button.pressed.connect(_on_restart_pressed)
+	char_select_button.pressed.connect(_on_char_select_pressed)
 	_on_player_hp_changed($Player.hp, $Player.max_hp)  # HP 초기 표시
-	_load_best()
 	_update_best_label()
 	_start_wave(0)
 
-func _load_best() -> void:
-	var cf := ConfigFile.new()
-	if cf.load(SAVE_PATH) == OK:
-		best_wave = cf.get_value("record", "best_wave", 0)
-
-func _save_best() -> void:
-	var cf := ConfigFile.new()
-	cf.set_value("record", "best_wave", best_wave)
-	cf.save(SAVE_PATH)
-
 func _update_best_label() -> void:
-	best_label.text = "최고: Wave %d" % best_wave if best_wave > 0 else ""
+	best_label.text = "최고: Wave %d" % GameState.best_wave if GameState.best_wave > 0 else ""
 
 func _process(delta: float) -> void:
 	# 화면 흔들림: 월드(Main)만 움직임 — HUD(CanvasLayer)는 영향 없음
@@ -277,11 +269,8 @@ func _on_player_died() -> void:
 	game_over = true
 	print("GAME OVER")
 	wave_label.text = "GAME OVER - Wave %d" % (wave_index + 1)
-	var reached := wave_index + 1
-	if reached > best_wave:
-		best_wave = reached
-		_save_best()
-		_update_best_label()
+	GameState.record_wave(wave_index + 1)  # 최고 기록 갱신·저장 (신규 해금 가능)
+	_update_best_label()
 	$SfxGameOver.play()  # process_mode=ALWAYS라 일시정지 중에도 재생됨
 	# 일시정지 직전 흔들림 원위치 + 붉은 톤 고정 (멈춘 화면 연출)
 	shake = 0.0
@@ -289,11 +278,17 @@ func _on_player_died() -> void:
 	flash_overlay.color.a = 0.25
 	get_tree().paused = true
 	restart_button.show()
+	char_select_button.show()
 
 ## 재시작: 일시정지 해제 후 씬 전체 리로드 (빌드/웨이브/HP 모두 초기화)
 func _on_restart_pressed() -> void:
 	get_tree().paused = false
 	get_tree().reload_current_scene()
+
+## 캐릭터 선택 화면으로 (게임오버 후)
+func _on_char_select_pressed() -> void:
+	get_tree().paused = false
+	get_tree().change_scene_to_file("res://scenes/ui/start_screen.tscn")
 
 func _on_player_fired(projectile) -> void:
 	$SfxShoot.play()

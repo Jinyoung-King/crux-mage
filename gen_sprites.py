@@ -52,17 +52,19 @@ WIZARD = [
     ".RRRSRRSRRR...",
     ".SSSSSSSSSS...",
 ]
-WIZARD_PAL = {
-    "H": (40, 70, 160, 255),    # 모자/로브 진파랑
-    "B": (240, 200, 80, 255),   # 모자 띠 금색
-    "F": (245, 210, 170, 255),  # 얼굴
-    "E": (40, 40, 60, 255),     # 눈
-    "W": (235, 235, 235, 255),  # 수염
-    "R": (60, 100, 200, 255),   # 로브 파랑
-    "S": (35, 60, 130, 255),    # 로브 음영
-    "T": (140, 95, 50, 255),    # 지팡이
-    "O": (255, 230, 120, 255),  # 지팡이 구슬
-}
+# 로브 3색(진/주/음영)과 구슬색만 바꿔 캐릭터별 마법사 변형을 만든다.
+def _wizard_pal(dark, main, shadow, orb):
+    return {
+        "H": dark + (255,),     # 모자/어깨 로브 (진)
+        "R": main + (255,),     # 로브 본색
+        "S": shadow + (255,),   # 로브 음영
+        "B": (240, 200, 80, 255),   # 모자 띠 금색 (공통)
+        "F": (245, 210, 170, 255),  # 얼굴
+        "E": (40, 40, 60, 255),     # 눈
+        "W": (235, 235, 235, 255),  # 수염
+        "T": (140, 95, 50, 255),    # 지팡이
+        "O": orb + (255,),          # 지팡이 구슬 (캐릭터 강조색)
+    }
 
 # 기본병 슬라임 (12x12 → 36x36)
 BASIC = [
@@ -259,7 +261,7 @@ DARK_BOLT_PAL = {
     "W": (255, 205, 250, 255),
 }
 
-# 마법탄 (5x5 → 15x15): 중심 흰빛 + 노란 광채
+# 마법탄 (5x5): 중심 흰빛 + 노란 광채 — 견습 마법사
 BOLT = [
     "..Y..",
     ".YWY.",
@@ -272,8 +274,57 @@ BOLT_PAL = {
     "W": (255, 255, 235, 255),
 }
 
+# 화염구 (7x7) — 화염술사
+FIREBALL = [
+    "..OOO..",
+    ".OYYYO.",
+    "OYWWWYO",
+    "OYWWWYO",
+    "OYYYYYO",
+    ".OYYYO.",
+    "..OOO..",
+]
+FIREBALL_PAL = {
+    "O": (200, 70, 30, 255),
+    "Y": (250, 150, 50, 255),
+    "W": (255, 240, 190, 255),
+}
+
+# 화살 (9x5, 오른쪽을 향함 → 발사 방향으로 회전됨) — 폭풍 궁사
+ARROW = [
+    ".....A...",
+    "GGGGGAA..",
+    "GGGGGGGAA",
+    "GGGGGAA..",
+    ".....A...",
+]
+ARROW_PAL = {
+    "G": (90, 200, 110, 255),
+    "A": (200, 255, 170, 255),
+}
+
+# 서리 파편 (5x5) — 서리 마도사
+FROST = [
+    "..C..",
+    ".CWC.",
+    "CWFWC",
+    ".CWC.",
+    "..C..",
+]
+FROST_PAL = {
+    "C": (90, 200, 230, 255),
+    "F": (170, 230, 255, 255),
+    "W": (240, 252, 255, 255),
+}
+
 os.makedirs(OUT, exist_ok=True)
-write_png("wizard.png", WIZARD, WIZARD_PAL)
+write_png("wizard.png", WIZARD, _wizard_pal((40, 70, 160), (60, 100, 200), (35, 60, 130), (255, 230, 120)))
+write_png("mage_fire.png", WIZARD, _wizard_pal((150, 40, 40), (205, 75, 60), (115, 30, 35), (255, 180, 80)))
+write_png("mage_storm.png", WIZARD, _wizard_pal((40, 115, 70), (70, 175, 95), (35, 95, 55), (190, 255, 150)))
+write_png("mage_frost.png", WIZARD, _wizard_pal((50, 110, 150), (85, 175, 205), (40, 90, 130), (190, 240, 255)))
+write_png("fireball.png", FIREBALL, FIREBALL_PAL)
+write_png("arrow.png", ARROW, ARROW_PAL)
+write_png("frost.png", FROST, FROST_PAL)
 write_png("enemy_basic.png", BASIC, BASIC_PAL)
 write_png("enemy_fast.png", FAST, FAST_PAL)
 write_png("enemy_tank.png", TANK, TANK_PAL)

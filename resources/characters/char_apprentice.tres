@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CharacterData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://data/character_data.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/wizard.png" id="2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/bolt.png" id="3"]
+[ext_resource type="AudioStream" path="res://assets/audio/shoot.wav" id="4"]
+
+[resource]
+script = ExtResource("1")
+display_name = "견습 마법사"
+description = "균형잡힌 기본기"
+mage_sprite = ExtResource("2")
+projectile_sprite = ExtResource("3")
+shoot_sound = ExtResource("4")
+base_damage = 10.0
+base_fire_rate = 2.0
+base_projectile_count = 1
+base_pierce = 0
+unlock_wave = 0
+accent_color = Color(0.3, 0.5, 1, 1)

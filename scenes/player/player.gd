@@ -11,6 +11,7 @@ const PROJECTILE_SCENE := preload("res://scenes/projectile/projectile.tscn")
 
 var build: BuildState
 var hp: float
+var character: CharacterData
 
 @onready var attack_timer: Timer = $AttackTimer
 
@@ -20,6 +21,16 @@ func _ready() -> void:
 	attack_timer.wait_time = 1.0 / effective_fire_rate()
 	attack_timer.timeout.connect(_on_attack_timer_timeout)
 	attack_timer.start()
+
+## 선택 캐릭터의 무기·기본 빌드·외형 적용 (게임 시작 시 main이 호출)
+func apply_character(c: CharacterData) -> void:
+	character = c
+	build.damage = c.base_damage
+	build.fire_rate = c.base_fire_rate
+	build.projectile_count = c.base_projectile_count
+	build.pierce = c.base_pierce
+	attack_timer.wait_time = 1.0 / effective_fire_rate()
+	$Sprite2D.texture = c.mage_sprite
 
 ## 시너지 반영 실효 데미지: 기본 + (동시 표적당 데미지 × 동시 표적 수)
 func effective_damage() -> float:
@@ -75,6 +86,8 @@ func apply_card(card: CardData) -> void:
 
 func _fire_at(target) -> void:
 	var p = PROJECTILE_SCENE.instantiate()
+	if character and character.projectile_sprite:
+		p.get_node("Sprite2D").texture = character.projectile_sprite  # 캐릭터 전용 발사체 외형
 	p.position = global_position  # Projectiles 컨테이너가 원점에 있어 전역 좌표와 동일
 	# 적이 아래로 이동 중이므로 비행시간만큼 앞질러 조준 (1회 예측으로 충분)
 	var flight_time: float = global_position.distance_to(target.global_position) / p.speed

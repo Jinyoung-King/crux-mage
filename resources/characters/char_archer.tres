@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CharacterData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://data/character_data.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/mage_storm.png" id="2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/arrow.png" id="3"]
+[ext_resource type="AudioStream" path="res://assets/audio/shoot_arrow.wav" id="4"]
+
+[resource]
+script = ExtResource("1")
+display_name = "폭풍 궁사"
+description = "초고속 연사, 낮은 화력"
+mage_sprite = ExtResource("2")
+projectile_sprite = ExtResource("3")
+shoot_sound = ExtResource("4")
+base_damage = 4.0
+base_fire_rate = 5.0
+base_projectile_count = 1
+base_pierce = 0
+unlock_wave = 6
+accent_color = Color(0.4, 0.78, 0.45, 1)
