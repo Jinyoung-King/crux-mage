@@ -2,6 +2,7 @@ extends Node2D
 ## 메인 씬: 웨이브 진행(+무한 모드), 적 스폰, 클리어 판정, 카드 보상, 게임오버, 효과음.
 
 const ENEMY_SCENE := preload("res://scenes/enemy/enemy.tscn")
+const DEATH_BURST_SCENE := preload("res://scenes/fx/death_burst.tscn")
 const SPAWN_Y := -60.0  # 화면(720x1280) 위쪽 바깥
 const SPAWN_X_MIN := 60.0  # 스폰 가로 범위 (가장자리 여백 확보)
 const SPAWN_X_MAX := 660.0
@@ -34,12 +35,14 @@ var endless_hp_scale := 1.0  # 이번 웨이브의 적 체력 배율 (무한 모
 var spawned := 0
 var alive := 0
 var game_over := false
+var shake := 0.0  # 화면 흔들림 세기(px), 매 프레임 감쇠
 
 @onready var spawn_timer: Timer = $SpawnTimer
 @onready var card_select = $HUD/CardSelect
 @onready var wave_label: Label = $HUD/WaveLabel
 @onready var hp_label: Label = $HUD/HpLabel
 @onready var restart_button: Button = $HUD/RestartButton
+@onready var flash_overlay: ColorRect = $HUD/FlashOverlay
 
 func _ready() -> void:
 	$Player.fired.connect(_on_player_fired)
@@ -50,6 +53,22 @@ func _ready() -> void:
 	restart_button.pressed.connect(_on_restart_pressed)
 	_on_player_hp_changed($Player.hp, $Player.max_hp)  # HP 초기 표시
 	_start_wave(0)
+
+func _process(delta: float) -> void:
+	# 화면 흔들림: 월드(Main)만 움직임 — HUD(CanvasLayer)는 영향 없음
+	if shake > 0.0:
+		shake = maxf(shake - 60.0 * delta, 0.0)
+		position = Vector2(randf_range(-shake, shake), randf_range(-shake, shake))
+	elif position != Vector2.ZERO:
+		position = Vector2.ZERO
+
+func _add_shake(amount: float) -> void:
+	shake = minf(shake + amount, 14.0)
+
+## 화면 붉은 플래시 (플레이어 피격 피드백)
+func _flash_screen() -> void:
+	flash_overlay.color.a = 0.35
+	create_tween().tween_property(flash_overlay, "color:a", 0.0, 0.25)
 
 func _start_wave(index: int) -> void:
 	wave_index = index
@@ -95,12 +114,18 @@ func _spawn_enemy() -> void:
 	if spawned >= spawn_list.size():
 		spawn_timer.stop()
 
-func _on_enemy_died() -> void:
+func _on_enemy_died(pos: Vector2, color: Color) -> void:
 	$SfxEnemyDie.play()
+	var burst = DEATH_BURST_SCENE.instantiate()
+	burst.position = pos
+	burst.color = color
+	$Fx.add_child(burst)
 	_unregister_enemy()
 
 func _on_enemy_reached_player(contact_damage: float) -> void:
 	$SfxPlayerHit.play()
+	_add_shake(8.0)
+	_flash_screen()
 	$Player.take_damage(contact_damage)
 	_unregister_enemy()
 
@@ -146,6 +171,10 @@ func _on_player_died() -> void:
 	print("GAME OVER")
 	wave_label.text = "GAME OVER - Wave %d" % (wave_index + 1)
 	$SfxGameOver.play()  # process_mode=ALWAYS라 일시정지 중에도 재생됨
+	# 일시정지 직전 흔들림 원위치 + 붉은 톤 고정 (멈춘 화면 연출)
+	shake = 0.0
+	position = Vector2.ZERO
+	flash_overlay.color.a = 0.25
 	get_tree().paused = true
 	restart_button.show()
 

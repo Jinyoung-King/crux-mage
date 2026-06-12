@@ -22,8 +22,16 @@ func _ready() -> void:
 	attack_timer.start()
 
 func _on_attack_timer_timeout() -> void:
-	for target in _nearest_enemies(build.projectile_count):
+	var targets := _nearest_enemies(build.projectile_count)
+	if not targets.is_empty():
+		_recoil()
+	for target in targets:
 		_fire_at(target)
+
+## 발사 반동: 살짝 눌렸다가 복귀
+func _recoil() -> void:
+	$Sprite2D.scale = Vector2(3.4, 2.6)
+	create_tween().tween_property($Sprite2D, "scale", Vector2(3, 3), 0.12)
 
 ## 가까운 순으로 최대 count명의 적을 반환
 func _nearest_enemies(count: int) -> Array:

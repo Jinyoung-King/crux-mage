@@ -1,7 +1,7 @@
 extends Area2D
 ## 위에서 스폰되어 아래(플레이어 쪽)로 직진하는 적.
 
-signal died
+signal died(pos: Vector2, color: Color)
 signal reached_player(contact_damage: float)
 
 @export var max_hp: float = 30.0
@@ -10,10 +10,14 @@ signal reached_player(contact_damage: float)
 
 var hp: float
 var goal_y: float = 2000.0  ## 이 y까지 내려오면 플레이어에 도달 (스폰 시 main이 설정)
+var effect_color := Color(0.85, 0.25, 0.25)  ## 사망 파편 색 (setup에서 지정)
 
 func _ready() -> void:
 	add_to_group("enemies")
 	hp = max_hp
+	# 등장 팝인 연출
+	$Sprite2D.scale = Vector2(1.2, 1.2)
+	create_tween().tween_property($Sprite2D, "scale", Vector2(3, 3), 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 ## 스폰 시 적 종류 데이터 적용 (add_child 전에 호출할 것)
 ## hp_scale: 무한 모드 체력 배율
@@ -21,6 +25,7 @@ func setup(data: EnemyData, hp_scale: float = 1.0) -> void:
 	max_hp = data.hp * hp_scale
 	speed = data.speed
 	contact_damage = data.contact_damage
+	effect_color = data.effect_color
 	$Sprite2D.texture = data.sprite
 	$Sprite2D.scale = Vector2(3, 3)  # 스프라이트는 size/3 픽셀 그리드로 제작됨
 	# 충돌 모양은 인스턴스 간 공유되므로 새로 만들어 크기 적용
@@ -41,6 +46,12 @@ func take_damage(amount: float) -> void:
 	if hp <= 0.0:
 		return  # 같은 프레임에 여러 발 맞았을 때 중복 사망 처리 방지
 	hp -= amount
+	_flash()
 	if hp <= 0.0:
-		died.emit()
+		died.emit(global_position, effect_color)
 		queue_free()
+
+## 피격 플래시: 밝게 번쩍였다가 원색으로
+func _flash() -> void:
+	$Sprite2D.modulate = Color(3.0, 3.0, 3.0)
+	create_tween().tween_property($Sprite2D, "modulate", Color.WHITE, 0.12)

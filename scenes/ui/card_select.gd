@@ -24,6 +24,14 @@ func open(cards: Array) -> void:
 		else:
 			btn.visible = false
 	show()
+	# 등장 연출: 살짝 작고 투명한 상태에서 튀어나오듯 확대
+	var center: Control = $Center
+	center.pivot_offset = center.size / 2.0
+	center.scale = Vector2(0.85, 0.85)
+	center.modulate.a = 0.0
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(center, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(center, "modulate:a", 1.0, 0.12)
 
 func _on_button_pressed(index: int) -> void:
 	hide()

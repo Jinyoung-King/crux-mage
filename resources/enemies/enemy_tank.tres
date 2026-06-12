@@ -11,3 +11,4 @@ speed = 30.0
 contact_damage = 25.0
 size = 48.0
 sprite = ExtResource("2")
+effect_color = Color(0.53, 0.29, 0.63, 1)
