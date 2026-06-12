@@ -20,3 +20,4 @@ unlock_wave = 10
 accent_color = Color(0.4, 0.78, 0.9, 1)
 passive_slow_factor = 0.45
 passive_slow_duration = 1.5
+element = "water"

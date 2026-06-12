@@ -15,3 +15,4 @@ sprite = ExtResource("2")
 effect_color = Color(0.37, 0.78, 0.37, 1)
 split_count = 2
 split_enemy = ExtResource("3")
+element = "wood"

@@ -130,6 +130,7 @@ func _fire_at(target, aim_offset := 0.0) -> void:
 		p.get_node("Sprite2D").texture = character.projectile_sprite  # 캐릭터 전용 발사체 외형
 	if character:
 		# 패시브 효과를 발사체에 실어 보냄
+		p.element = character.element  # 오행 속성(상성 판정)
 		p.crit_chance = character.passive_crit_chance
 		p.crit_mult = character.passive_crit_mult
 		p.burn_dps = character.passive_burn_dps

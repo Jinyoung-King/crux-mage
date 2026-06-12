@@ -3,10 +3,11 @@ extends Node
 ## 씬을 새로 로드해도 유지되며, 최고 기록은 user://에 영속 저장된다.
 
 const SAVE_PATH := "user://save.cfg"
-const VERSION := "v0.52"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
+const VERSION := "v0.53"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
 
 # 패치노트 (최신이 위). 새 버전 추가 시 맨 앞에 한 항목 추가. 시작 화면 "패치노트" + 업데이트 시 자동 안내.
 const CHANGELOG := [
+	{"v": "v0.53", "notes": ["오행 속성 상성 — 마법사 5속성(목화토금수), 적과 상극이면 데미지 ×1.5/×0.7", "캐릭터를 5명으로 정리(폭풍 궁사 → 뇌전·견습 등 5속성 체계로)"]},
 	{"v": "v0.52", "notes": ["새 카드 4종 — 글래스 캐논·속사포(트레이드오프), 철벽·정밀 사격"]},
 	{"v": "v0.51", "notes": ["보스 등장 배너 — 보스 웨이브 시작 시 보스 이름이 크게 표시"]},
 	{"v": "v0.50", "notes": ["새 보스 폭풍 마왕 — 광역 탄막 집중형. 보스가 마왕·수호 마왕·폭풍 마왕 3종 순환"]},
@@ -50,7 +51,6 @@ const RELIC_SLOTS_MAX := 4  ## 슬롯 강화 상한
 var characters: Array = [
 	preload("res://resources/characters/char_apprentice.tres"),
 	preload("res://resources/characters/char_pyromancer.tres"),
-	preload("res://resources/characters/char_archer.tres"),
 	preload("res://resources/characters/char_frost.tres"),
 	preload("res://resources/characters/char_arc.tres"),
 	preload("res://resources/characters/char_bomb.tres"),

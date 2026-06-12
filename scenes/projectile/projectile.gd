@@ -28,6 +28,7 @@ var chain_range := 220.0
 var execute_threshold := 0.0  ## 수확의 룬: 적 체력이 이 비율 이하면 즉사
 var splash_factor := 0.0  ## 포격술사: 명중 시 반경 내 적에게 (명중피해×이 비율) 광역 피해
 var splash_radius := 90.0
+var element := ""  ## 오행 속성 (적 속성과 상성 판정 — ElementLib)
 
 func _ready() -> void:
 	rotation = direction.angle()
@@ -50,10 +51,11 @@ func _on_area_entered(area) -> void:
 	if crit_chance > 0.0 and randf() < crit_chance:
 		dmg *= crit_mult  # 치명타
 		is_crit = true
-	area.take_damage(dmg)
-	damaged.emit(dmg, is_crit, area.global_position)  # 플로팅 데미지 숫자
+	var hit_dmg := dmg * ElementLib.multiplier(element, area.element)  # 오행 상성
+	area.take_damage(hit_dmg)
+	damaged.emit(hit_dmg, is_crit, area.global_position)  # 플로팅 데미지 숫자
 	if lifesteal > 0.0:
-		dealt.emit(dmg * lifesteal)  # 흡혈: 입힌 피해(치명타 포함) 비율만큼 회복
+		dealt.emit(hit_dmg * lifesteal)  # 흡혈: 입힌 피해 비율만큼 회복
 	if execute_threshold > 0.0 and area.hp > 0.0 and area.hp <= area.max_hp * execute_threshold:
 		area.take_damage(area.hp)  # 수확의 룬: 즉사
 	if burn_dps > 0.0:
@@ -82,9 +84,10 @@ func _chain_from(hit, dmg: float) -> void:
 		var ep: Vector2 = e.global_position
 		if origin.distance_to(ep) > chain_range:
 			break  # 정렬돼 있으므로 사정거리 밖이면 이후도 전부 밖
-		e.take_damage(dmg * chain_factor)
+		var cd := dmg * chain_factor * ElementLib.multiplier(element, e.element)
+		e.take_damage(cd)
 		if lifesteal > 0.0:
-			dealt.emit(dmg * chain_factor * lifesteal)
+			dealt.emit(cd * lifesteal)
 		chained.emit(origin, ep)
 		n += 1
 
@@ -94,7 +97,7 @@ func _splash_from(hit, dmg: float, center: Vector2) -> void:
 		if e == hit or not is_instance_valid(e):
 			continue
 		if center.distance_to(e.global_position) <= splash_radius:
-			var sd := dmg * splash_factor
+			var sd := dmg * splash_factor * ElementLib.multiplier(element, e.element)
 			e.take_damage(sd)
 			damaged.emit(sd, false, e.global_position)
 			if lifesteal > 0.0:

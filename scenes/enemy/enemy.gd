@@ -53,6 +53,7 @@ var shield_node: ColorRect
 # 엘리트 수식어 (무한 모드 잡몹): 처치 시 줄 코인
 var coin_value := 1
 var dmg_scale := 1.0  ## 무한 모드 피해 배율 (접촉·탄막·돌진에 적용)
+var element := ""  ## 오행 속성 (발사체 상성 판정용)
 
 func _ready() -> void:
 	add_to_group("enemies")
@@ -72,6 +73,7 @@ func setup(data: EnemyData, hp_scale: float = 1.0, dscale: float = 1.0, elite: D
 	effect_color = data.effect_color
 	body_size = data.size
 	coin_value = data.coin_value  # 데이터 기반 코인 (엘리트면 아래에서 덮어씀)
+	element = data.element  # 오행 속성 (상성)
 	zigzag_amplitude = data.zigzag_amplitude
 	zigzag_period = data.zigzag_period
 	split_count = data.split_count

@@ -21,3 +21,4 @@ attack_bolt_scale = 1.4
 telegraph_time = 0.6
 zigzag_amplitude = 120.0
 zigzag_period = 2.6
+element = "metal"

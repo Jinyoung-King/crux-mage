@@ -12,3 +12,4 @@ contact_damage = 4.0
 size = 21.0
 sprite = ExtResource("2")
 effect_color = Color(0.51, 0.86, 0.43, 1)
+element = "wood"

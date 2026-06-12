@@ -63,7 +63,7 @@ func _refresh_start_wave() -> void:
 func _make_card(c: CharacterData, idx: int) -> Button:
 	var unlocked := GameState.is_unlocked(c)
 	var btn := Button.new()
-	btn.custom_minimum_size = Vector2(300, 188)
+	btn.custom_minimum_size = Vector2(300, 202)
 	btn.disabled = not unlocked
 	btn.pressed.connect(_on_card_pressed.bind(idx))
 
@@ -89,6 +89,8 @@ func _make_card(c: CharacterData, idx: int) -> Button:
 	box.add_child(_label(info, 15, Color(0.8, 0.8, 0.8) if unlocked else Color(0.55, 0.55, 0.55)))
 
 	if unlocked:
+		if c.element != "":  # 오행 속성 + 강한 대상 안내
+			box.add_child(_label("속성 %s · %s에 강함" % [ElementLib.display_name(c.element), ElementLib.strong_against(c.element)], 14, ElementLib.color(c.element)))
 		var stats := "공%d · 연사%.1f · 표적%d · 관통%d" % [int(c.base_damage), c.base_fire_rate, c.base_projectile_count, c.base_pierce]
 		box.add_child(_label(stats, 13, Color(0.7, 0.7, 0.75)))
 		var lv := GameState.char_level(c)

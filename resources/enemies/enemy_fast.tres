@@ -12,3 +12,4 @@ contact_damage = 5.0
 size = 27.0
 sprite = ExtResource("2")
 effect_color = Color(0.98, 0.59, 0.2, 1)
+element = "fire"

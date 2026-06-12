@@ -26,3 +26,4 @@ shield_interval = 7.0
 shield_hp = 120.0
 shield_duration = 4.0
 shield_heal = 80.0
+element = "water"

@@ -4,6 +4,7 @@ extends Resource
 
 @export var display_name: String = ""
 @export var description: String = ""
+@export var element: String = ""  ## 오행 속성: wood/fire/earth/metal/water (상성 ElementLib)
 @export var mage_sprite: Texture2D
 @export var projectile_sprite: Texture2D
 @export var shoot_sound: AudioStream

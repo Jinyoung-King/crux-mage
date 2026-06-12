@@ -26,3 +26,4 @@ telegraph_time = 0.6
 charge_interval = 6.0
 charge_speed = 700.0
 charge_damage = 14.0
+element = "fire"
