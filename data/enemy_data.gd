@@ -10,6 +10,7 @@ extends Resource
 @export var sprite: Texture2D
 @export var effect_color: Color = Color(0.85, 0.25, 0.25)  ## 사망 파편 등 이펙트 대표색
 @export var show_hp_bar: bool = false  ## 중간보스·보스만 머리 위 HP바 표시
+@export var coin_value: int = 1  ## 처치 시 주는 코인 (보물 적은 크게, 엘리트 수식어는 이 위에 덮어씀)
 # 소환 패턴 (보스용): summon_interval > 0이면 주기적으로 summon_enemy를 소환
 @export var summon_interval: float = 0.0
 @export var summon_count: int = 2

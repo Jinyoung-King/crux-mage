@@ -30,6 +30,7 @@ var waves: Array = [
 var boss_wave: WaveData = preload("res://resources/waves/wave_boss.tres")
 var guardian_wave: WaveData = preload("res://resources/waves/wave_guardian.tres")
 var midboss_wave: WaveData = preload("res://resources/waves/wave_midboss.tres")
+var bonus_wave: WaveData = preload("res://resources/waves/wave_bonus.tres")  # 보너스(코인) 웨이브 — 무해한 보물 적
 # 보상 후보 카드 풀 (소모되지 않으므로 같은 카드가 다시 나올 수 있음)
 var card_pool: Array = [
 	preload("res://resources/cards/card_damage_up.tres"),
@@ -156,6 +157,8 @@ func _wave_kind(index: int) -> String:
 		return "boss"
 	if n == 3 or n == 5 or n == 7:
 		return "midboss"
+	if n == 8:
+		return "bonus"  # 끝자리 8(8·18·28…): 보스 직전 코인 보너스 웨이브
 	return "normal"
 
 ## 웨이브 5 이후의 증폭 단계 (웨이브 6 → 1, 7 → 2, ...)
@@ -184,6 +187,7 @@ func _start_wave(index: int) -> void:
 	spawned = 0
 	alive = 0
 	var kind := _wave_kind(index)
+	wave_label.modulate = Color(1, 1, 1)  # 종류별 색 초기화
 	if kind == "boss":
 		wave_label.text = "Wave %d - 보스" % (index + 1)
 		_add_shake(6.0)  # 보스 등장 예고
@@ -192,6 +196,10 @@ func _start_wave(index: int) -> void:
 		wave_label.text = "Wave %d - 중간보스" % (index + 1)
 		_add_shake(4.0)
 		print("MIDBOSS WAVE")
+	elif kind == "bonus":
+		wave_label.text = "Wave %d - 보너스!" % (index + 1)
+		wave_label.modulate = Color(1.0, 0.85, 0.3)  # 금색 강조
+		print("BONUS WAVE")
 	else:
 		wave_label.text = "Wave %d" % (index + 1)
 	spawn_timer.wait_time = _wave_interval(index)
@@ -207,6 +215,8 @@ func _build_spawn_list(index: int) -> Array:
 		base = _boss_wave_for(index).build_spawn_list()
 	elif kind == "midboss":
 		base = midboss_wave.build_spawn_list()
+	elif kind == "bonus":
+		base = bonus_wave.build_spawn_list()  # 무한 단계만큼 보물도 증원 → 후반일수록 코인 多
 	elif index < waves.size():
 		return waves[index].build_spawn_list()
 	else:
@@ -224,6 +234,8 @@ func _wave_interval(index: int) -> float:
 		base_interval = _boss_wave_for(index).spawn_interval
 	elif kind == "midboss":
 		base_interval = midboss_wave.spawn_interval
+	elif kind == "bonus":
+		base_interval = bonus_wave.spawn_interval
 	elif index < waves.size():
 		base_interval = waves[index].spawn_interval
 	else:
@@ -239,8 +251,8 @@ func _spawn_enemy() -> void:
 ## 적 1마리 생성 공통 처리 (웨이브 스폰용 — 즉시 생성)
 func _spawn_one(data: EnemyData, pos: Vector2) -> void:
 	alive += 1
-	# 무한 모드 잡몹(보스·중간보스 제외)은 일정 확률로 엘리트 수식어를 달고 등장
-	var elite := _roll_elite() if not data.show_hp_bar else {}
+	# 무한 모드 잡몹(보스·중간보스 제외)은 일정 확률로 엘리트 수식어를 달고 등장. 보너스 웨이브 보물은 제외.
+	var elite := _roll_elite() if (not data.show_hp_bar and _wave_kind(wave_index) != "bonus") else {}
 	_create_enemy(data, pos, elite)
 
 func _create_enemy(data: EnemyData, pos: Vector2, elite: Dictionary = {}) -> void:
@@ -322,6 +334,9 @@ func _on_enemy_died(pos: Vector2, color: Color, size: float, tex: Texture2D, coi
 	_unregister_enemy()
 
 func _on_enemy_reached_player(contact_damage: float) -> void:
+	if contact_damage <= 0.0:
+		_unregister_enemy()  # 무해한 적(보물)은 피해·연출 없이 사라짐(놓치면 코인만 손해)
+		return
 	$SfxPlayerHit.play()
 	_add_shake(8.0)
 	_flash_screen()

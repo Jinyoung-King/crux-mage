@@ -321,6 +321,27 @@ FROST_PAL = {
     "W": (240, 252, 255, 255),
 }
 
+# 보물 (12x12 → 30px): 빛나는 금빛 보석 — 보너스 웨이브 전용, 무해·고코인
+TREASURE = [
+    "....DDDD....",
+    "...DLLLLD...",
+    "..DLLWWLLD..",
+    ".DLLLWWLLLD.",
+    "DLLLLLLLLLLD",
+    "DDLLLLLLLLDD",
+    ".DLLLLLLLLD.",
+    ".DDLLLLLLDD.",
+    "..DDLLLLDD..",
+    "...DDLLDD...",
+    "....DDDD....",
+    ".....DD.....",
+]
+TREASURE_PAL = {
+    "D": (200, 150, 30, 255),   # 테두리/음영 진금
+    "L": (255, 215, 70, 255),   # 본체 금
+    "W": (255, 250, 210, 255),  # 광채 흰빛
+}
+
 os.makedirs(OUT, exist_ok=True)
 write_png("wizard.png", WIZARD, _wizard_pal((40, 70, 160), (60, 100, 200), (35, 60, 130), (255, 230, 120)))
 write_png("mage_fire.png", WIZARD, _wizard_pal((150, 40, 40), (205, 75, 60), (115, 30, 35), (255, 180, 80)))
@@ -338,6 +359,7 @@ write_png("enemy_ghost.png", GHOST, GHOST_PAL)
 write_png("enemy_slime_big.png", SLIME_BIG, SLIME_BIG_PAL)
 write_png("enemy_slime_mini.png", SLIME_MINI, SLIME_MINI_PAL)
 write_png("enemy_caster.png", CASTER, CASTER_PAL)
+write_png("enemy_treasure.png", TREASURE, TREASURE_PAL)
 write_png("dark_bolt.png", DARK_BOLT, DARK_BOLT_PAL)
 write_png("bolt.png", BOLT, BOLT_PAL)
 write_png("spark.png", BOLT, SPARK_PAL)

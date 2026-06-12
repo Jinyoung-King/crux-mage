@@ -71,6 +71,7 @@ func setup(data: EnemyData, hp_scale: float = 1.0, dscale: float = 1.0, elite: D
 	contact_damage = data.contact_damage
 	effect_color = data.effect_color
 	body_size = data.size
+	coin_value = data.coin_value  # 데이터 기반 코인 (엘리트면 아래에서 덮어씀)
 	zigzag_amplitude = data.zigzag_amplitude
 	zigzag_period = data.zigzag_period
 	split_count = data.split_count
