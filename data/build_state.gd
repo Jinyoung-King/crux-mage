@@ -8,5 +8,4 @@ extends Resource
 @export var fire_rate: float = 2.0  ## 초당 발사 횟수
 @export var projectile_count: int = 1  ## 한 번에 노리는 적 수 (가까운 순)
 @export var damage_per_target: float = 0.0  ## 동시 표적 1마다 추가 데미지 (시너지)
-@export var projectile_size: float = 1.0  ## 발사체 크기 배율 (1.0=기본, 시각+충돌)
 @export var defense: float = 0.0  ## 받는 피해 감소(flat, 최소 1은 들어옴)

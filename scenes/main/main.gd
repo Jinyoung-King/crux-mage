@@ -45,7 +45,6 @@ var card_pool: Array = [
 	preload("res://resources/cards/card_chain.tres"),
 	preload("res://resources/cards/card_blood.tres"),
 	preload("res://resources/cards/card_crystal.tres"),
-	preload("res://resources/cards/card_proj_size.tres"),
 	preload("res://resources/cards/card_defense.tres"),
 	preload("res://resources/cards/card_legendary_arcane.tres"),
 	preload("res://resources/cards/card_legendary_storm.tres"),
@@ -525,8 +524,6 @@ func _build_summary() -> String:
 	var extras := []
 	if p.lifesteal > 0.0:
 		extras.append("흡혈 %d%%" % roundi(p.lifesteal * 100.0))
-	if b.projectile_size != 1.0:
-		extras.append("탄 크기 %.2f배" % b.projectile_size)
 	if not extras.is_empty():
 		lines.append("   ·   ".join(extras))
 	if not p.relics.is_empty():

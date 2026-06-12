@@ -19,7 +19,6 @@ var burn_dps := 0.0
 var burn_duration := 0.0
 var slow_factor := 1.0
 var slow_duration := 0.0
-var size_scale := 1.0  ## 발사체 크기 배율 (시각 + 충돌)
 # 뇌전술사 연쇄 (플레이어가 발사 시 캐릭터에서 채움)
 var chain_count := 0
 var chain_factor := 0.0
@@ -31,11 +30,6 @@ var element := ""  ## 오행 속성 (적 속성과 상성 판정 — ElementLib)
 
 func _ready() -> void:
 	rotation = direction.angle()
-	if size_scale != 1.0:
-		$Sprite2D.scale *= size_scale
-		var sh: RectangleShape2D = $CollisionShape2D.shape.duplicate()  # 공유 리소스 복제 후 확대
-		sh.size *= size_scale
-		$CollisionShape2D.shape = sh
 	area_entered.connect(_on_area_entered)
 	$VisibleOnScreenNotifier2D.screen_exited.connect(queue_free)
 
