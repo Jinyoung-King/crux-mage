@@ -3,10 +3,11 @@ extends Node
 ## 씬을 새로 로드해도 유지되며, 최고 기록은 user://에 영속 저장된다.
 
 const SAVE_PATH := "user://save.cfg"
-const VERSION := "v0.48"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
+const VERSION := "v0.49"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
 
 # 패치노트 (최신이 위). 새 버전 추가 시 맨 앞에 한 항목 추가. 시작 화면 "패치노트" + 업데이트 시 자동 안내.
 const CHANGELOG := [
+	{"v": "v0.49", "notes": ["기록 표시 — 캐릭터 카드에 최고 웨이브·숙련 Lv, 상단에 누적 플레이·코인"]},
 	{"v": "v0.48", "notes": ["새 캐릭터 포격술사 — 느린 강타 + 광역 폭발(splash). Wave 20 도달 시 해금"]},
 	{"v": "v0.47", "notes": ["유물 슬롯 강화 — 코인으로 장착 슬롯을 최대 4칸까지 확장"]},
 	{"v": "v0.46", "notes": ["PWA 자동 업데이트 — 새 버전 배포 시 앱을 다시 열면 자동 반영"]},
@@ -60,6 +61,9 @@ var muted := false  ## 음소거 — 영속
 var coins := 0  ## 영구 재화 (런 종료 시 누적, 캐릭터 공용 지갑)
 var upgrades := {}  ## 영구 강화 레벨 — 캐릭터별 {char_key: {id: level}}
 var char_xp := {}  ## 캐릭터별 누적 경험치 {char_key: xp} → 숙련도 레벨(자동 패시브)
+var char_best := {}  ## 캐릭터별 최고 도달 웨이브 {char_key: wave} (기록 표시용)
+var total_runs := 0  ## 누적 플레이 횟수(통계)
+var lifetime_coins := 0  ## 누적 획득 코인(통계)
 var seen_version := ""  ## 마지막으로 패치노트를 본 버전 — 다르면 시작 시 자동 안내
 var unlocked_relics: Array = []  ## 코인으로 영구 해금한 유물 id
 var equipped_relics: Array = []  ## 이번 런에 장착할 유물 id (해금분 중 최대 relic_slots개)
@@ -101,6 +105,17 @@ func record_wave(reached: int) -> bool:
 		if c.unlock_wave > before and c.unlock_wave <= best_wave:
 			return true
 	return false
+
+## 런 종료 1회 호출: 플레이 수 + 캐릭터별 최고 웨이브 집계(영속)
+func note_run(c: CharacterData, reached: int) -> void:
+	total_runs += 1
+	var key := char_key(c)
+	if reached > int(char_best.get(key, 0)):
+		char_best[key] = reached
+	_save()
+
+func char_best_wave(c: CharacterData) -> int:
+	return int(char_best.get(char_key(c), 0))
 
 ## 배속 설정 변경 + 영속 저장
 func set_game_speed(s: float) -> void:
@@ -180,6 +195,7 @@ func add_coins(n: int) -> void:
 	if n <= 0:
 		return
 	coins += n
+	lifetime_coins += n
 	_save()
 
 ## --- 유물 (코인 영구 해금 + 런 장착) ---
@@ -250,6 +266,9 @@ func _load() -> void:
 		unlocked_relics = cf.get_value("meta", "unlocked_relics", [])
 		equipped_relics = cf.get_value("meta", "equipped_relics", [])
 		relic_slot_bonus = cf.get_value("meta", "relic_slot_bonus", 0)
+		char_best = cf.get_value("record", "char_best", {})
+		total_runs = cf.get_value("record", "total_runs", 0)
+		lifetime_coins = cf.get_value("record", "lifetime_coins", 0)
 		_migrate_upgrades()  # 구형(글로벌) 강화 → 코인 환불 후 캐릭터별로 전환
 
 func _save() -> void:
@@ -265,6 +284,9 @@ func _save() -> void:
 	cf.set_value("meta", "unlocked_relics", unlocked_relics)
 	cf.set_value("meta", "equipped_relics", equipped_relics)
 	cf.set_value("meta", "relic_slot_bonus", relic_slot_bonus)
+	cf.set_value("record", "char_best", char_best)
+	cf.set_value("record", "total_runs", total_runs)
+	cf.set_value("record", "lifetime_coins", lifetime_coins)
 	cf.save(SAVE_PATH)
 
 ## 현재 버전의 패치노트를 본 것으로 기록(자동 안내 1회용)

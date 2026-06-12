@@ -433,6 +433,7 @@ func _on_player_died() -> void:
 	wave_label.text = "GAME OVER - Wave %d" % (wave_index + 1)
 	GameState.record_wave(wave_index + 1)  # 최고 기록 갱신·저장 (신규 해금 가능)
 	GameState.add_coins(run_coins)  # 이번 런 코인 정산·저장
+	GameState.note_run(GameState.selected, wave_index + 1)  # 플레이 수·캐릭터별 최고 웨이브 기록
 	var lvl_before: int = GameState.char_level(GameState.selected)
 	GameState.add_xp(GameState.selected, wave_index + 1)  # 캐릭터 숙련 경험치(= 도달 웨이브)
 	var lvl_after: int = GameState.char_level(GameState.selected)
@@ -459,6 +460,7 @@ func _on_give_up() -> void:
 	GameState.record_wave(wave_index + 1)  # 도달 웨이브 기록(영속)
 	GameState.add_coins(run_coins)  # 이번 런 코인 정산(영속)
 	GameState.add_xp(GameState.selected, wave_index + 1)  # 캐릭터 숙련 경험치(= 도달 웨이브)
+	GameState.note_run(GameState.selected, wave_index + 1)  # 플레이 수·캐릭터별 최고 웨이브 기록
 	get_tree().paused = false
 	Engine.time_scale = 1.0
 	get_tree().change_scene_to_file("res://scenes/ui/start_screen.tscn")

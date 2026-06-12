@@ -20,7 +20,10 @@ func _ready() -> void:
 		get_tree().change_scene_to_file("res://scenes/ui/patch_notes.tscn")
 		return
 	$VersionLabel.text = GameState.VERSION  # 빌드 버전 표기(단일 출처)
-	best_label.text = "최고 기록: Wave %d" % GameState.best_wave if GameState.best_wave > 0 else "첫 도전을 시작하세요"
+	if GameState.best_wave > 0:
+		best_label.text = "최고 Wave %d · %d판 · 누적 %d코인" % [GameState.best_wave, GameState.total_runs, GameState.lifetime_coins]
+	else:
+		best_label.text = "첫 도전을 시작하세요"
 	for i in GameState.characters.size():
 		var card := _make_card(GameState.characters[i], i)
 		grid.add_child(card)
@@ -89,8 +92,9 @@ func _make_card(c: CharacterData, idx: int) -> Button:
 		var stats := "공%d · 연사%.1f · 표적%d · 관통%d" % [int(c.base_damage), c.base_fire_rate, c.base_projectile_count, c.base_pierce]
 		box.add_child(_label(stats, 13, Color(0.7, 0.7, 0.75)))
 		var lv := GameState.char_level(c)
-		if lv > 0:  # 숙련도(경험치) 표시 — 굴린 만큼 공·체 보너스
-			box.add_child(_label("숙련 Lv %d  (공·체 +%d%%)" % [lv, int(GameState.MASTERY_PER_LEVEL * lv * 100)], 13, Color(1.0, 0.85, 0.4)))
+		var cbw := GameState.char_best_wave(c)
+		if lv > 0 or cbw > 0:  # 이 캐릭터의 기록(최고 웨이브 · 숙련 Lv)
+			box.add_child(_label("최고 Wave %d · 숙련 Lv %d" % [cbw, lv], 13, Color(1.0, 0.85, 0.4)))
 
 	btn.add_child(box)
 	return btn
