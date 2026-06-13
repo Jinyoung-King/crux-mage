@@ -226,6 +226,7 @@ func apply_card(card: CardData) -> void:
 	build.frostbite += card.frostbite_bonus          # 격발: 파쇄
 	if card.grant_echo:
 		build.echo = true   # 메아리
+	build.knockback += card.knockback_bonus  # 넉백
 	if card.max_hp_bonus != 0.0:
 		max_hp = maxf(max_hp + card.max_hp_bonus, 10.0)  # 트레이드오프로도 최소 10은 보장
 		hp = minf(hp, max_hp)

@@ -20,3 +20,4 @@ extends Resource
 @export var detonate_burn: float = 0.0  ## 격발: 화상 중인 적 명중 시 화상을 터뜨려 광역(명중 피해 × 이 값)
 @export var frostbite: float = 0.0      ## 격발: 둔화/빙결 적 명중 시 추가 피해(명중 피해 × 이 값)
 @export var echo: bool = false          ## 전설: 모든 스킬이 잠시 뒤 60% 위력으로 한 번 더(메아리)
+@export var knockback: float = 0.0      ## 행동: 스킬 명중 시 적을 위로 밀어냄(px) — 기지에서 멀어짐

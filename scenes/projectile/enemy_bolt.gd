@@ -1,5 +1,5 @@
 extends Area2D
-## 적이 플레이어에게 쏘는 마탄. 플레이어 Hitbox(레이어 4)만 감지한다.
+## 적이 쏘는 마탄. 기지 판정 영역(Base/BaseHitbox, 레이어 4)만 감지 — 마법사가 아닌 기지가 맞는다.
 
 signal hit_player(damage: float)
 

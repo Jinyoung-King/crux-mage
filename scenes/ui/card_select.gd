@@ -168,7 +168,7 @@ func _card_icon_kind(card) -> String:
 		return "power"
 	if card.fire_rate_bonus > 0.0:
 		return "speed"
-	if card.heal > 0.0 or card.defense_bonus > 0.0 or card.max_hp_bonus > 0.0:
+	if card.heal > 0.0 or card.defense_bonus > 0.0 or card.max_hp_bonus > 0.0 or card.knockback_bonus > 0.0:
 		return "defense"
 	if card.damage_bonus > 0.0:
 		return "attack"

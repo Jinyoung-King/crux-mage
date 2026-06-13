@@ -71,6 +71,7 @@ var card_pool: Array = [
 	preload("res://resources/cards/card_overload.tres"),
 	preload("res://resources/cards/card_echo.tres"),
 	preload("res://resources/cards/card_resonance.tres"),
+	preload("res://resources/cards/card_knockback.tres"),
 ]
 
 var wave_index := 0
@@ -764,6 +765,8 @@ func _skill_hit(e, dmg: float, element: String) -> void:
 			e.apply_burn(RelicLib.RELIC_BURN_DPS, RelicLib.RELIC_BURN_DUR)  # 점화의 룬
 		if p.relics.has("execute") and e.hp <= e.max_hp * RelicLib.EXECUTE_THRESHOLD:
 			e.take_damage(e.hp)  # 수확의 룬: 즉사
+		if p.build.knockback > 0.0 and is_instance_valid(e) and e.hp > 0.0:
+			e.position.y -= p.build.knockback  # 넉백: 기지에서 밀어냄
 	# 행동: 처치 폭발 — 이 명중으로 적이 죽으면 주변에 광역(직접 피해라 연쇄 폭주 없음)
 	if p.build.explode_power > 0.0 and is_instance_valid(e) and e.hp <= 0.0:
 		_explode(pos, d * p.build.explode_power, element)
