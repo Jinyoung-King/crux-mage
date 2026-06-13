@@ -136,6 +136,7 @@ func _ready() -> void:
 	spawn_timer.timeout.connect(_spawn_enemy)
 	card_select.card_chosen.connect(_on_card_chosen)
 	card_select.reroll_requested.connect(_on_reroll_requested)
+	card_select.player = $Player  # 보유 스킬 진화명을 카드에 표시하기 위해 주입
 	restart_button.pressed.connect(_on_restart_pressed)
 	char_select_button.pressed.connect(_on_char_select_pressed)
 	speed_button.pressed.connect(_on_speed_pressed)

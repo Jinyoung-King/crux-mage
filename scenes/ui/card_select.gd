@@ -25,6 +25,7 @@ var auto_left := 0.0  ## >0이면 자동선택 카운트다운 진행 중
 var picking := false  ## 선택 연출 중(중복 입력 방지)
 var shop_costs: Array = []  ## 비어있지 않으면 상점 모드(카드별 코인 비용)
 var shop_coins := 0          ## 상점 모드: 현재 보유 코인(구매 가능 판정)
+var player                   ## main이 주입 — 보유 스킬의 다음 진화명을 카드 이름에 표시
 
 func _ready() -> void:
 	for i in buttons.size():
@@ -165,9 +166,12 @@ func _style_card(btn: Button, card) -> void:
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	icon.set_kind(_card_icon_kind(card))
 	box.add_child(icon)
-	if skill_framed:  # 스킬 카드: 속성 배지 + 속성 색 이름
-		box.add_child(_label("✦ 스킬 · %s속성" % ElementLib.display_name(elem), 15, ElementLib.color(elem)))
-		box.add_child(_label(card.card_name, 23, ElementLib.color(elem)))
+	if skill_framed:  # 스킬 카드: 속성 배지 + 속성 색 이름(보유 중이면 다음 진화명)
+		var evo := _next_evolve_name(card.grant_skill_id)
+		var title: String = evo if evo != "" else SkillLib.DEFS.get(card.grant_skill_id, {}).get("name", card.card_name)
+		var tag: String = "✦ 진화" if evo != "" else "✦ 스킬"
+		box.add_child(_label("%s · %s속성" % [tag, ElementLib.display_name(elem)], 15, ElementLib.color(elem)))
+		box.add_child(_label(title, 23, ElementLib.color(elem)))
 	else:
 		box.add_child(_label(_tier_badge(rarity), 15, tier))
 		box.add_child(_label(card.card_name, 23, tier if rarity != "common" else Color(0.95, 0.97, 1.0)))
@@ -188,13 +192,26 @@ func _label(text: String, size: int, color: Color) -> Label:
 	l.add_theme_color_override("font_color", color)
 	return l
 
+## 그 스킬을 이미 보유 중이면 다음 진화 단계 이름을 반환(미보유·최고 티어면 ""). 카드 이름·설명에 사용.
+func _next_evolve_name(id: String) -> String:
+	if player == null or id == "":
+		return ""
+	for s in player.skills:
+		if s.id == id:
+			var evos: Array = SkillLib.EVOLVE.get(id, [])
+			if s.tier - 1 < evos.size():
+				return evos[s.tier - 1].name  # 다시 얻으면 진화할 이름
+			return ""  # 최고 티어 — 새 인스턴스 누적
+	return ""  # 미보유
+
 ## 스킬 획득 카드: SkillLib.DEFS 수치로 자세한 다줄 설명(데미지·쿨타임·특성·진화 안내)
 func _skill_detail(id: String) -> String:
 	var d: Dictionary = SkillLib.DEFS.get(id, {})
 	if d.is_empty():
 		return ""
 	var lines: PackedStringArray = []
-	lines.append("%s 스킬을 획득합니다." % d.get("name", "스킬"))
+	var evo := _next_evolve_name(id)
+	lines.append(("%s(으)로 진화합니다." % evo) if evo != "" else ("%s 스킬을 획득합니다." % d.get("name", "스킬")))
 	lines.append("적에게 데미지 %d의 피해를 줍니다." % int(d.get("power", 0)))
 	lines.append("%s초의 쿨타임마다 발동됩니다." % _fmt_cd(d.get("cooldown", 0.0)))
 	var cnt := int(d.get("count", 0))
@@ -205,7 +222,7 @@ func _skill_detail(id: String) -> String:
 		"barrage": lines.append("%d곳에 반경 %d의 폭격이 떨어집니다." % [cnt, rad])
 		"meteor": lines.append("가장 밀집한 곳에 반경 %d 광역 피해." % rad)
 		"freeze": lines.append("화면의 모든 적을 둔화시킵니다.")
-	lines.append("이미 보유 시 더 강력하게 진화합니다.")
+	lines.append("이번에 얻으면 더 강력해집니다." if evo != "" else "이미 보유 시 더 강력하게 진화합니다.")
 	return "\n".join(lines)
 
 ## 쿨타임 표기: 정수면 정수로, 소수면 한 자리(4.5초 등)
