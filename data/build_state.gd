@@ -23,3 +23,4 @@ extends Resource
 @export var knockback: float = 0.0      ## 행동: 스킬 명중 시 적을 위로 밀어냄(px) — 기지에서 멀어짐
 @export var ground_field: bool = false  ## 행동: 광역 스킬(메테오·융단)이 명중 지점에 지속 피해 장판
 @export var execute_threshold: float = 0.0  ## 전설(수확자): 체력 이 비율 이하 적 즉사(유물 수확과 별개, 큰 값 적용)
+@export var pierce: int = 0  ## 행동: 마력탄이 적을 꿰뚫고 지나가는 추가 횟수 (bolts 발사체에만 적용)

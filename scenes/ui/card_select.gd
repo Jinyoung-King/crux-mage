@@ -188,7 +188,7 @@ func _card_icon_kind(card) -> String:
 		return "fire"
 	if card.grant_slow or card.frostbite_bonus > 0.0:
 		return "frost"
-	if card.extra_targets_bonus > 0:
+	if card.extra_targets_bonus > 0 or card.pierce_bonus > 0:
 		return "multi"
 	if card.skill_power_bonus > 0.0 or card.skill_radius_bonus > 0.0:
 		return "power"

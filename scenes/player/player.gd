@@ -167,6 +167,7 @@ func fire_skill_bolt(target, dmg: float) -> void:
 	_apply_relics_to(p)  # 수확·연쇄·점화의 룬을 발사체에 적용
 	if build.execute_threshold > 0.0:
 		p.execute_threshold = maxf(p.execute_threshold, build.execute_threshold)  # 수확자 카드
+	p.pierce = build.pierce  # 관통: 마력탄이 적을 꿰뚫음
 	fired.emit(p)
 
 func _on_attack_timer_timeout() -> void:
@@ -236,6 +237,7 @@ func apply_card(card: CardData) -> void:
 	if card.grant_ground_field:
 		build.ground_field = true  # 잔류 장판
 	build.execute_threshold += card.execute_threshold_bonus  # 수확자(즉사)
+	build.pierce += card.pierce_bonus  # 관통(마력탄 꿰뚫기)
 	if card.max_hp_bonus != 0.0:
 		max_hp = maxf(max_hp + card.max_hp_bonus, 10.0)  # 트레이드오프로도 최소 10은 보장
 		hp = minf(hp, max_hp)

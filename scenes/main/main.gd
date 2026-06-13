@@ -75,6 +75,7 @@ var card_pool: Array = [
 	preload("res://resources/cards/card_echo.tres"),
 	preload("res://resources/cards/card_resonance.tres"),
 	preload("res://resources/cards/card_knockback.tres"),
+	preload("res://resources/cards/card_pierce.tres"),
 	preload("res://resources/cards/card_field.tres"),
 	preload("res://resources/cards/card_reaper.tres"),
 	preload("res://resources/cards/card_berserker.tres"),
@@ -519,6 +520,13 @@ func _has_count_skill() -> bool:
 			return true
 	return false
 
+## 마력탄(발사체) 스킬을 보유했나 — 관통 카드 유효성 (관통은 발사체에만 적용)
+func _has_bolts_skill() -> bool:
+	for s in $Player.skills:
+		if s.id == "bolts":
+			return true
+	return false
+
 ## 화상 부여원(부여 카드·점화 유물·메테오 스킬)이 있나 — 기폭 카드 유효성
 func _has_burn_source() -> bool:
 	if $Player.build.apply_burn or $Player.relics.has("ignite"):
@@ -543,6 +551,8 @@ func _is_card_useful(card: CardData) -> bool:
 		return false  # 범위 스킬(메테오/융단폭격)이 없으면 범위 강화·장판 무의미
 	if card.extra_targets_bonus > 0 and not _has_count_skill():
 		return false  # 표적형 스킬이 없으면 다발 무의미
+	if card.pierce_bonus > 0 and not _has_bolts_skill():
+		return false  # 마력탄 스킬이 없으면 관통 무의미(발사체 전용)
 	if card.detonate_burn_bonus > 0.0 and not _has_burn_source():
 		return false  # 화상 부여원 없으면 기폭 무의미
 	if card.frostbite_bonus > 0.0 and not _has_slow_source():

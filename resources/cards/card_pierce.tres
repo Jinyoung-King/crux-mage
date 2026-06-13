@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+card_name = "관통"
+description = "관통 +2 — 마력탄이 적 2명을 더 꿰뚫고 날아가 일직선의 모든 적을 타격."
+rarity = "uncommon"
+pierce_bonus = 2
