@@ -3,10 +3,11 @@ extends Node
 ## 씬을 새로 로드해도 유지되며, 최고 기록은 user://에 영속 저장된다.
 
 const SAVE_PATH := "user://save.cfg"
-const VERSION := "v1.4"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
+const VERSION := "v1.5"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
 
 # 패치노트 (최신이 위). 새 버전 추가 시 맨 앞에 한 항목 추가. 시작 화면 "패치노트" + 업데이트 시 자동 안내.
 const CHANGELOG := [
+	{"v": "v1.5", "notes": ["유물 뽑기 비용 누적 증가 — 고정 100코인에서 '뽑을수록 비싸짐'으로(100 → 매 뽑기 ×1.2: 5회째 249·10회째 619·20회째 약 3800코인). 코인만 모아 무한 뽑기로 오버파워가 되던 것을 억제"]},
 	{"v": "v1.4", "notes": ["5속성 순환 스테이지 — 무한 흐름을 10웨이브 단위 '스테이지'로 구획. 스테이지마다 속성이 목→화→토→금→수로 순환하며 그 속성 잡몹만 나오고, 끝(10·20·30…)에 그 속성 보스가 등장. 웨이브 라벨에 'OO 스테이지'(속성 색) 표시. 상성에 맞는 캐릭터·스킬을 고르는 전략(무한 순환하며 난이도↑)"]},
 	{"v": "v1.3", "notes": ["속성별 적 보강 — 금(강철 기사·석궁병)·수(물뱀·해파리)·흙(바위 거인·모래벌레) 잡몹 추가로 5속성 모두 잡몹 3종 균형. 새 보스 '대지 마왕'(소환+돌진+광역 탄막+광폭) 추가 → 보스 5종 순환(Wave 50). 도감 22종 — 다음 업데이트의 5속성 순환 스테이지 준비"]},
 	{"v": "v1.2", "notes": ["새 적 2종 — 돌격병(지그재그로 빠르게 돌진)·저격수(멀리서 강한 단발 마탄을 예고 후 발사). 일반·무한 웨이브에 등장", "새 보스 '역병 마왕' — 슬라임 소환 + 광역 탄막, 체력 40% 이하면 '광폭화'(빨라지고 강해지며 붉게). 보스가 마왕·수호 마왕·폭풍 마왕·역병 마왕 4종 순환"]},
@@ -94,7 +95,8 @@ const UPGRADES := [
 const XP_BASE := 50
 const XP_STEP := 25
 const MASTERY_PER_LEVEL := 0.02  ## 숙련 레벨당 공격력·체력 +2%
-const ROLL_COST := 100  ## 유물 뽑기 1회 비용(코인)
+const ROLL_BASE := 100   ## 유물 뽑기 기본 비용(코인)
+const ROLL_GROWTH := 1.2  ## 뽑을 때마다 비용 배수(오버파워 방지 — 누적 뽑기수만큼 ×ROLL_GROWTH)
 
 # 처치 업적: 누적 처치가 마일스톤을 넘을 때마다 영구 고정 보너스(공격력·체력). 마일스톤은 높게(기하급수).
 const KILL_MILESTONES := [100, 300, 700, 1500, 3000, 6000, 12000, 25000, 50000]
@@ -325,14 +327,22 @@ func kill_bonus_hp() -> float:
 	return kill_tier() * KILL_BONUS_HP
 
 ## --- 유물 (코인 랜덤 뽑기 → 모은 유물 전부 적용, 중복은 레벨↑로 강화) ---
+## 지금까지 뽑은 총 횟수(= 모든 유물 레벨 합)만큼 비싸짐: ROLL_BASE × ROLL_GROWTH^총뽑기수
+func current_roll_cost() -> int:
+	var rolls := 0
+	for v in relic_levels.values():
+		rolls += int(v)
+	return int(round(ROLL_BASE * pow(ROLL_GROWTH, rolls)))
+
 func can_roll_relic() -> bool:
-	return coins >= ROLL_COST
+	return coins >= current_roll_cost()
 
 ## 코인으로 유물 1개 뽑기 — 랜덤 유물 레벨 +1(중복이면 강화). 반환 {id, level, is_new}(코인 부족 시 {})
 func roll_relic() -> Dictionary:
-	if not can_roll_relic():
+	var cost := current_roll_cost()
+	if coins < cost:
 		return {}
-	coins -= ROLL_COST
+	coins -= cost
 	var r: Dictionary = RelicLib.RELICS[randi() % RelicLib.RELICS.size()]
 	var id: String = r.id
 	var was: int = int(relic_levels.get(id, 0))

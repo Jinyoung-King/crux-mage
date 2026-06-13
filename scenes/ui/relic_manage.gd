@@ -35,7 +35,7 @@ func _label(text: String, size: int, color: Color) -> Label:
 func _on_roll() -> void:
 	var res := GameState.roll_relic()
 	if res.is_empty():
-		result_label.text = "코인이 부족합니다 (%d 필요)" % GameState.ROLL_COST
+		result_label.text = "코인이 부족합니다 (%d 필요)" % GameState.current_roll_cost()
 		return
 	var nm: String = RelicLib.relic_def(res.id).name
 	result_label.text = ("%s 획득! (Lv %d)" % [nm, res.level]) if res.is_new else ("%s 강화! (Lv %d)" % [nm, res.level])
@@ -43,7 +43,7 @@ func _on_roll() -> void:
 
 func _refresh() -> void:
 	coin_label.text = "보유 코인 %d" % GameState.coins
-	roll_button.text = "유물 뽑기 (%d코인)" % GameState.ROLL_COST
+	roll_button.text = "유물 뽑기 (%d코인)" % GameState.current_roll_cost()
 	roll_button.disabled = not GameState.can_roll_relic()
 	for r in RelicLib.RELICS:
 		var lv := GameState.relic_level(r.id)
