@@ -141,8 +141,12 @@ func _style_card(btn: Button, card) -> void:
 		c.queue_free()
 	btn.text = ""
 	var rarity: String = card.rarity
+	var is_skill: bool = card.grant_skill_id != ""
+	var elem: String = SkillLib.DEFS.get(card.grant_skill_id, {}).get("element", "") if is_skill else ""
+	var skill_framed := is_skill and elem != ""  # 속성 스킬 카드는 희귀도 대신 속성 색 프레임으로 구분
 	for state in ["normal", "hover", "pressed", "focus"]:
-		btn.add_theme_stylebox_override(state, _card_style(rarity, state == "hover" or state == "pressed"))
+		var hl: bool = state == "hover" or state == "pressed"
+		btn.add_theme_stylebox_override(state, _skill_style(elem, hl) if skill_framed else _card_style(rarity, hl))
 
 	var box := VBoxContainer.new()
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -157,12 +161,16 @@ func _style_card(btn: Button, card) -> void:
 
 	var tier := _tier_color(rarity)
 	var icon := CARD_ICON.new()  # 카드 종류 아이콘(효과 필드에서 자동 판별)
-	icon.custom_minimum_size = Vector2(38, 38)
+	icon.custom_minimum_size = Vector2(48, 48) if skill_framed else Vector2(38, 38)  # 스킬 아이콘은 크게 강조
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	icon.set_kind(_card_icon_kind(card))
 	box.add_child(icon)
-	box.add_child(_label(_tier_badge(rarity), 15, tier))
-	box.add_child(_label(card.card_name, 23, tier if rarity != "common" else Color(0.95, 0.97, 1.0)))
+	if skill_framed:  # 스킬 카드: 속성 배지 + 속성 색 이름
+		box.add_child(_label("✦ 스킬 · %s속성" % ElementLib.display_name(elem), 15, ElementLib.color(elem)))
+		box.add_child(_label(card.card_name, 23, ElementLib.color(elem)))
+	else:
+		box.add_child(_label(_tier_badge(rarity), 15, tier))
+		box.add_child(_label(card.card_name, 23, tier if rarity != "common" else Color(0.95, 0.97, 1.0)))
 	var desc_text: String = _skill_detail(card.grant_skill_id) if card.grant_skill_id != "" else card.description
 	var desc := _label(desc_text, 16, Color(0.82, 0.85, 0.9))
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -206,7 +214,10 @@ func _fmt_cd(v: float) -> String:
 
 ## 카드 효과 필드에서 아이콘 종류를 자동 판별(가장 특징적인 효과 우선)
 func _card_icon_kind(card) -> String:
-	if card.grant_skill_id != "" or card.grant_echo:
+	if card.grant_skill_id != "":
+		var e: String = SkillLib.DEFS.get(card.grant_skill_id, {}).get("element", "")
+		return ("skill_" + e) if e != "" else "skill"
+	if card.grant_echo:
 		return "skill"
 	if card.detonate_burn_bonus > 0.0 or card.explode_power_bonus > 0.0 or card.grant_ground_field:
 		return "explode"
@@ -277,6 +288,19 @@ func _card_style(rarity: String, hl: bool) -> StyleBoxFlat:
 		sb.set_border_width_all(2)
 		sb.shadow_color = Color(0.4, 0.5, 0.7, 0.3)
 		sb.shadow_size = 6
+	sb.set_corner_radius_all(12)
+	sb.set_content_margin_all(12)
+	return sb
+
+## 스킬 카드 전용 프레임 — 희귀도 대신 오행 속성 색으로 구분(어두운 속성 배경 + 속성 테두리 + 발광)
+func _skill_style(elem: String, hl: bool) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	var col := ElementLib.color(elem)
+	sb.bg_color = Color(col.r * 0.32, col.g * 0.32, col.b * 0.32, 1.0) if hl else Color(col.r * 0.22, col.g * 0.22, col.b * 0.22, 1.0)
+	sb.border_color = col.lightened(0.25) if hl else col
+	sb.set_border_width_all(4)
+	sb.shadow_color = Color(col.r, col.g, col.b, 0.55)
+	sb.shadow_size = 18
 	sb.set_corner_radius_all(12)
 	sb.set_content_margin_all(12)
 	return sb

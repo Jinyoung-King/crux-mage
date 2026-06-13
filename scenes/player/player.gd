@@ -18,6 +18,7 @@ var character: CharacterData
 var lifesteal := 0.0  ## 입힌 피해의 흡혈 비율 (영구 강화)
 var relics: Array = []  ## 이번 런 보유 유물 id (보스 보상)
 var skills: Array = []  ## 보유 스킬 목록(각 dict: id/name/cooldown/power/radius/count/cd_left). [0]=캐릭터 고유, 이후=카드 획득
+var skills_paused := false  ## 카드 선택(드래프트/상점) 중 스킬 쿨타임 정지
 
 ## 유물 획득 (중복 없음)
 func grant_relic(id: String) -> void:
@@ -28,7 +29,7 @@ func _process(delta: float) -> void:
 	if relics.has("regen") and hp > 0.0 and hp < max_hp:
 		heal(RelicLib.REGEN_PER_SEC * delta)  # 재생의 룬
 	# 액티브 스킬: 보유 스킬마다 독립 쿨타임으로 자동 발동 (연사 스탯이 모든 쿨타임 단축)
-	if hp > 0.0:
+	if hp > 0.0 and not skills_paused:
 		for s in skills:
 			s.cd_left -= delta
 			if s.cd_left <= 0.0:

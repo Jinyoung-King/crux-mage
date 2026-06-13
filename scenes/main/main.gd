@@ -324,6 +324,7 @@ func _roll_elite() -> Dictionary:
 
 func _start_wave(index: int) -> void:
 	wave_index = index
+	$Player.skills_paused = false  # 웨이브 진행 중에는 스킬 쿨타임 재개
 	spawn_list = _build_spawn_list(index)
 	endless_hp_scale = pow(1.0 + ENDLESS_HP_GROWTH, _endless_level(index))  # 복리: 후반 빌드 성장을 따라잡도록
 	endless_dmg_scale = minf(pow(1.0 + ENDLESS_DMG_GROWTH, _endless_level(index)), ENDLESS_DMG_CAP)  # 적 피해 상승(상한 적용)
@@ -619,6 +620,7 @@ func _draw_cards(count: int, rare_only: bool = false) -> Array:
 
 ## 카드 드래프트 표시(희귀 확정 여부 rare). 테스트 자동선택(auto_pick) 시 잠깐 뒤 무작위 1장.
 func _open_draft(rare: bool = false) -> void:
+	$Player.skills_paused = true  # 드래프트 중 스킬 쿨타임 정지
 	_draft_rare = rare
 	var cards := _draw_cards(CHOICES_PER_CLEAR, rare)
 	card_select.open(cards)
@@ -640,6 +642,7 @@ func _card_cost(card: CardData) -> int:
 
 ## 상점: 카드 3장에 코인 가격. 사면 차감·적용, 건너뛰기 가능.
 func _open_shop() -> void:
+	$Player.skills_paused = true  # 상점 중 스킬 쿨타임 정지
 	_shop_cards = _draw_cards(CHOICES_PER_CLEAR)
 	_shop_cost = []
 	for c in _shop_cards:

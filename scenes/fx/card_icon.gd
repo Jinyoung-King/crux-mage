@@ -19,7 +19,13 @@ func _draw() -> void:
 		"multi":   _dots(c, r, Color(0.95, 0.95, 1.0))       # 다발 — 흰 점 3개
 		"fire":    _tri(c, r, Color(1.0, 0.45, 0.2))         # 화염 — 빨강 불꽃
 		"frost":   _diamond(c, r, Color(0.5, 0.85, 1.0))     # 서리 — 청록 다이아
-		"skill":   draw_arc(c, r, 0.0, TAU, 32, Color(0.82, 0.56, 1.0), 4.0, true)  # 스킬 — 보라 고리
+		# 속성 스킬 아이콘 (오행 색 + 상징 도형)
+		"skill_fire":  _tri(c, r, ElementLib.color("fire"))          # 불 — 빨강 불꽃
+		"skill_water": _diamond(c, r, ElementLib.color("water"))     # 물 — 파랑 물방울
+		"skill_wood":  _leaf(c, r, ElementLib.color("wood"))         # 나무 — 초록 잎
+		"skill_metal": _bolt(c, r, ElementLib.color("metal"))        # 쇠 — 은빛 번개
+		"skill_earth": _square(c, r, ElementLib.color("earth"))      # 흙 — 황토 블록
+		"skill":   draw_arc(c, r, 0.0, TAU, 32, Color(0.82, 0.56, 1.0), 4.0, true)  # 스킬(속성 없음) — 보라 고리
 		_:         draw_circle(c, r * 0.5, Color(0.7, 0.7, 0.75))
 
 func _tri(c: Vector2, r: float, col: Color) -> void:
@@ -45,3 +51,9 @@ func _dots(c: Vector2, r: float, col: Color) -> void:
 	draw_circle(c + Vector2(-r * 0.62, 0), r * 0.3, col)
 	draw_circle(c, r * 0.3, col)
 	draw_circle(c + Vector2(r * 0.62, 0), r * 0.3, col)
+
+func _leaf(c: Vector2, r: float, col: Color) -> void:  # 세로로 긴 잎(나무)
+	draw_colored_polygon(PackedVector2Array([c + Vector2(0, -r), c + Vector2(r * 0.55, 0), c + Vector2(0, r), c + Vector2(-r * 0.55, 0)]), col)
+
+func _square(c: Vector2, r: float, col: Color) -> void:  # 흙 블록
+	draw_rect(Rect2(c.x - r * 0.8, c.y - r * 0.8, r * 1.6, r * 1.6), col)
