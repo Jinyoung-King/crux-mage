@@ -11,7 +11,7 @@ var wave_idx := 0
 @onready var grid: GridContainer = $Center/Grid
 @onready var play_button: Button = $Center/PlayButton
 @onready var best_label: Label = $Center/BestLabel
-@onready var upgrade_button: Button = $Center/SecondaryRow/UpgradeButton
+@onready var upgrade_button: Button = $NavBar/Row/UpgradeButton
 @onready var start_wave_button: Button = $Center/StartWaveButton
 
 func _ready() -> void:
@@ -33,8 +33,8 @@ func _ready() -> void:
 		selected_index = 0  # 해금된 캐릭터로 보정
 	play_button.pressed.connect(_on_play)
 	upgrade_button.pressed.connect(_on_upgrade)  # 코인 잔액은 상단 BestLabel에 표기
-	$Center/SecondaryRow/PatchButton.pressed.connect(_on_patch)
-	$Center/SecondaryRow/RelicButton.pressed.connect(_on_relics)
+	$NavBar/Row/PatchButton.pressed.connect(_on_patch)
+	$NavBar/Row/RelicButton.pressed.connect(_on_relics)
 	# 시작 웨이브 도약: 1, 그리고 best_wave 이하 5단위
 	wave_options = [1]
 	var w := 5

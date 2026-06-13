@@ -4,7 +4,7 @@ extends Node2D
 signal fired(projectile)
 signal hp_changed(hp: float, max_hp: float)
 signal died
-signal skill_cast(skill_id: String)  ## 액티브 스킬 발동 (main이 효과 처리)
+signal skill_cast(data: Dictionary)  ## 액티브 스킬 발동 — {id,power,radius,count,element} (main이 효과 처리)
 signal took_damage(amount: float)  ## 받는 피해 (빨간 데미지 숫자 표시용)
 
 const PROJECTILE_SCENE := preload("res://scenes/projectile/projectile.tscn")
@@ -17,7 +17,7 @@ var hp: float
 var character: CharacterData
 var lifesteal := 0.0  ## 입힌 피해의 흡혈 비율 (영구 강화)
 var relics: Array = []  ## 이번 런 보유 유물 id (보스 보상)
-var skill_cd_left := 0.0  ## 액티브 스킬 쿨타임 남은 시간(초)
+var skills: Array = []  ## 보유 스킬 목록(각 dict: id/name/cooldown/power/radius/count/cd_left). [0]=캐릭터 고유, 이후=카드 획득
 
 ## 유물 획득 (중복 없음)
 func grant_relic(id: String) -> void:
@@ -27,12 +27,13 @@ func grant_relic(id: String) -> void:
 func _process(delta: float) -> void:
 	if relics.has("regen") and hp > 0.0 and hp < max_hp:
 		heal(RelicLib.REGEN_PER_SEC * delta)  # 재생의 룬
-	# 액티브 스킬: 쿨타임마다 자동 발동 (연사 스탯이 쿨타임 단축)
-	if hp > 0.0 and character and character.skill_id != "":
-		skill_cd_left -= delta
-		if skill_cd_left <= 0.0:
-			skill_cast.emit(character.skill_id)
-			skill_cd_left = effective_skill_cooldown()
+	# 액티브 스킬: 보유 스킬마다 독립 쿨타임으로 자동 발동 (연사 스탯이 모든 쿨타임 단축)
+	if hp > 0.0:
+		for s in skills:
+			s.cd_left -= delta
+			if s.cd_left <= 0.0:
+				_cast_skill(s)
+				s.cd_left = eff_cooldown(s)
 
 @onready var attack_timer: Timer = $AttackTimer
 
@@ -53,7 +54,9 @@ func apply_character(c: CharacterData) -> void:
 	hp = max_hp
 	lifesteal = GameState.upgrade_value("lifesteal", c)
 	attack_timer.wait_time = 1.0 / c.base_fire_rate  # 평타 고정 (카드 연사는 스킬 쿨타임으로)
-	skill_cd_left = effective_skill_cooldown()
+	skills.clear()
+	if c.skill_id != "":  # 캐릭터 고유 스킬을 슬롯 0으로
+		skills.append(_make_skill(c.skill_id, c.skill_name, c.skill_cooldown, c.skill_power, c.skill_radius, c.skill_count))
 	$Sprite2D.texture = c.mage_sprite
 
 ## 웨이브 시작 시 패시브 회복 (견습 마법사)
@@ -69,24 +72,43 @@ func effective_damage() -> float:
 		d *= RelicLib.BERSERK_MULT  # 격노의 룬
 	return d
 
-## 실효 스킬 쿨타임: 기본 × (캐릭터 기본연사 / 현재 연사). 연사가 오를수록 짧아짐, 최소 2초.
-func effective_skill_cooldown() -> float:
+## 스킬 인스턴스 생성 (시작 시 쿨타임만큼 충전 필요)
+func _make_skill(id: String, nm: String, cd: float, pwr: float, rad: float, cnt: int) -> Dictionary:
+	var s := {"id": id, "name": nm, "cooldown": cd, "power": pwr, "radius": rad, "count": cnt, "cd_left": 0.0}
+	s.cd_left = eff_cooldown(s)
+	return s
+
+## 스킬 발동: 실효 위력/범위를 풀어 main에 전달
+func _cast_skill(s: Dictionary) -> void:
+	skill_cast.emit({
+		"id": s.id,
+		"power": eff_power(s),
+		"radius": eff_radius(s),
+		"count": s.count,
+		"element": character.element if character else "",
+	})
+
+## 실효 쿨타임: 스킬 기본쿨 × (캐릭터 기본연사 / 현재 연사). 연사가 오를수록 짧아짐, 최소 2초.
+func eff_cooldown(s: Dictionary) -> float:
 	if character == null or character.base_fire_rate <= 0.0 or build.fire_rate <= 0.0:
-		return 8.0
-	return maxf(character.skill_cooldown * character.base_fire_rate / build.fire_rate, 2.0)
+		return maxf(s.cooldown, 2.0)
+	return maxf(s.cooldown * character.base_fire_rate / build.fire_rate, 2.0)
 
-## 스킬 충전 진행도 0~1 (HUD 게이지용)
-func skill_ratio() -> float:
-	return clampf(1.0 - skill_cd_left / effective_skill_cooldown(), 0.0, 1.0)
-
-## 스킬 위력 = 기본 위력 × (현재 공격력/기본 공격력) × 강화배율 — 공격력 카드·강화·숙련이 스킬을 키움
-func effective_skill_power() -> float:
+## 실효 위력 = 스킬 기본위력 × (현재 공격력/기본 공격력) × 강화배율 — 공격력 카드·강화·숙련이 모든 스킬을 키움
+func eff_power(s: Dictionary) -> float:
 	if character == null or character.base_damage <= 0.0:
-		return 0.0
-	return character.skill_power * (build.damage / character.base_damage) * build.skill_power_mult
+		return s.power * build.skill_power_mult
+	return s.power * (build.damage / character.base_damage) * build.skill_power_mult
 
-func effective_skill_radius() -> float:
-	return character.skill_radius * build.skill_radius_mult if character else 0.0
+func eff_radius(s: Dictionary) -> float:
+	return s.radius * build.skill_radius_mult
+
+## 주 스킬(슬롯0) 충전 진행도 0~1 (HUD 게이지용)
+func skill_ratio() -> float:
+	if skills.is_empty():
+		return 0.0
+	var s = skills[0]
+	return clampf(1.0 - s.cd_left / eff_cooldown(s), 0.0, 1.0)
 
 ## 스킬 발사체 1발: 예측 조준으로 target에 마력탄을 쏨(위력=dmg). 평타 패시브/유물 미적용 — 순수 스킬.
 ## fired 신호로 main이 사운드·데미지숫자 연결 + Projectiles에 추가. 상성/사망연출은 발사체가 자체 처리.
@@ -153,6 +175,10 @@ func take_damage(amount: float) -> void:
 
 ## 카드 보너스를 빌드에 적용
 func apply_card(card: CardData) -> void:
+	if card.grant_skill_id != "":  # 스킬 획득 카드 — 보조 스킬을 목록에 추가(독립 쿨타임)
+		var d: Dictionary = SkillLib.DEFS.get(card.grant_skill_id, {})
+		if not d.is_empty():
+			skills.append(_make_skill(card.grant_skill_id, d.name, d.cooldown, d.power, d.radius, d.count))
 	build.damage += card.damage_bonus
 	build.fire_rate += card.fire_rate_bonus  # 평타 아님 — 스킬 쿨타임 감소에 반영
 	build.projectile_count += card.projectile_count_bonus

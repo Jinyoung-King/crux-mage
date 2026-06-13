@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+card_name = "마력탄 습득"
+description = "가까운 적 다수에 마력탄 (추가 스킬·독립 쿨)"
+rarity = "common"
+grant_skill_id = "bolts"

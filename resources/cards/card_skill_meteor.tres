@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+card_name = "유성 습득"
+description = "밀집 지역에 광역 폭발 (추가 스킬·독립 쿨)"
+rarity = "rare"
+grant_skill_id = "meteor"

@@ -50,6 +50,11 @@ var card_pool: Array = [
 	preload("res://resources/cards/card_bulwark.tres"),
 	preload("res://resources/cards/card_skill_power.tres"),
 	preload("res://resources/cards/card_skill_radius.tres"),
+	preload("res://resources/cards/card_skill_bolts.tres"),
+	preload("res://resources/cards/card_skill_meteor.tres"),
+	preload("res://resources/cards/card_skill_chain.tres"),
+	preload("res://resources/cards/card_skill_freeze.tres"),
+	preload("res://resources/cards/card_skill_barrage.tres"),
 ]
 
 var wave_index := 0
@@ -146,9 +151,11 @@ func _process(delta: float) -> void:
 		position = Vector2.ZERO
 	# 스킬 쿨타임 게이지
 	var pl = $Player
-	if pl.character and pl.character.skill_id != "":
-		var r: float = pl.skill_ratio()
-		$HUD/SkillUI/SkillName.text = pl.character.skill_name + ("  준비!" if r >= 1.0 else "")
+	if not pl.skills.is_empty():
+		var r: float = pl.skill_ratio()  # 주 스킬(슬롯0) 게이지
+		var extra: int = pl.skills.size() - 1
+		var nm: String = pl.skills[0].name + (" +%d" % extra if extra > 0 else "")
+		$HUD/SkillUI/SkillName.text = nm + ("  준비!" if r >= 1.0 else "")
 		$HUD/SkillUI/BarBg/BarFill.anchor_right = r
 		$HUD/SkillUI/BarBg/BarFill.color = Color(1, 0.88, 0.4, 0.95) if r >= 1.0 else Color(0.6, 0.8, 1, 0.85)
 	else:
@@ -406,10 +413,17 @@ func _on_wave_cleared() -> void:
 	# 보스 클리어도 카드 드래프트(희귀 확정). 유물은 시작 화면에서 코인으로 해금·장착.
 	_open_draft(_wave_kind(wave_index) == "boss")
 
+## 보유 스킬 중 범위(meteor/barrage) 스킬이 하나라도 있나
+func _has_radius_skill() -> bool:
+	for s in $Player.skills:
+		if s.radius > 0.0:
+			return true
+	return false
+
 ## 현재 빌드에서 의미 있는 카드인지 — 죽은 픽(조건 미충족 시너지 등)을 드래프트에서 제외
 func _is_card_useful(card: CardData) -> bool:
-	if card.skill_radius_bonus > 0.0 and not ($Player.character.skill_id in ["meteor", "barrage"]):
-		return false  # 범위 스킬(메테오/융단폭격)이 아니면 범위 강화 무의미
+	if card.skill_radius_bonus > 0.0 and not _has_radius_skill():
+		return false  # 범위 스킬(메테오/융단폭격)을 하나도 안 가졌으면 범위 강화 무의미
 	if card.heal > 0.0 and $Player.hp >= $Player.max_hp:
 		return false  # 만피에 회복 카드 금지
 	if card.max_hp_bonus < 0.0 and $Player.max_hp + card.max_hp_bonus < 30.0:
@@ -531,11 +545,8 @@ func _build_summary() -> String:
 	var b = p.build
 	var lines := []
 	lines.append("공격력 %d   ·   방어 %d" % [roundi(b.damage), int(b.defense)])
-	if p.character.skill_id != "":
-		var sp := int(round((b.skill_power_mult - 1.0) * 100.0))
-		var spt := "" if sp == 0 else " · 위력 +%d%%" % sp
-		lines.append("스킬 %s · 쿨 %.1f초%s" % [p.character.skill_name, p.effective_skill_cooldown(), spt])
-		lines.append("스킬 1히트 %d" % roundi(p.effective_skill_power()))
+	for s in p.skills:  # 보유 스킬마다 쿨·피해
+		lines.append("스킬 %s · 쿨 %.1f초 · 피해 %d" % [s.name, p.eff_cooldown(s), roundi(p.eff_power(s))])
 	var extras := []
 	if p.lifesteal > 0.0:
 		extras.append("흡혈 %d%%" % roundi(p.lifesteal * 100.0))
@@ -591,37 +602,37 @@ func _on_player_took_damage(amount: float) -> void:
 	dn.setup(amount, false, true)
 
 ## --- 액티브 스킬 (player.skill_cast → 효과 처리. _process 흐름이라 비물리=안전) ---
-func _on_skill_cast(id: String) -> void:
+func _on_skill_cast(s: Dictionary) -> void:
 	if game_over:
 		return
-	var c: CharacterData = $Player.character
-	var ep: float = $Player.effective_skill_power()
-	var er: float = $Player.effective_skill_radius()
-	match id:
+	var ep: float = s.power
+	var er: float = s.radius
+	var element: String = s.element
+	var count: int = s.count
+	match s.id:
 		"bolts":
 			var enemies := get_tree().get_nodes_in_group("enemies")
 			var pp: Vector2 = $Player.global_position
 			enemies.sort_custom(func(a, b): return pp.distance_squared_to(a.global_position) < pp.distance_squared_to(b.global_position))
-			var targets := enemies.slice(0, c.skill_count)
-			for e in targets:
+			for e in enemies.slice(0, count):
 				if is_instance_valid(e):
 					$Player.fire_skill_bolt(e, ep)  # 보이는 마력탄이 날아가 명중(상성·데미지숫자 자체 처리)
 		"meteor":
 			var center := _densest_cluster(er)
 			if center != Vector2.INF:
 				_skill_aoe(center, er, ep, true)
-				_skill_burst(center, ElementLib.color(c.element))
+				_skill_burst(center, ElementLib.color(element))
 		"barrage":
-			for pt in _random_enemy_points(c.skill_count):
+			for pt in _random_enemy_points(count):
 				_skill_aoe(pt, er, ep, false)
-				_skill_burst(pt, ElementLib.color(c.element))
+				_skill_burst(pt, ElementLib.color(element))
 		"chain":
-			_skill_chain(c.skill_count, ep, c.element)
+			_skill_chain(count, ep, element)
 		"freeze":
 			for e in get_tree().get_nodes_in_group("enemies"):
 				if is_instance_valid(e):
 					e.apply_slow(0.3, 2.5)
-					_skill_hit(e, ep, c.element)
+					_skill_hit(e, ep, element)
 			_skill_burst(Vector2(360, 360), Color(0.5, 0.8, 1.0))
 	_add_shake(4.0)
 

@@ -17,3 +17,5 @@ extends Resource
 # 스킬 강화 (배율에 가산: 0.35 = +35%)
 @export var skill_power_bonus: float = 0.0   ## 스킬 위력 +%
 @export var skill_radius_bonus: float = 0.0  ## 스킬 범위 +% (meteor/barrage만 유효)
+# 스킬 획득 (SkillLib.DEFS의 id) — 보조 스킬을 독립 쿨타임으로 추가
+@export var grant_skill_id: String = ""
