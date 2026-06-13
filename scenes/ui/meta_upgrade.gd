@@ -53,7 +53,7 @@ func _on_buy(id: String) -> void:
 		_refresh()
 
 func _refresh() -> void:
-	coin_label.text = "보유 코인 %d" % GameState.coins
+	coin_label.text = "보유 코인 %s" % NumFmt.compact(GameState.coins)
 	for def in GameState.UPGRADES:
 		var id: String = def["id"]
 		var lv := GameState.upgrade_level(id)

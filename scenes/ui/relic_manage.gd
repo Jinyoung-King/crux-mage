@@ -42,7 +42,7 @@ func _on_roll() -> void:
 	_refresh()
 
 func _refresh() -> void:
-	coin_label.text = "보유 코인 %d" % GameState.coins
+	coin_label.text = "보유 코인 %s" % NumFmt.compact(GameState.coins)
 	roll_button.text = "유물 뽑기 (%d코인)" % GameState.current_roll_cost()
 	roll_button.disabled = not GameState.can_roll_relic()
 	for r in RelicLib.RELICS:

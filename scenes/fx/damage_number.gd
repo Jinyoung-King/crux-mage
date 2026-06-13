@@ -9,7 +9,7 @@ var _size := 20
 var _color := Color(1, 1, 1)
 
 func setup(amount: float, is_crit: bool, player := false, strong := false) -> void:
-	_text = str(int(round(amount)))
+	_text = NumFmt.compact(int(round(amount)))
 	var pop := 1.15
 	if player:  # 플레이어가 받는 피해 — 빨강, 크게
 		_size = 28

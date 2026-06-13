@@ -212,7 +212,7 @@ func _update_best_label() -> void:
 	best_label.text = "최고: Wave %d" % GameState.best_wave if GameState.best_wave > 0 else ""
 
 func _update_coin_label() -> void:
-	coin_label.text = "%d" % run_coins  # 앞의 동전 아이콘(CoinIcon)이 '코인'을 표시
+	coin_label.text = NumFmt.compact(run_coins)  # 앞의 동전 아이콘(CoinIcon)이 '코인'을 표시
 
 func _process(delta: float) -> void:
 	# 마법사 롱탭: 0.4초 이상 누르고 있으면 능력치 정보 창 (짧은 탭은 무시)
@@ -716,7 +716,7 @@ func _on_card_chosen(card: CardData) -> void:
 	_start_wave(wave_index + 1)
 
 func _on_player_hp_changed(hp: float, max_hp: float) -> void:
-	hp_label.text = "%d / %d" % [hp, max_hp]  # 앞의 방패 아이콘(HpIcon)이 '기지 내구도'를 표시
+	hp_label.text = "%s / %s" % [NumFmt.compact(int(hp)), NumFmt.compact(int(max_hp))]  # 앞의 방패 아이콘(HpIcon)이 '기지 내구도'를 표시
 
 func _on_player_died() -> void:
 	game_over = true
@@ -729,7 +729,7 @@ func _on_player_died() -> void:
 	var lvl_before: int = GameState.char_level(GameState.selected)
 	GameState.add_xp(GameState.selected, wave_index + 1)  # 캐릭터 숙련 경험치(= 도달 웨이브)
 	var lvl_after: int = GameState.char_level(GameState.selected)
-	coin_label.text = "+%d · 숙련 +%d" % [run_coins, wave_index + 1]  # 앞의 동전 아이콘이 '코인'
+	coin_label.text = "+%s · 숙련 +%d" % [NumFmt.compact(run_coins), wave_index + 1]  # 앞의 동전 아이콘이 '코인'
 	if lvl_after > lvl_before:  # 레벨업: 강조 표기 + 금색 펄스
 		coin_label.text += "  → %s 숙련 Lv %d!" % [GameState.selected.display_name, lvl_after]
 	_update_best_label()
@@ -796,7 +796,7 @@ func _on_player_tapped() -> void:
 	if game_over or get_tree().paused:
 		return
 	var p = $Player
-	$HUD/StatsPanel/Center/StatsLabel.text = "기지 내구도 %d / %d\n\n%s" % [int(p.hp), int(p.max_hp), _build_summary()]
+	$HUD/StatsPanel/Center/StatsLabel.text = "기지 내구도 %s / %s\n\n%s" % [NumFmt.compact(int(p.hp)), NumFmt.compact(int(p.max_hp)), _build_summary()]
 	$HUD/StatsPanel.show()
 	get_tree().paused = true
 
