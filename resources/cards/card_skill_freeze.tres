@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1")
 card_name = "서리바람 습득"
-description = "전체 적 둔화 + 피해 (추가 스킬·독립 쿨)"
+description = "서리바람 — 없으면 습득, 있으면 진화(눈보라→영겁의 겨울)"
 rarity = "rare"
 grant_skill_id = "freeze"

@@ -19,12 +19,23 @@ const AUTO_SECS := 10.0  ## 자동선택까지 대기 시간
 var shown_cards: Array = []
 var can_reroll := false
 var auto_left := 0.0  ## >0이면 자동선택 카운트다운 진행 중
+var picking := false  ## 선택 연출 중(중복 입력 방지)
 
 func _ready() -> void:
 	for i in buttons.size():
 		buttons[i].pressed.connect(_on_button_pressed.bind(i))
+		buttons[i].mouse_entered.connect(_on_card_hover.bind(i, true))
+		buttons[i].mouse_exited.connect(_on_card_hover.bind(i, false))
 	reroll_button.pressed.connect(_on_reroll_pressed)
 	auto_button.pressed.connect(_on_auto_pressed)
+
+## 호버 시 카드가 살짝 떠오름
+func _on_card_hover(i: int, on: bool) -> void:
+	if picking or not buttons[i].visible:
+		return
+	var b: Button = buttons[i]
+	b.pivot_offset = b.size / 2.0
+	create_tween().tween_property(b, "scale", Vector2(1.06, 1.06) if on else Vector2.ONE, 0.1)
 
 func _process(delta: float) -> void:
 	# 드래프트가 떠 있고 자동선택이 켜져 있으면 카운트다운 → 0이면 무작위 선택
@@ -53,6 +64,7 @@ func _on_auto_pressed() -> void:
 
 ## cards(CardData 배열, 최대 3장)를 꾸며서 표시 + 리롤 1회 초기화
 func open(cards: Array) -> void:
+	picking = false
 	can_reroll = true
 	reroll_button.disabled = false
 	reroll_button.text = "다시 뽑기 (1회)"
@@ -81,7 +93,8 @@ func _render_cards(cards: Array) -> void:
 		else:
 			btn.visible = false
 	for i in cards.size():
-		buttons[i].modulate.a = 0.0
+		buttons[i].modulate = Color(1, 1, 1, 0)  # 전체 리셋(직전 선택 연출의 흐림/스케일 제거)
+		buttons[i].scale = Vector2.ONE
 		var t := create_tween()
 		t.tween_interval(0.05 + 0.07 * i)
 		t.tween_property(buttons[i], "modulate:a", 1.0, 0.18)
@@ -173,9 +186,25 @@ func _card_style(rarity: String, hl: bool) -> StyleBoxFlat:
 	return sb
 
 func _on_button_pressed(index: int) -> void:
+	if picking:
+		return
+	picking = true
 	auto_left = 0.0  # 선택됨 — 카운트다운 정지
-	hide()
-	card_chosen.emit(shown_cards[index])
+	reroll_button.disabled = true
+	var chosen: Button = buttons[index]
+	chosen.pivot_offset = chosen.size / 2.0
+	for i in buttons.size():  # 나머지 카드는 흐려짐
+		if i != index and buttons[i].visible:
+			create_tween().tween_property(buttons[i], "modulate", Color(0.45, 0.45, 0.5, 0.35), 0.18)
+	# 선택 카드: 번쩍 + 팝업 후 닫기 → 선택 emit
+	var t := create_tween()
+	t.tween_property(chosen, "scale", Vector2(1.2, 1.2), 0.13).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	t.parallel().tween_property(chosen, "modulate", Color(1.7, 1.7, 1.7, 1.0), 0.13)
+	t.tween_property(chosen, "modulate", Color(1, 1, 1, 1), 0.1)
+	t.tween_interval(0.04)
+	t.tween_callback(func() -> void:
+		hide()
+		card_chosen.emit(shown_cards[index]))
 
 ## 테스트용 자동선택: 정상 선택 경로(hide + emit)와 동일하게 무작위 1장
 func pick_random() -> void:

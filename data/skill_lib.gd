@@ -22,4 +22,16 @@ const EVOLVE := {
 		{"name": "쌍둥이 메테오", "radius_mult": 1.25, "power_mult": 1.4},
 		{"name": "운석 강우", "radius_mult": 1.6, "power_mult": 1.95},
 	],
+	"chain": [
+		{"name": "폭풍 번개", "count": 2, "cd_mult": 0.85, "power_mult": 1.3},
+		{"name": "천벌", "count": 3, "cd_mult": 0.7, "power_mult": 1.6},
+	],
+	"freeze": [
+		{"name": "눈보라", "cd_mult": 0.8, "power_mult": 1.4},
+		{"name": "영겁의 겨울", "cd_mult": 0.65, "power_mult": 1.85},
+	],
+	"barrage": [
+		{"name": "집중포화", "count": 1, "radius_mult": 1.2, "power_mult": 1.3},
+		{"name": "궤도 포격", "count": 2, "radius_mult": 1.4, "power_mult": 1.7},
+	],
 }

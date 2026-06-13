@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1")
 card_name = "전격 습득"
-description = "여러 적을 잇는 연쇄 번개 (추가 스킬·독립 쿨)"
+description = "전격 — 없으면 습득, 있으면 진화(폭풍 번개→천벌)"
 rarity = "rare"
 grant_skill_id = "chain"

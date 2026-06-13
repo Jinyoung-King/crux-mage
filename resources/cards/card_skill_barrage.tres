@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1")
 card_name = "융단폭격 습득"
-description = "무작위 지점 다발 폭격 (추가 스킬·독립 쿨)"
+description = "융단폭격 — 없으면 습득, 있으면 진화(집중포화→궤도 포격)"
 rarity = "rare"
 grant_skill_id = "barrage"
