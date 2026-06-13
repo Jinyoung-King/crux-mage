@@ -4,11 +4,11 @@ extends RefCounted
 ## 밸런스: 캐릭터 고유 스킬보다 위력 낮고 쿨타임 김 — '빈 시간 채우기 + 빌드 다양성'용.
 
 const DEFS := {
-	"bolts":   {"name": "마력탄", "cooldown": 3.0, "power": 10.0, "radius": 0.0, "count": 3},
-	"meteor":  {"name": "유성", "cooldown": 4.5, "power": 18.0, "radius": 90.0, "count": 0},
-	"barrage": {"name": "융단폭격", "cooldown": 5.0, "power": 13.0, "radius": 65.0, "count": 3},
-	"chain":   {"name": "전격", "cooldown": 4.0, "power": 13.0, "radius": 0.0, "count": 4},
-	"freeze":  {"name": "서리바람", "cooldown": 5.5, "power": 9.0, "radius": 0.0, "count": 0},
+	"bolts":   {"name": "마력탄", "cooldown": 4.5, "power": 10.0, "radius": 0.0, "count": 3},
+	"meteor":  {"name": "유성", "cooldown": 7.5, "power": 18.0, "radius": 90.0, "count": 0},
+	"barrage": {"name": "융단폭격", "cooldown": 7.0, "power": 13.0, "radius": 65.0, "count": 3},
+	"chain":   {"name": "전격", "cooldown": 6.0, "power": 13.0, "radius": 0.0, "count": 4},
+	"freeze":  {"name": "서리바람", "cooldown": 8.0, "power": 9.0, "radius": 0.0, "count": 0},
 }
 
 ## 진화 트리 — 같은 스킬을 다시 획득하면 상위 티어로(현재 스탯에 배율/가산 적용 → 고유·획득 모두 진화).

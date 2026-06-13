@@ -22,6 +22,6 @@ element = "wood"
 skill_id = "bolts"
 skill_name = "마력탄"
 skill_desc = "가까운 적 다수에 마력탄"
-skill_cooldown = 2.5
+skill_cooldown = 3.5
 skill_power = 16.0
 skill_count = 4

@@ -23,5 +23,5 @@ element = "water"
 skill_id = "freeze"
 skill_name = "절대영도"
 skill_desc = "전체 둔화 + 피해"
-skill_cooldown = 4.0
+skill_cooldown = 7.0
 skill_power = 14.0
