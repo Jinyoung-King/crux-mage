@@ -30,3 +30,4 @@ extends Resource
 @export var grant_echo: bool = false          ## 전설: 메아리(스킬 재발동)
 @export var knockback_bonus: float = 0.0      ## 행동: 넉백(밀어내기) px
 @export var grant_ground_field: bool = false  ## 행동: 잔류 장판(광역 스킬이 장판 남김)
+@export var execute_threshold_bonus: float = 0.0  ## 전설: 저체력 즉사 임계치

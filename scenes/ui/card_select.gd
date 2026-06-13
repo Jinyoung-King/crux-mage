@@ -168,6 +168,8 @@ func _card_icon_kind(card) -> String:
 		return "multi"
 	if card.skill_power_bonus > 0.0 or card.skill_radius_bonus > 0.0:
 		return "power"
+	if card.execute_threshold_bonus > 0.0:
+		return "attack"
 	if card.fire_rate_bonus > 0.0:
 		return "speed"
 	if card.heal > 0.0 or card.defense_bonus > 0.0 or card.max_hp_bonus > 0.0 or card.knockback_bonus > 0.0:

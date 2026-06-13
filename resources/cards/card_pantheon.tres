@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+card_name = "만신전"
+description = "공격력 +25 · 스킬 위력 +50% · 연사 +0.8 — 전능의 축복 (전설)."
+rarity = "legendary"
+damage_bonus = 25.0
+skill_power_bonus = 0.5
+fire_rate_bonus = 0.8

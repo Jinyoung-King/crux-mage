@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+card_name = "수확자"
+description = "체력 20% 이하의 적을 스킬·마력탄으로 즉시 처치 (전설)."
+rarity = "legendary"
+execute_threshold_bonus = 0.2

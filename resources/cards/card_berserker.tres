@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+card_name = "광전사"
+description = "스킬 위력 +80%. 대신 최대 체력 -30 — 극단적 화력 (전설 리스크)."
+rarity = "legendary"
+skill_power_bonus = 0.8
+max_hp_bonus = -30.0
