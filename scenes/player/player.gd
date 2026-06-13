@@ -96,6 +96,7 @@ func _evolve_skill(id: String) -> bool:
 
 ## 스킬 발동: 실효 위력/범위를 풀어 main에 전달
 func _cast_skill(s: Dictionary) -> void:
+	_skill_pose()  # 시전 포즈(위로 쭉 뻗으며 번쩍)
 	var data := {
 		"id": s.id,
 		"name": s.name,
@@ -194,6 +195,16 @@ func _on_attack_timer_timeout() -> void:
 func _recoil() -> void:
 	$Sprite2D.scale = Vector2(3.4, 2.6)
 	create_tween().tween_property($Sprite2D, "scale", Vector2(3, 3), 0.12)
+
+## 스킬 시전 포즈: 위로 쭉 뻗었다 탄성 복귀 + 잠깐 번쩍(마법 시전 느낌)
+func _skill_pose() -> void:
+	var spr := $Sprite2D
+	var tw := create_tween()
+	tw.tween_property(spr, "scale", Vector2(2.6, 3.6), 0.1).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(spr, "scale", Vector2(3, 3), 0.24).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+	var fl := create_tween()
+	fl.tween_property(spr, "modulate", Color(1.6, 1.6, 1.9), 0.08)
+	fl.tween_property(spr, "modulate", Color(1, 1, 1), 0.26)
 
 ## 가까운 순으로 최대 count명의 적을 반환
 func _nearest_enemies(count: int) -> Array:

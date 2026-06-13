@@ -7,6 +7,7 @@ const DEATH_REMAINS := preload("res://scenes/fx/death_remains.gd")
 const DAMAGE_NUMBER := preload("res://scenes/fx/damage_number.gd")
 const SKILL_RING := preload("res://scenes/fx/skill_ring.gd")  # 광역 스킬 범위 링
 const SKILL_NAME := preload("res://scenes/fx/skill_name_popup.gd")  # 시전 스킬 이름 팝업
+const FALLING_SKILL := preload("res://scenes/fx/falling_skill.gd")  # 하늘에서 떨어지는 광역 스킬 비주얼
 const GROUND_HAZARD := preload("res://scenes/fx/ground_hazard.gd")  # 잔류 장판
 const FONT := preload("res://assets/fonts/NotoSansKR.ttf")
 var _skill_rows: Array = []  # 스킬별 쿨타임 게이지 행 {fill, label}
@@ -865,19 +866,11 @@ func _on_skill_cast(s: Dictionary) -> void:
 		"meteor":
 			var center := _densest_cluster(er, pool)
 			if center != Vector2.INF:
-				_skill_aoe(center, er, ep, true)
-				_skill_ring(center, er, col)  # 범위 링
-				_skill_burst(center, col)
-				if $Player.build.ground_field:
-					_ground_field(center, er, ep, element)  # 잔류 장판
+				_drop_aoe(center, er, ep, element, col, true)  # 하늘에서 낙하 후 폭발
 				focus = center
 		"barrage":
 			for pt in _random_enemy_points(count, pool):
-				_skill_aoe(pt, er, ep, false)
-				_skill_ring(pt, er, col)
-				_skill_burst(pt, col)
-				if $Player.build.ground_field:
-					_ground_field(pt, er, ep, element)
+				_drop_aoe(pt, er, ep, element, col, false)
 				focus = pt
 		"chain":
 			_skill_chain(count, ep, element, pool)
@@ -982,6 +975,24 @@ func _skill_burst(pos: Vector2, color: Color) -> void:
 	b.amount = 64        # 파편 ↑ (더 화려)
 	b.lifetime = 0.9     # 파편이 더 오래 흩날림 (길게)
 	$Fx.add_child(b)
+
+## 하늘에서 떨어지는 광역 스킬(메테오·융단): 화면 위에서 낙하 비주얼 → 도달 지점에 폭발+피해.
+func _drop_aoe(center: Vector2, radius: float, ep: float, element: String, col: Color, burn: bool) -> void:
+	var m = FALLING_SKILL.new()
+	m.position = center + Vector2(randf_range(-30.0, 30.0), -720.0)  # 화면 위에서 시작
+	m.setup(col, clampf(radius * 0.35, 16.0, 50.0))
+	$Fx.add_child(m)
+	var t := m.create_tween()
+	t.tween_property(m, "position", center, 0.38).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)  # 가속 낙하
+	t.tween_callback(func() -> void:
+		if not game_over:
+			_skill_aoe(center, radius, ep, burn)  # 도달 시 폭발 피해
+			_skill_ring(center, radius, col)
+			_skill_burst(center, col)
+			if $Player.build.ground_field:
+				_ground_field(center, radius, ep, element)
+			_add_shake(4.0)
+		m.queue_free())
 
 ## 마법사로부터 rng 이내의 살아있는 적 (스킬 사거리 필터)
 func _enemies_in_range(rng: float) -> Array:
