@@ -5,14 +5,14 @@ const FONT := preload("res://assets/fonts/NotoSansKR.ttf")
 
 var selected_index := 0
 var cards: Array = []
-var wave_options: Array = []  ## 시작 웨이브 도약 선택지 (1, best_wave 이하 5단위)
-var wave_idx := 0
 
 @onready var grid: GridContainer = $Center/Grid
 @onready var play_button: Button = $Center/PlayButton
 @onready var best_label: Label = $Center/BestLabel
 @onready var upgrade_button: Button = $NavBar/Row/UpgradeButton
-@onready var start_wave_button: Button = $Center/StartWaveButton
+@onready var start_wave_box: VBoxContainer = $Center/StartWaveBox
+@onready var start_wave_label: Label = $Center/StartWaveBox/StartWaveLabel
+@onready var start_wave_slider: HSlider = $Center/StartWaveBox/StartWaveSlider
 
 func _ready() -> void:
 	# 업데이트 후 첫 진입이면 패치노트를 먼저 보여줌(버전당 1회)
@@ -35,29 +35,24 @@ func _ready() -> void:
 	upgrade_button.pressed.connect(_on_upgrade)  # 코인 잔액은 상단 BestLabel에 표기
 	$NavBar/Row/PatchButton.pressed.connect(_on_patch)
 	$NavBar/Row/RelicButton.pressed.connect(_on_relics)
-	# 시작 웨이브 도약: 1, 그리고 best_wave 이하 5단위
-	wave_options = [1]
-	var w := 5
-	while w <= GameState.best_wave:
-		wave_options.append(w)
-		w += 5
-	if wave_options.size() <= 1:
-		start_wave_button.hide()  # 아직 스킵 가능 구간 없음
+	# 시작 웨이브 다이얼: 1 ~ 최고 기록(1단위). 기록이 2 미만이면 숨김(아직 스킵 구간 없음).
+	if GameState.best_wave < 2:
+		start_wave_box.hide()
 		GameState.start_wave = 1
 	else:
-		start_wave_button.pressed.connect(_on_start_wave_pressed)
-		wave_idx = maxi(wave_options.find(GameState.start_wave), 0)
-		GameState.start_wave = wave_options[wave_idx]
+		start_wave_slider.max_value = GameState.best_wave
+		start_wave_slider.value = clampi(GameState.start_wave, 1, GameState.best_wave)
+		GameState.start_wave = int(start_wave_slider.value)
+		start_wave_slider.value_changed.connect(_on_start_wave_changed)
 		_refresh_start_wave()
 	_refresh()
 
-func _on_start_wave_pressed() -> void:
-	wave_idx = (wave_idx + 1) % wave_options.size()
-	GameState.start_wave = wave_options[wave_idx]
+func _on_start_wave_changed(v: float) -> void:
+	GameState.start_wave = int(v)
 	_refresh_start_wave()
 
 func _refresh_start_wave() -> void:
-	start_wave_button.text = "시작: Wave %d" % wave_options[wave_idx]
+	start_wave_label.text = "시작: Wave %d" % GameState.start_wave
 
 func _make_card(c: CharacterData, idx: int) -> Button:
 	var unlocked := GameState.is_unlocked(c)

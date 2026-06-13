@@ -5,7 +5,7 @@ extends Area2D
 
 signal dealt(heal: float)  ## 적에 피해를 입힐 때 흡혈 회복량(피해×흡혈률)을 알림
 signal chained(from: Vector2, to: Vector2)  ## 뇌전 연쇄 시각용 (시작점→도착점)
-signal damaged(amount: float, is_crit: bool, pos: Vector2)  ## 직격 피해 수치(플로팅 숫자용)
+signal damaged(amount: float, is_crit: bool, pos: Vector2, is_strong: bool)  ## 직격 피해 수치(플로팅 숫자용, is_strong=상성 강타)
 
 @export var speed: float = 600.0
 
@@ -45,9 +45,10 @@ func _on_area_entered(area) -> void:
 	if crit_chance > 0.0 and randf() < crit_chance:
 		dmg *= crit_mult  # 치명타
 		is_crit = true
-	var hit_dmg := dmg * ElementLib.multiplier(element, area.element)  # 오행 상성
+	var mult := ElementLib.multiplier(element, area.element)  # 오행 상성
+	var hit_dmg := dmg * mult
 	area.take_damage(hit_dmg)
-	damaged.emit(hit_dmg, is_crit, area.global_position)  # 플로팅 데미지 숫자
+	damaged.emit(hit_dmg, is_crit, area.global_position, mult > 1.0)  # 플로팅 데미지 숫자(상성 강타 강조)
 	if lifesteal > 0.0:
 		dealt.emit(hit_dmg * lifesteal)  # 흡혈: 입힌 피해 비율만큼 회복
 	if execute_threshold > 0.0 and area.hp > 0.0 and area.hp <= area.max_hp * execute_threshold:
@@ -91,8 +92,9 @@ func _splash_from(hit, dmg: float, center: Vector2) -> void:
 		if e == hit or not is_instance_valid(e):
 			continue
 		if center.distance_to(e.global_position) <= splash_radius:
-			var sd := dmg * splash_factor * ElementLib.multiplier(element, e.element)
+			var em := ElementLib.multiplier(element, e.element)
+			var sd := dmg * splash_factor * em
 			e.take_damage(sd)
-			damaged.emit(sd, false, e.global_position)
+			damaged.emit(sd, false, e.global_position, em > 1.0)
 			if lifesteal > 0.0:
 				dealt.emit(sd * lifesteal)

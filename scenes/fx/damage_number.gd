@@ -8,7 +8,7 @@ var _text := ""
 var _size := 19
 var _color := Color(1, 1, 1)
 
-func setup(amount: float, is_crit: bool, player := false) -> void:
+func setup(amount: float, is_crit: bool, player := false, strong := false) -> void:
 	_text = str(int(round(amount)))
 	if player:  # 플레이어가 받는 피해 — 빨강, 크게
 		_size = 26
@@ -16,12 +16,15 @@ func setup(amount: float, is_crit: bool, player := false) -> void:
 	elif is_crit:
 		_size = 30
 		_color = Color(1.0, 0.82, 0.2)
+	elif strong:  # 오행 상성 강타 — 주황빛, 약간 크게
+		_size = 24
+		_color = Color(1.0, 0.55, 0.25)
 	else:
 		_size = 19
 		_color = Color(1, 1, 1)
 	z_index = 100  # 적·발사체 위에
 	position += Vector2(randf_range(-10.0, 10.0), -8.0)  # 살짝 흩뿌리고 위에서 시작
-	var rise := 52.0 if (is_crit or player) else 40.0
+	var rise := 52.0 if (is_crit or player) else (46.0 if strong else 40.0)
 	var t := create_tween()
 	t.set_parallel(true)
 	t.tween_property(self, "position:y", position.y - rise, 0.6).set_ease(Tween.EASE_OUT)

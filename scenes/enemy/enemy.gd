@@ -126,6 +126,8 @@ func setup(data: EnemyData, hp_scale: float = 1.0, dscale: float = 1.0, elite: D
 	var shape := RectangleShape2D.new()
 	shape.size = Vector2(body_size, body_size)
 	$CollisionShape2D.shape = shape
+	if element != "":
+		_build_element_ring()  # 속성 색 테두리(상성 식별)
 	if data.show_hp_bar:
 		_build_hp_bar(body_size)
 	if not elite.is_empty():
@@ -144,6 +146,20 @@ func _build_hp_bar(enemy_size: float) -> void:
 	hp_fill.size = Vector2(HP_BAR_W, 6.0)
 	hp_fill.position = Vector2(-HP_BAR_W / 2.0, top)
 	add_child(hp_fill)
+
+## 속성 색 테두리: 본체 뒤에 속성 색 사각을 본체보다 크게 깔아 가장자리가 속성 색으로 보이게(상성 식별).
+## $Sprite2D.modulate(피격 플래시·화상/둔화 색조)와 무관하게 항상 속성 색을 유지한다.
+func _build_element_ring() -> void:
+	var m := maxf(5.0, body_size * 0.12)  # 테두리 두께(px)
+	var s := body_size + m * 2.0
+	var ring := ColorRect.new()
+	ring.color = ElementLib.color(element)
+	ring.color.a = 0.5
+	ring.size = Vector2(s, s)
+	ring.position = Vector2(-s / 2.0, -s / 2.0)  # 본체 중앙 정렬
+	ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(ring)
+	move_child(ring, 0)  # 본체 스프라이트 뒤에 그려지도록
 
 ## 엘리트 오라: 몹 스프라이트의 '모양'(알파)만 빌려 수식어 색의 단색 실루엣을 만들고,
 ## 8방향으로 살짝 밀어 본체 뒤에 깔아 몹을 감싸는 빛나는 외곽선을 만든다(은은한 맥동).
