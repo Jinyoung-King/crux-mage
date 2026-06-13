@@ -524,7 +524,7 @@ func _on_card_chosen(card: CardData) -> void:
 	_start_wave(wave_index + 1)
 
 func _on_player_hp_changed(hp: float, max_hp: float) -> void:
-	hp_label.text = "기지 내구도 %d / %d" % [hp, max_hp]
+	hp_label.text = "%d / %d" % [hp, max_hp]  # 앞의 방패 아이콘(HpIcon)이 '기지 내구도'를 표시
 
 func _on_player_died() -> void:
 	game_over = true

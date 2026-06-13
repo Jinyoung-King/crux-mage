@@ -17,21 +17,26 @@ const EVOLVE := {
 	"bolts": [
 		{"name": "연발 마력탄", "count": 2, "cd_mult": 0.82, "power_mult": 1.25},
 		{"name": "마력 폭풍", "count": 3, "cd_mult": 0.70, "power_mult": 1.55},
+		{"name": "비전 노바", "count": 4, "cd_mult": 0.7, "power_mult": 1.6},
 	],
 	"meteor": [
 		{"name": "쌍둥이 메테오", "radius_mult": 1.25, "power_mult": 1.4},
 		{"name": "운석 강우", "radius_mult": 1.6, "power_mult": 1.95},
+		{"name": "종말의 운석", "radius_mult": 1.4, "power_mult": 2.0},
 	],
 	"chain": [
 		{"name": "폭풍 번개", "count": 2, "cd_mult": 0.85, "power_mult": 1.3},
 		{"name": "천벌", "count": 3, "cd_mult": 0.7, "power_mult": 1.6},
+		{"name": "뇌신의 분노", "count": 4, "cd_mult": 0.7, "power_mult": 1.7},
 	],
 	"freeze": [
 		{"name": "눈보라", "cd_mult": 0.8, "power_mult": 1.4},
 		{"name": "영겁의 겨울", "cd_mult": 0.65, "power_mult": 1.85},
+		{"name": "절대 영도", "cd_mult": 0.6, "power_mult": 2.0},
 	],
 	"barrage": [
 		{"name": "집중포화", "count": 1, "radius_mult": 1.2, "power_mult": 1.3},
 		{"name": "궤도 포격", "count": 2, "radius_mult": 1.4, "power_mult": 1.7},
+		{"name": "행성 붕괴", "count": 3, "radius_mult": 1.4, "power_mult": 1.9},
 	],
 }

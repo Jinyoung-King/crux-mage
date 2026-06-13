@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3]
+[gd_scene load_steps=16 format=3]
 
 [ext_resource type="Script" path="res://scenes/main/main.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2"]
@@ -13,6 +13,7 @@
 [ext_resource type="AudioStream" path="res://assets/audio/coin.wav" id="12"]
 [ext_resource type="Script" path="res://scenes/fx/base.gd" id="13"]
 [ext_resource type="Script" path="res://scenes/fx/coin_icon.gd" id="14"]
+[ext_resource type="Script" path="res://scenes/fx/hp_icon.gd" id="15"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_base"]
 size = Vector2(720, 150)
@@ -73,8 +74,17 @@ offset_bottom = 52.0
 theme_override_fonts/font = ExtResource("4")
 theme_override_font_sizes/font_size = 24
 
-[node name="HpLabel" type="Label" parent="HUD"]
+[node name="HpIcon" type="Control" parent="HUD"]
+custom_minimum_size = Vector2(26, 26)
 offset_left = 20.0
+offset_top = 56.0
+offset_right = 46.0
+offset_bottom = 82.0
+mouse_filter = 2
+script = ExtResource("15")
+
+[node name="HpLabel" type="Label" parent="HUD"]
+offset_left = 54.0
 offset_top = 52.0
 offset_right = 320.0
 offset_bottom = 88.0
