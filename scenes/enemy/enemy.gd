@@ -58,6 +58,11 @@ var dmg_scale := 1.0  ## 무한 모드 피해 배율 (접촉·탄막·돌진에 
 var element := ""  ## 오행 속성 (발사체 상성 판정용)
 var kind_key := ""  ## 적 종류 키(.tres 파일명) — 도감 처치 집계용
 var attack_range := 0.0  ## 원거리 사거리(기지까지 세로 거리). 0=무제한
+# 광폭화(보스): 체력이 enrage_below 이하로 떨어지면 1회 광폭(속도·공격↑ + 붉게)
+var enrage_below := 0.0
+var enrage_speed_mult := 1.6
+var enrage_attack_mult := 1.5
+var _enraged := false
 
 func _ready() -> void:
 	add_to_group("enemies")
@@ -115,6 +120,9 @@ func setup(data: EnemyData, hp_scale: float = 1.0, dscale: float = 1.0, elite: D
 		st.autostart = true
 		st.timeout.connect(_on_shield_timer)
 		add_child(st)
+	enrage_below = data.enrage_below
+	enrage_speed_mult = data.enrage_speed_mult
+	enrage_attack_mult = data.enrage_attack_mult
 	# 엘리트 수식어(무한 모드 잡몹): 스탯 배수·보너스 코인·색 (main이 결정해 전달)
 	if not elite.is_empty():
 		coin_value = elite.get("coins", 1)
@@ -203,6 +211,8 @@ func _physics_process(delta: float) -> void:
 		if hp <= 0.0:
 			_die()
 			return
+	if enrage_below > 0.0 and not _enraged and hp <= max_hp * enrage_below:
+		_enrage()  # 저체력 광폭(보스)
 	# 보호막 지속시간: 시간 내 안 깨지면 회복하고 해제 (버스트 못 넣으면 처치 지연)
 	if shield_active:
 		shield_time_left -= delta
@@ -276,6 +286,18 @@ func apply_burn(dps: float, dur: float) -> void:
 func apply_slow(factor: float, dur: float) -> void:
 	slow_factor = factor
 	slow_time_left = maxf(slow_time_left, dur)
+
+## 저체력 광폭(보스): 속도·접촉/탄막 피해 강화 + 붉은 기 + 잠깐 부풀어오르는 연출. 1회만.
+func _enrage() -> void:
+	_enraged = true
+	speed *= enrage_speed_mult
+	contact_damage *= enrage_attack_mult
+	dmg_scale *= enrage_attack_mult  # 탄막 피해(data.attack_damage × dmg_scale)도 강화
+	modulate = Color(1.4, 0.85, 0.85)  # 노드 전체에 붉은 기(스프라이트 상태 색조와 곱)
+	var tw := create_tween()
+	tw.tween_property($Sprite2D, "scale", Vector2(sprite_scale * 1.25, sprite_scale * 1.25), 0.15).set_trans(Tween.TRANS_BACK)
+	tw.tween_property($Sprite2D, "scale", Vector2(sprite_scale, sprite_scale), 0.2)
+	print("%s ENRAGE" % display_name)
 
 ## 사망 처리 (피격사·화상사 공통)
 func _die() -> void:

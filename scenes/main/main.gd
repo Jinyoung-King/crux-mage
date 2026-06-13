@@ -40,6 +40,7 @@ var waves: Array = [
 var boss_wave: WaveData = preload("res://resources/waves/wave_boss.tres")
 var guardian_wave: WaveData = preload("res://resources/waves/wave_guardian.tres")
 var storm_wave: WaveData = preload("res://resources/waves/wave_storm.tres")
+var plague_wave: WaveData = preload("res://resources/waves/wave_plague.tres")
 var midboss_wave: WaveData = preload("res://resources/waves/wave_midboss.tres")
 var bonus_wave: WaveData = preload("res://resources/waves/wave_bonus.tres")  # 보너스(코인) 웨이브 — 무해한 보물 적
 # 보상 후보 카드 풀 (소모되지 않으므로 같은 카드가 다시 나올 수 있음)
@@ -295,10 +296,11 @@ func _endless_level(index: int) -> int:
 ## 보스 웨이브 회차에 따라 보스 3종 순환: 마왕(10·40) / 수호 마왕(20·50) / 폭풍 마왕(30·60)
 func _boss_wave_for(index: int) -> WaveData:
 	var ordinal := (index + 1) / 10  # 보스 등장 회차(정수 나눗셈): wave10→1, 20→2…
-	match ordinal % 3:
+	match ordinal % 4:
 		1: return boss_wave
 		2: return guardian_wave
-		_: return storm_wave
+		3: return storm_wave
+		_: return plague_wave
 
 ## 보스 웨이브의 HP바 적(보스 본체) 이름 — 등장 배너용
 func _boss_enemy_name(index: int) -> String:

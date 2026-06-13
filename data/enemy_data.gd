@@ -41,3 +41,7 @@ extends Resource
 @export var shield_hp: float = 0.0  ## 보호막 흡수량(체력처럼 hp_scale 배율 적용)
 @export var shield_duration: float = 4.0  ## 보호막 유지 시간(초)
 @export var shield_heal: float = 0.0  ## 시간 내 못 깨면 회복하는 체력
+# 광폭화 패턴(보스): enrage_below > 0이면 체력이 이 비율 이하로 떨어질 때 1회 광폭(속도·공격 강화 + 붉게)
+@export var enrage_below: float = 0.0       ## 광폭 발동 체력 비율(0=없음)
+@export var enrage_speed_mult: float = 1.6  ## 광폭 시 이동속도 배수
+@export var enrage_attack_mult: float = 1.5 ## 광폭 시 접촉·탄막 피해 배수

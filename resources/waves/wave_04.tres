@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="WaveData" load_steps=15 format=3]
+[gd_resource type="Resource" script_class="WaveData" load_steps=19 format=3]
 
 [ext_resource type="Script" path="res://data/wave_data.gd" id="1"]
 [ext_resource type="Script" path="res://data/wave_entry.gd" id="2"]
@@ -8,6 +8,8 @@
 [ext_resource type="Resource" path="res://resources/enemies/enemy_ghost.tres" id="6"]
 [ext_resource type="Resource" path="res://resources/enemies/enemy_slime_big.tres" id="7"]
 [ext_resource type="Resource" path="res://resources/enemies/enemy_caster.tres" id="8"]
+[ext_resource type="Resource" path="res://resources/enemies/enemy_rusher.tres" id="9"]
+[ext_resource type="Resource" path="res://resources/enemies/enemy_sniper.tres" id="10"]
 
 [sub_resource type="Resource" id="entry_basic"]
 script = ExtResource("2")
@@ -39,7 +41,17 @@ script = ExtResource("2")
 enemy = ExtResource("8")
 count = 2
 
+[sub_resource type="Resource" id="entry_rusher"]
+script = ExtResource("2")
+enemy = ExtResource("9")
+count = 6
+
+[sub_resource type="Resource" id="entry_sniper"]
+script = ExtResource("2")
+enemy = ExtResource("10")
+count = 2
+
 [resource]
 script = ExtResource("1")
 spawn_interval = 0.55
-entries = [SubResource("entry_basic"), SubResource("entry_fast"), SubResource("entry_tank"), SubResource("entry_ghost"), SubResource("entry_slime"), SubResource("entry_caster")]
+entries = [SubResource("entry_basic"), SubResource("entry_fast"), SubResource("entry_tank"), SubResource("entry_ghost"), SubResource("entry_slime"), SubResource("entry_caster"), SubResource("entry_rusher"), SubResource("entry_sniper")]
