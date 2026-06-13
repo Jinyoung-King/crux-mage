@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://data/enemy_data.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/enemy_caster.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+display_name = "석궁병"
+hp = 28.0
+speed = 35.0
+contact_damage = 8.0
+size = 36.0
+sprite = ExtResource("2")
+effect_color = Color(0.62, 0.66, 0.74, 1)
+element = "metal"
+attack_interval = 2.8
+attack_damage = 13.0
+attack_range = 950.0
+telegraph_time = 0.4

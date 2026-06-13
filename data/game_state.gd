@@ -3,10 +3,11 @@ extends Node
 ## 씬을 새로 로드해도 유지되며, 최고 기록은 user://에 영속 저장된다.
 
 const SAVE_PATH := "user://save.cfg"
-const VERSION := "v1.2"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
+const VERSION := "v1.3"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
 
 # 패치노트 (최신이 위). 새 버전 추가 시 맨 앞에 한 항목 추가. 시작 화면 "패치노트" + 업데이트 시 자동 안내.
 const CHANGELOG := [
+	{"v": "v1.3", "notes": ["속성별 적 보강 — 금(강철 기사·석궁병)·수(물뱀·해파리)·흙(바위 거인·모래벌레) 잡몹 추가로 5속성 모두 잡몹 3종 균형. 새 보스 '대지 마왕'(소환+돌진+광역 탄막+광폭) 추가 → 보스 5종 순환(Wave 50). 도감 22종 — 다음 업데이트의 5속성 순환 스테이지 준비"]},
 	{"v": "v1.2", "notes": ["새 적 2종 — 돌격병(지그재그로 빠르게 돌진)·저격수(멀리서 강한 단발 마탄을 예고 후 발사). 일반·무한 웨이브에 등장", "새 보스 '역병 마왕' — 슬라임 소환 + 광역 탄막, 체력 40% 이하면 '광폭화'(빨라지고 강해지며 붉게). 보스가 마왕·수호 마왕·폭풍 마왕·역병 마왕 4종 순환"]},
 	{"v": "v1.1", "notes": ["유물 6종 추가 — 뽑기 풀이 6→12종으로 늘어남. 방벽(받는 피해↓)·쌍둥이(스킬 표적 +)·흡혈(스킬 명중 시 흡혈)·신속(쿨타임 단축)·분열(처치 시 폭발)·거인(최대 체력↑). 모두 중복 뽑기로 레벨 강화 — 빌드 다양성과 뽑는 재미 확대"]},
 	{"v": "v1.0", "notes": ["유물 시스템 개편 — '코인 해금 + 장착'에서 '코인 랜덤 뽑기'로 변경. 뽑아 모은 유물은 전부 자동 적용되고, 같은 유물이 또 나오면 레벨이 올라 효과가 강해진다(즉사 비율·연쇄 횟수·화상·회복·코인배수·격노 데미지). 장착·슬롯 제거, 홈 '유물'에서 100코인으로 뽑기"]},
@@ -115,8 +116,14 @@ var enemies: Array = [
 	preload("res://resources/enemies/enemy_slime_big.tres"),
 	preload("res://resources/enemies/enemy_slime_mini.tres"),
 	preload("res://resources/enemies/enemy_tank.tres"),
+	preload("res://resources/enemies/enemy_golem.tres"),
+	preload("res://resources/enemies/enemy_sandworm.tres"),
 	preload("res://resources/enemies/enemy_ghost.tres"),
+	preload("res://resources/enemies/enemy_eel.tres"),
+	preload("res://resources/enemies/enemy_jelly.tres"),
 	preload("res://resources/enemies/enemy_caster.tres"),
+	preload("res://resources/enemies/enemy_knight.tres"),
+	preload("res://resources/enemies/enemy_crossbow.tres"),
 	preload("res://resources/enemies/enemy_sniper.tres"),
 	preload("res://resources/enemies/enemy_storm.tres"),
 	preload("res://resources/enemies/enemy_guardian.tres"),
@@ -124,6 +131,7 @@ var enemies: Array = [
 	preload("res://resources/enemies/enemy_midboss.tres"),
 	preload("res://resources/enemies/enemy_boss.tres"),
 	preload("res://resources/enemies/enemy_plague.tres"),
+	preload("res://resources/enemies/enemy_earthlord.tres"),
 ]
 var selected: CharacterData
 var start_wave := 1  ## 이번 게임 시작 웨이브 (시작 화면에서 선택, 인메모리 — best_wave 이하)

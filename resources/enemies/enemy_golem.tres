@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://data/enemy_data.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/enemy_tank.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+display_name = "바위 거인"
+hp = 90.0
+speed = 18.0
+contact_damage = 22.0
+size = 50.0
+sprite = ExtResource("2")
+effect_color = Color(0.72, 0.6, 0.42, 1)
+element = "earth"
