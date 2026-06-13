@@ -14,3 +14,6 @@ extends Resource
 @export var damage_per_target_bonus: float = 0.0  ## 동시 표적 1마다 데미지
 @export var max_hp_bonus: float = 0.0  ## 최대 체력 증감 (음수 가능 — 트레이드오프 카드)
 @export var defense_bonus: float = 0.0  ## 방어력(받는 피해 감소) 증가
+# 스킬 강화 (배율에 가산: 0.35 = +35%)
+@export var skill_power_bonus: float = 0.0   ## 스킬 위력 +%
+@export var skill_radius_bonus: float = 0.0  ## 스킬 범위 +% (meteor/barrage만 유효)

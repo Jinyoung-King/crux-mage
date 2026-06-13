@@ -51,6 +51,8 @@ var card_pool: Array = [
 	preload("res://resources/cards/card_glass_cannon.tres"),
 	preload("res://resources/cards/card_rapid.tres"),
 	preload("res://resources/cards/card_bulwark.tres"),
+	preload("res://resources/cards/card_skill_power.tres"),
+	preload("res://resources/cards/card_skill_radius.tres"),
 ]
 
 var wave_index := 0
@@ -409,6 +411,8 @@ func _on_wave_cleared() -> void:
 func _is_card_useful(card: CardData) -> bool:
 	if card.damage_per_target_bonus > 0.0 and $Player.build.projectile_count < 2:
 		return false  # 동시 표적 1이면 연쇄의 가치가 없음
+	if card.skill_radius_bonus > 0.0 and not ($Player.character.skill_id in ["meteor", "barrage"]):
+		return false  # 범위 스킬(메테오/융단폭격)이 아니면 범위 강화 무의미
 	if card.heal > 0.0 and $Player.hp >= $Player.max_hp:
 		return false  # 만피에 회복 카드 금지
 	if card.max_hp_bonus < 0.0 and $Player.max_hp + card.max_hp_bonus < 30.0:
@@ -532,7 +536,9 @@ func _build_summary() -> String:
 	lines.append("공격력 %d   ·   평타 %.1f/s" % [roundi(p.effective_damage()), p.character.base_fire_rate])
 	lines.append("동시표적 %d   ·   방어 %d" % [b.projectile_count, int(b.defense)])
 	if p.character.skill_id != "":
-		lines.append("스킬 %s · 쿨 %.1f초" % [p.character.skill_name, p.effective_skill_cooldown()])
+		var sp := int(round((b.skill_power_mult - 1.0) * 100.0))
+		var spt := "" if sp == 0 else " · 위력 +%d%%" % sp
+		lines.append("스킬 %s · 쿨 %.1f초%s" % [p.character.skill_name, p.effective_skill_cooldown(), spt])
 	var extras := []
 	if p.lifesteal > 0.0:
 		extras.append("흡혈 %d%%" % roundi(p.lifesteal * 100.0))
@@ -585,26 +591,28 @@ func _on_skill_cast(id: String) -> void:
 	if game_over:
 		return
 	var c: CharacterData = $Player.character
+	var ep: float = $Player.effective_skill_power()
+	var er: float = $Player.effective_skill_radius()
 	match id:
 		"heal":
-			$Player.heal(c.skill_power)
+			$Player.heal(ep)
 			_skill_burst($Player.global_position, Color(0.5, 1.0, 0.6))
 		"meteor":
-			var center := _densest_cluster(c.skill_radius)
+			var center := _densest_cluster(er)
 			if center != Vector2.INF:
-				_skill_aoe(center, c.skill_radius, c.skill_power, true)
+				_skill_aoe(center, er, ep, true)
 				_skill_burst(center, ElementLib.color(c.element))
 		"barrage":
 			for pt in _random_enemy_points(c.skill_count):
-				_skill_aoe(pt, c.skill_radius, c.skill_power, false)
+				_skill_aoe(pt, er, ep, false)
 				_skill_burst(pt, ElementLib.color(c.element))
 		"chain":
-			_skill_chain(c.skill_count, c.skill_power, c.element)
+			_skill_chain(c.skill_count, ep, c.element)
 		"freeze":
 			for e in get_tree().get_nodes_in_group("enemies"):
 				if is_instance_valid(e):
 					e.apply_slow(0.3, 2.5)
-					e.take_damage(c.skill_power * ElementLib.multiplier(c.element, e.element))
+					e.take_damage(ep * ElementLib.multiplier(c.element, e.element))
 			_skill_burst(Vector2(360, 360), Color(0.5, 0.8, 1.0))
 	_add_shake(4.0)
 

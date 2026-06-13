@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+card_name = "마력 집중"
+description = "스킬 위력 +35%"
+rarity = "rare"
+skill_power_bonus = 0.35

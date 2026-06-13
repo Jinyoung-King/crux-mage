@@ -80,6 +80,13 @@ func effective_skill_cooldown() -> float:
 func skill_ratio() -> float:
 	return clampf(1.0 - skill_cd_left / effective_skill_cooldown(), 0.0, 1.0)
 
+## 스킬 강화 카드 반영 실효 위력/범위
+func effective_skill_power() -> float:
+	return character.skill_power * build.skill_power_mult if character else 0.0
+
+func effective_skill_radius() -> float:
+	return character.skill_radius * build.skill_radius_mult if character else 0.0
+
 func _on_attack_timer_timeout() -> void:
 	var shots := build.projectile_count
 	var targets := _nearest_enemies(shots)  # 가까운 순 최대 shots명
@@ -125,6 +132,8 @@ func apply_card(card: CardData) -> void:
 	build.projectile_count += card.projectile_count_bonus
 	build.damage_per_target += card.damage_per_target_bonus
 	build.defense += card.defense_bonus
+	build.skill_power_mult += card.skill_power_bonus
+	build.skill_radius_mult += card.skill_radius_bonus
 	if card.max_hp_bonus != 0.0:
 		max_hp = maxf(max_hp + card.max_hp_bonus, 10.0)  # 트레이드오프로도 최소 10은 보장
 		hp = minf(hp, max_hp)
