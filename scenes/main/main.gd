@@ -962,7 +962,8 @@ func _skill_burst(pos: Vector2, color: Color) -> void:
 	var b = DEATH_BURST_SCENE.instantiate()
 	b.position = pos
 	b.color = color
-	b.amount = 40
+	b.amount = 64        # 파편 ↑ (더 화려)
+	b.lifetime = 0.9     # 파편이 더 오래 흩날림 (길게)
 	$Fx.add_child(b)
 
 ## 가장 밀집한(반경 내 이웃이 많은) 적 위치. 적 없으면 Vector2.INF.
@@ -1009,12 +1010,20 @@ func _on_chain(from: Vector2, to: Vector2) -> void:
 	_draw_arc.call_deferred(from, to)
 
 func _draw_arc(from: Vector2, to: Vector2) -> void:
-	var line := Line2D.new()
-	line.add_point(from)
-	line.add_point(to)
-	line.width = 3.0
-	line.default_color = Color(0.78, 0.62, 1.0, 0.95)
-	$Fx.add_child(line)
-	var tw := line.create_tween()
-	tw.tween_property(line, "modulate:a", 0.0, 0.18)
-	tw.tween_callback(line.queue_free)
+	# 글로우(굵고 옅은) + 코어(가늘고 밝은) 2겹으로 더 굵고 천천히 사라지는 번개
+	var glow := Line2D.new()
+	glow.add_point(from); glow.add_point(to)
+	glow.width = 10.0
+	glow.default_color = Color(0.6, 0.45, 1.0, 0.5)
+	glow.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	glow.end_cap_mode = Line2D.LINE_CAP_ROUND
+	$Fx.add_child(glow)
+	var core := Line2D.new()
+	core.add_point(from); core.add_point(to)
+	core.width = 3.5
+	core.default_color = Color(0.96, 0.92, 1.0, 0.98)
+	$Fx.add_child(core)
+	for ln in [glow, core]:
+		var tw = ln.create_tween()  # ln은 Array 요소(Variant)라 := 추론 불가
+		tw.tween_property(ln, "modulate:a", 0.0, 0.45)  # 0.18→0.45초 (더 길게 잔광)
+		tw.tween_callback(ln.queue_free)

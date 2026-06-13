@@ -58,6 +58,7 @@ func _make_card(c: CharacterData, idx: int) -> Button:
 	var unlocked := GameState.is_unlocked(c)
 	var btn := Button.new()
 	btn.custom_minimum_size = Vector2(300, 150)
+	btn.pivot_offset = Vector2(150, 75)  # 선택 강조 확대가 카드 중앙 기준이 되도록
 	btn.disabled = not unlocked
 	btn.pressed.connect(_on_card_pressed.bind(idx))
 
@@ -107,10 +108,13 @@ func _refresh() -> void:
 		var unlocked := GameState.is_unlocked(GameState.characters[i])
 		if not unlocked:
 			cards[i].modulate = Color(0.45, 0.45, 0.45)
+			cards[i].scale = Vector2(1, 1)
 		elif i == selected_index:
 			cards[i].modulate = Color(1, 1, 1)
+			cards[i].scale = Vector2(1.06, 1.06)  # 선택 카드 확대 강조
 		else:
-			cards[i].modulate = Color(0.7, 0.7, 0.7)
+			cards[i].modulate = Color(0.6, 0.6, 0.6)  # 비선택은 더 어둡게(대비↑)
+			cards[i].scale = Vector2(1, 1)
 
 func _on_play() -> void:
 	GameState.selected = GameState.characters[selected_index]

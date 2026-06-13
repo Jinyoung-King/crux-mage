@@ -6,7 +6,7 @@ var radius := 90.0
 var dps := 10.0
 var element := ""
 var color := Color(1.0, 0.5, 0.2)
-var _life := 2.6
+var _life := 3.6
 var _tick := 0.0
 
 func setup(r: float, d: float, elem: String, col: Color) -> void:
@@ -24,7 +24,7 @@ func _process(delta: float) -> void:
 	if _life <= 0.0:
 		queue_free()
 		return
-	modulate.a = clampf(_life / 2.6, 0.25, 1.0)  # 끝물에 옅어짐
+	modulate.a = clampf(_life / 3.6, 0.25, 1.0)  # 끝물에 옅어짐
 	_tick += delta
 	if _tick >= 0.3:  # 0.3초마다 틱 피해
 		_tick -= 0.3
