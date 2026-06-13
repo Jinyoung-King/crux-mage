@@ -22,6 +22,8 @@ const RARITY_WEIGHT := {"common": 3.0, "uncommon": 1.7, "rare": 1.0, "epic": 0.4
 const ENDLESS_HP_GROWTH := 0.15  # 무한 모드 단계당 적 체력 증가율
 const ENDLESS_DMG_GROWTH := 0.10  # 무한 모드 단계당 적 피해 증가율(체력보다 완만, 흡혈 무한지속 방지)
 const ENDLESS_DMG_CAP := 12.0  # 적 피해 배율 상한 — 체력은 무한 증가하되 '한 방 즉사'는 방지(체력안배 가능)
+const ELEMENT_ORDER := ["wood", "fire", "earth", "metal", "water"]  # 속성 스테이지 순환 순서(목→화→토→금→수)
+const WAVES_PER_STAGE := 10  # 스테이지당 웨이브 수(보스로 끝). 스테이지마다 속성이 바뀜
 const SPEEDS := [1.0, 2.0, 3.0]  # 배속 순환 단계(탭마다 1→2→3→1x)
 # 무한 모드 엘리트 수식어 (잡몹이 일정 확률로 하나를 달고 등장). 누락 배수는 1.0 취급.
 const MODIFIERS := [
@@ -295,14 +297,18 @@ func _endless_level(index: int) -> int:
 	return maxi(index + 1 - 5, 0)
 
 ## 보스 웨이브 회차에 따라 보스 3종 순환: 마왕(10·40) / 수호 마왕(20·50) / 폭풍 마왕(30·60)
+## 현재 웨이브가 속한 스테이지의 속성 (10웨이브마다 목→화→토→금→수 순환)
+func _stage_element(index: int) -> String:
+	return ELEMENT_ORDER[(index / WAVES_PER_STAGE) % ELEMENT_ORDER.size()]
+
+## 스테이지 속성에 맞는 보스 웨이브
 func _boss_wave_for(index: int) -> WaveData:
-	var ordinal := (index + 1) / 10  # 보스 등장 회차(정수 나눗셈): wave10→1, 20→2…
-	match ordinal % 5:
-		1: return boss_wave
-		2: return guardian_wave
-		3: return storm_wave
-		4: return plague_wave
-		_: return earthlord_wave
+	match _stage_element(index):
+		"fire": return boss_wave
+		"water": return guardian_wave
+		"metal": return storm_wave
+		"wood": return plague_wave
+		_: return earthlord_wave  # earth — 대지 마왕
 
 ## 보스 웨이브의 HP바 적(보스 본체) 이름 — 등장 배너용
 func _boss_enemy_name(index: int) -> String:
@@ -360,7 +366,9 @@ func _start_wave(index: int) -> void:
 		wave_label.modulate = Color(1.0, 0.85, 0.3)  # 금색 강조
 		print("BONUS WAVE")
 	else:
-		wave_label.text = "Wave %d" % (index + 1)
+		var elem := _stage_element(index)
+		wave_label.text = "Wave %d · %s 스테이지" % [index + 1, ElementLib.display_name(elem)]
+		wave_label.modulate = ElementLib.color(elem)  # 스테이지 속성 색
 	spawn_timer.wait_time = _wave_interval(index)
 	spawn_timer.start()
 	$Player.on_wave_start()  # 패시브: 웨이브 시작 회복
@@ -372,22 +380,34 @@ func _start_wave(index: int) -> void:
 ## 종류별 기준 구성(보스/중간보스/일반)을 가져와 무한 단계만큼 증원
 func _build_spawn_list(index: int) -> Array:
 	var kind := _wave_kind(index)
+	if kind == "normal":
+		return _stage_spawn_list(index)  # 일반 웨이브 = 스테이지 속성 잡몹(자체 증원)
 	var base: Array
 	if kind == "boss":
 		base = _boss_wave_for(index).build_spawn_list()
 	elif kind == "midboss":
 		base = midboss_wave.build_spawn_list()
-	elif kind == "bonus":
+	else:  # bonus
 		base = bonus_wave.build_spawn_list()  # 무한 단계만큼 보물도 증원 → 후반일수록 코인 多
-	elif index < waves.size():
-		return waves[index].build_spawn_list()
-	else:
-		base = waves.back().build_spawn_list()
 	var extra := int(base.size() * 0.25 * _endless_level(index))
 	for i in extra:
 		base.append(base[randi() % base.size()])  # 기존 구성 비율대로 증원
 	base.shuffle()
 	return base
+
+## 일반 웨이브: 그 스테이지 속성의 잡몹들로 구성(스테이지 진행·무한 단계로 수 증가)
+func _stage_spawn_list(index: int) -> Array:
+	var elem := _stage_element(index)
+	var pool := GameState.enemies.filter(func(e): return e.element == elem and not e.show_hp_bar)
+	if pool.is_empty():
+		pool = [GameState.enemies[0]]
+	var within := index % WAVES_PER_STAGE          # 스테이지 내 웨이브(0~9)
+	var total := 6 + within + _endless_level(index) * 2
+	var list: Array = []
+	for i in total:
+		list.append(pool[i % pool.size()])
+	list.shuffle()
+	return list
 
 func _wave_interval(index: int) -> float:
 	var kind := _wave_kind(index)
