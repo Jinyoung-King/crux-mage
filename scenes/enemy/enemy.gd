@@ -24,11 +24,8 @@ var split_count := 0
 var split_enemy: EnemyData
 var base_x := 0.0  ## 지그재그 기준 x
 var zig_t := 0.0
-# 상태이상 (패시브)
-var burn_dps := 0.0
-var burn_time_left := 0.0
-var slow_factor := 1.0
-var slow_time_left := 0.0
+# 상태이상 (패시브) — StatusEffects 컴포넌트에 위임. 외부는 apply_burn/apply_slow/is_burning 등으로 접근.
+var status := StatusEffects.new()
 var _tint := Color.WHITE  ## 상태 색조 (화상/둔화)
 var _flashing := false    ## 피격 플래시 중에는 색조 덮어쓰기 보류
 var sprite_scale := 3.0   ## 스프라이트 표시 배율 (size/텍스처폭, 등장 연출이 참조)
@@ -206,10 +203,10 @@ func _build_elite_aura(color: Color) -> void:
 func _physics_process(delta: float) -> void:
 	if hp <= 0.0:
 		return  # 이미 사망/도달 처리된 적
-	# 화상 도트 (패시브)
-	if burn_time_left > 0.0:
-		burn_time_left -= delta
-		hp -= burn_dps * delta
+	# 화상 도트 (패시브) — 컴포넌트가 타이머 관리, 이번 프레임 피해만 반환
+	var burn_dmg := status.tick_burn(delta)
+	if burn_dmg > 0.0:
+		hp -= burn_dmg
 		if hp <= 0.0:
 			_die()
 			return
@@ -225,11 +222,8 @@ func _physics_process(delta: float) -> void:
 		_process_charge(delta)
 		_update_visuals()
 		return
-	# 둔화 적용 이동
-	var spd := speed
-	if slow_time_left > 0.0:
-		slow_time_left -= delta
-		spd *= slow_factor
+	# 둔화 적용 이동 (컴포넌트가 둔화 타이머 관리)
+	var spd := status.apply_move(delta, speed)
 	position.y += spd * delta
 	if zigzag_amplitude > 0.0:
 		zig_t += delta
@@ -279,15 +273,22 @@ func take_damage(amount: float) -> void:
 	if hp <= 0.0:
 		_die()
 
-## 화상 적용 (패시브): 더 센 화상으로 갱신하고 지속시간 리프레시
+## 상태이상 위임 래퍼 — 외부 호출부(main·relic·projectile·freeze)는 그대로 enemy를 통해 접근
 func apply_burn(dps: float, dur: float) -> void:
-	burn_dps = maxf(burn_dps, dps)
-	burn_time_left = maxf(burn_time_left, dur)
+	status.apply_burn(dps, dur)
 
-## 둔화 적용 (패시브): 속도 배수 갱신, 지속시간 리프레시
 func apply_slow(factor: float, dur: float) -> void:
-	slow_factor = factor
-	slow_time_left = maxf(slow_time_left, dur)
+	status.apply_slow(factor, dur)
+
+func is_burning() -> bool:
+	return status.is_burning()
+
+func is_slowed() -> bool:
+	return status.is_slowed()
+
+## 화상 소모(격발: 기폭)
+func consume_burn() -> void:
+	status.consume_burn()
 
 ## 저체력 광폭(보스): 속도·접촉/탄막 피해 강화 + 붉은 기 + 잠깐 부풀어오르는 연출. 1회만.
 func _enrage() -> void:
@@ -428,9 +429,9 @@ func _update_shield_visual() -> void:
 ## 상태이상에 따른 색조: 화상=주황 끼, 둔화=푸른 끼, 둘 다면 혼합
 func _update_tint() -> void:
 	var c := Color.WHITE
-	if burn_time_left > 0.0:
+	if status.is_burning():
 		c *= Color(1.5, 0.7, 0.45)
-	if slow_time_left > 0.0:
+	if status.is_slowed():
 		c *= Color(0.6, 0.8, 1.4)
 	_tint = c
 

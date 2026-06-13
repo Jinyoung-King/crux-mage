@@ -20,6 +20,11 @@ var lifesteal := 0.0  ## 입힌 피해의 흡혈 비율 (영구 강화)
 var relic_levels := {}  ## 이번 런 보유 유물 {id: level} (GameState에서 복사 — 보유분 전부 적용, 레벨=강화)
 var skills: Array = []  ## 보유 스킬 목록(각 dict: id/name/cooldown/power/radius/count/cd_left). [0]=캐릭터 고유, 이후=카드 획득
 var skills_paused := false  ## 카드 선택(드래프트/상점) 중 스킬 쿨타임 정지
+var hit_modifiers: Array = []  ## 활성 적중 전략(HitModifierLib) — 빌드/유물/캐릭터 변경 시 rebuild_hit_modifiers()로 재구성
+
+## 빌드·유물·캐릭터가 바뀔 때마다 활성 적중 전략 목록을 다시 구성(매 적중이 아닌 변경 시 1회)
+func rebuild_hit_modifiers() -> void:
+	hit_modifiers = HitModifierLib.build_for(self)
 
 ## 유물 획득 (중복 없음)
 func grant_relic(id: String, level: int = 1) -> void:
@@ -35,6 +40,7 @@ func grant_relic(id: String, level: int = 1) -> void:
 			var add := 20.0 * level                     # 거인: 최대 체력↑(현재 체력도 함께)
 			max_hp += add
 			hp += add
+	rebuild_hit_modifiers()  # 유물 변경 반영
 
 func _process(delta: float) -> void:
 	if relic_levels.has("regen") and hp > 0.0 and hp < max_hp:
@@ -70,6 +76,7 @@ func apply_character(c: CharacterData) -> void:
 	if c.skill_id != "":  # 캐릭터 고유 스킬을 슬롯 0으로
 		skills.append(_make_skill(c.skill_id, c.skill_name, c.skill_cooldown, c.skill_power, c.skill_radius, c.skill_count))
 	$Sprite2D.texture = c.mage_sprite
+	rebuild_hit_modifiers()  # 캐릭터(치명타 패시브 등) 반영
 
 ## 웨이브 시작 시 패시브 회복 (견습 마법사)
 func on_wave_start() -> void:
@@ -270,6 +277,7 @@ func apply_card(card: CardData) -> void:
 	if card.heal > 0.0:
 		hp = minf(hp + card.heal, max_hp)
 		hp_changed.emit(hp, max_hp)
+	rebuild_hit_modifiers()  # 빌드 변경 반영
 
 func _fire_at(target, aim_offset := 0.0) -> void:
 	var p = PROJECTILE_SCENE.instantiate()
