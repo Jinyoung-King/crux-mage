@@ -23,6 +23,8 @@ var shown_cards: Array = []
 var can_reroll := false
 var auto_left := 0.0  ## >0이면 자동선택 카운트다운 진행 중
 var picking := false  ## 선택 연출 중(중복 입력 방지)
+var shop_costs: Array = []  ## 비어있지 않으면 상점 모드(카드별 코인 비용)
+var shop_coins := 0          ## 상점 모드: 현재 보유 코인(구매 가능 판정)
 
 func _ready() -> void:
 	for i in buttons.size():
@@ -66,19 +68,41 @@ func _on_auto_pressed() -> void:
 	_start_auto()
 
 ## cards(CardData 배열, 최대 3장)를 꾸며서 표시 + 리롤 1회 초기화
-func open(cards: Array) -> void:
+func open(cards: Array, costs: Array = [], coins: int = 0) -> void:
 	picking = false
-	can_reroll = true
+	shop_costs = costs
+	shop_coins = coins
 	reroll_button.disabled = false
-	reroll_button.text = "다시 뽑기 (1회)"
+	if costs.is_empty():  # 일반 드래프트
+		can_reroll = true
+		reroll_button.text = "다시 뽑기 (1회)"
+	else:  # 상점: 리롤 버튼 → 건너뛰기
+		can_reroll = false
+		reroll_button.text = "건너뛰기 (다음 웨이브)"
 	_render_cards(cards)
+	if not costs.is_empty():
+		_apply_shop_costs()
 	show()
 	# 패널 팝
 	var center: Control = $Center
 	center.pivot_offset = center.size / 2.0
 	center.scale = Vector2(0.9, 0.9)
 	create_tween().tween_property(center, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	_start_auto()  # 자동선택 카운트다운 시작(켜져 있을 때)
+	if costs.is_empty():
+		_start_auto()  # 자동선택은 일반 드래프트만(상점에서 자동구매 방지)
+	else:
+		auto_left = 0.0
+		auto_button.text = "상점 — 코인으로 구매"
+
+## 상점 모드: 각 카드에 비용 표시 + 못 사는 카드 비활성
+func _apply_shop_costs() -> void:
+	for i in shown_cards.size():
+		var btn: Button = buttons[i]
+		var cost: int = shop_costs[i]
+		var afford: bool = shop_coins >= cost
+		btn.disabled = not afford
+		var box := btn.get_child(0)  # _style_card가 만든 VBox
+		box.add_child(_label("%d 코인" % cost, 17, Color(1.0, 0.85, 0.35) if afford else Color(0.85, 0.42, 0.42)))
 
 ## 리롤: 카드만 교체 (리롤 1회는 이미 소진된 상태로 유지)
 func refill(cards: Array) -> void:
