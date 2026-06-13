@@ -5,6 +5,7 @@ const FONT := preload("res://assets/fonts/NotoSansKR.ttf")
 
 var selected_index := 0
 var cards: Array = []
+var _xp_fill: StyleBoxFlat  # 숙련 게이지 채움 스타일(선택 캐릭터 accent 색)
 
 @onready var grid: GridContainer = $Center/Grid
 @onready var play_button: Button = $Center/PlayButton
@@ -13,6 +14,9 @@ var cards: Array = []
 @onready var start_wave_box: VBoxContainer = $Center/StartWaveBox
 @onready var start_wave_label: Label = $Center/StartWaveBox/StartWaveLabel
 @onready var start_wave_slider: HSlider = $Center/StartWaveBox/StartWaveSlider
+@onready var mastery_box: VBoxContainer = $Center/MasteryBox
+@onready var mastery_label: Label = $Center/MasteryBox/MasteryLabel
+@onready var mastery_bar: ProgressBar = $Center/MasteryBox/MasteryBar
 
 func _ready() -> void:
 	# 업데이트 후 첫 진입이면 패치노트를 먼저 보여줌(버전당 1회)
@@ -45,6 +49,14 @@ func _ready() -> void:
 		GameState.start_wave = int(start_wave_slider.value)
 		start_wave_slider.value_changed.connect(_on_start_wave_changed)
 		_refresh_start_wave()
+	# 숙련 게이지 스타일 (채움 색은 _update_mastery에서 선택 캐릭터 accent로 갱신)
+	var xp_bg := StyleBoxFlat.new()
+	xp_bg.bg_color = Color(0, 0, 0, 0.4)
+	xp_bg.set_corner_radius_all(5)
+	_xp_fill = StyleBoxFlat.new()
+	_xp_fill.set_corner_radius_all(5)
+	mastery_bar.add_theme_stylebox_override("background", xp_bg)
+	mastery_bar.add_theme_stylebox_override("fill", _xp_fill)
 	_refresh()
 
 func _on_start_wave_changed(v: float) -> void:
@@ -115,6 +127,21 @@ func _refresh() -> void:
 		else:
 			cards[i].modulate = Color(0.6, 0.6, 0.6)  # 비선택은 더 어둡게(대비↑)
 			cards[i].scale = Vector2(1, 1)
+	_update_mastery()  # 선택 캐릭터 숙련 패널 갱신
+
+## 선택 캐릭터의 숙련 Lv·전투력 보너스·exp 게이지 갱신
+func _update_mastery() -> void:
+	var c: CharacterData = GameState.characters[selected_index]
+	if not GameState.is_unlocked(c):
+		mastery_box.hide()
+		return
+	mastery_box.show()
+	var st: Array = GameState._xp_state(c)  # [레벨, 레벨 내 경험치, 다음 레벨 필요치]
+	var bonus := int(round((GameState.mastery_mult(c) - 1.0) * 100.0))
+	mastery_label.text = "%s 숙련 Lv %d · 전투력 +%d%%" % [c.display_name, st[0], bonus]
+	mastery_bar.max_value = st[2]
+	mastery_bar.value = st[1]
+	_xp_fill.bg_color = c.accent_color
 
 func _on_play() -> void:
 	GameState.selected = GameState.characters[selected_index]
