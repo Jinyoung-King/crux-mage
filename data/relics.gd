@@ -14,8 +14,8 @@ const RELIC_CHAIN_FACTOR := 0.5  ## 연쇄: 연쇄 데미지 비율
 
 const RELICS := [
 	{"id": "execute", "name": "수확의 룬", "desc": "체력 12% 이하 적 즉사", "cost": 160},
-	{"id": "chain", "name": "연쇄의 룬", "desc": "발사체가 1회 연쇄", "cost": 120},
-	{"id": "ignite", "name": "점화의 룬", "desc": "발사체가 화상 부여", "cost": 110},
+	{"id": "chain", "name": "연쇄의 룬", "desc": "마력탄이 1회 연쇄", "cost": 120},
+	{"id": "ignite", "name": "점화의 룬", "desc": "스킬 명중 시 화상 부여", "cost": 110},
 	{"id": "regen", "name": "재생의 룬", "desc": "초당 체력 +3", "cost": 90},
 	{"id": "greed", "name": "황금의 룬", "desc": "코인 획득 2배", "cost": 100},
 	{"id": "berserk", "name": "격노의 룬", "desc": "체력 50% 이하 시 데미지 +50%", "cost": 150},

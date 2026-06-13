@@ -96,12 +96,20 @@ func fire_skill_bolt(target, dmg: float) -> void:
 		p.get_node("Sprite2D").texture = character.projectile_sprite
 	if character:
 		p.element = character.element  # 오행 상성(발사체가 명중 시 적용)
+		p.crit_chance = character.passive_crit_chance
+		p.crit_mult = character.passive_crit_mult
 	p.position = global_position
 	# 적이 아래로 이동 중이므로 비행시간만큼 앞질러 예측 조준
 	var flight_time: float = global_position.distance_to(target.global_position) / p.speed
 	var predicted: Vector2 = target.global_position + Vector2.DOWN * target.speed * flight_time
 	p.direction = (predicted - global_position).normalized()
+	if relics.has("berserk") and hp < max_hp * RelicLib.BERSERK_HP_RATIO:
+		dmg *= RelicLib.BERSERK_MULT  # 격노의 룬
 	p.damage = dmg
+	p.lifesteal = lifesteal
+	if lifesteal > 0.0:
+		p.dealt.connect(_on_lifesteal)  # 명중 시 흡혈 회복
+	_apply_relics_to(p)  # 수확·연쇄·점화의 룬을 발사체에 적용
 	fired.emit(p)
 
 func _on_attack_timer_timeout() -> void:

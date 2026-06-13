@@ -625,14 +625,29 @@ func _on_skill_cast(id: String) -> void:
 			_skill_burst(Vector2(360, 360), Color(0.5, 0.8, 1.0))
 	_add_shake(4.0)
 
-## 스킬 1회 명중: 오행 상성 배율 적용 후 피해 + 데미지 숫자 표시
+## 스킬 1회 명중: 격노·치명타·상성 적용 → 피해 → 흡혈·점화·즉사(유물/흡혈 공용) + 데미지 숫자
 func _skill_hit(e, dmg: float, element: String) -> void:
-	var d := dmg * ElementLib.multiplier(element, e.element)
+	var p = $Player
+	if p.relics.has("berserk") and p.hp < p.max_hp * RelicLib.BERSERK_HP_RATIO:
+		dmg *= RelicLib.BERSERK_MULT  # 격노의 룬: 저체력 시 데미지 증가
+	var is_crit := false
+	if p.character and p.character.passive_crit_chance > 0.0 and randf() < p.character.passive_crit_chance:
+		dmg *= p.character.passive_crit_mult  # 치명타(보유 캐릭터/유물 한정)
+		is_crit = true
+	var pos: Vector2 = e.global_position
+	var d := dmg * ElementLib.multiplier(element, e.element)  # 오행 상성
 	e.take_damage(d)
+	if p.lifesteal > 0.0:
+		p.heal(d * p.lifesteal)  # 흡혈
+	if is_instance_valid(e) and e.hp > 0.0:
+		if p.relics.has("ignite"):
+			e.apply_burn(RelicLib.RELIC_BURN_DPS, RelicLib.RELIC_BURN_DUR)  # 점화의 룬
+		if p.relics.has("execute") and e.hp <= e.max_hp * RelicLib.EXECUTE_THRESHOLD:
+			e.take_damage(e.hp)  # 수확의 룬: 즉사
 	var dn = DAMAGE_NUMBER.new()
-	dn.position = e.global_position
+	dn.position = pos
 	$Fx.add_child(dn)
-	dn.setup(d, false)
+	dn.setup(d, is_crit)
 
 ## 반경 내 적에게 스킬 피해(+선택적 화상) — 캐릭터 속성 상성 적용
 func _skill_aoe(center: Vector2, radius: float, dmg: float, burn: bool) -> void:
