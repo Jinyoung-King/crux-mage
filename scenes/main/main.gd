@@ -19,6 +19,12 @@ const SPAWN_X_MIN := 60.0  # 스폰 가로 범위 (가장자리 여백 확보)
 const SPAWN_X_MAX := 660.0
 const CHOICES_PER_CLEAR := 3
 const RARITY_WEIGHT := {"common": 3.0, "uncommon": 1.7, "rare": 1.0, "epic": 0.45, "legendary": 0.22}  # 등장 가중치(고급<희귀<영웅<전설 순 희소)
+# 희귀도 색·뱃지 (card_select와 동일 체계) — '내 카드' 리스트 표시용
+const RARITY_COLORS := {
+	"legendary": Color(1.0, 0.62, 0.32), "epic": Color(0.8, 0.52, 1.0), "rare": Color(1.0, 0.84, 0.4),
+	"uncommon": Color(0.56, 0.86, 0.55), "common": Color(0.62, 0.72, 0.88),
+}
+const RARITY_BADGE := {"legendary": "전설", "epic": "영웅", "rare": "희귀", "uncommon": "고급", "common": "일반"}
 const ENDLESS_HP_GROWTH := 0.15  # 무한 모드 단계당 적 체력 증가율
 const ENDLESS_DMG_GROWTH := 0.10  # 무한 모드 단계당 적 피해 증가율(체력보다 완만, 흡혈 무한지속 방지)
 const ENDLESS_DMG_CAP := 12.0  # 적 피해 배율 상한 — 체력은 무한 증가하되 '한 방 즉사'는 방지(체력안배 가능)
@@ -99,6 +105,14 @@ var alive := 0
 var run_coins := 0  # 이번 런 누적 코인 (사망 시 GameState에 정산)
 var _start_build_summary: Dictionary = {}  # 시작 도약 시 자동 지급한 카드 집계 {이름: 수}
 var _build_summary_shown := false  # 시작 빌드 요약 토스트는 첫 진입 1회만
+# 이번 런에 고른 카드 이력 ('내 카드' 리스트)
+var _picked_count: Dictionary = {}   # {카드이름: 획득 횟수}
+var _picked_rarity: Dictionary = {}  # {카드이름: rarity}
+var _picked_order: Array = []        # 처음 획득한 순서(표시 순서)
+var cards_button: Button             # HUD '내 카드' 버튼
+var cards_panel: Control             # 획득 카드 패널(스크롤)
+var cards_list: VBoxContainer        # 카드 행 컨테이너
+var cards_count_label: Label         # "총 N장 · M종"
 var _shop_active := false  # 상점 드래프트 진행 중
 var _shop_cards: Array = []
 var _shop_cost: Array = []
@@ -157,6 +171,7 @@ func _ready() -> void:
 	volume_slider.value = GameState.sfx_volume
 	_update_mute_label()
 	_update_damage_label()
+	_build_cards_ui()  # '내 카드' 버튼 + 획득 카드 리스트 패널
 	_on_player_hp_changed($Player.hp, $Player.max_hp)  # HP 초기 표시
 	_update_best_label()
 	_update_coin_label()
@@ -182,6 +197,7 @@ func _grant_head_start(n: int) -> void:
 		var drawn := _draw_cards(1)
 		if not drawn.is_empty():
 			$Player.apply_card(drawn[0])
+			_record_card(drawn[0])
 			var nm: String = drawn[0].card_name
 			_start_build_summary[nm] = int(_start_build_summary.get(nm, 0)) + 1
 
@@ -727,11 +743,13 @@ func _on_card_chosen(card: CardData) -> void:
 			run_coins = maxi(run_coins - _shop_cost[idx], 0)
 			_update_coin_label()
 		$Player.apply_card(card)
+		_record_card(card)
 		_shop_active = false
 		_start_wave(wave_index + 1)
 		return
 	$SfxCardPick.play()
 	$Player.apply_card(card)
+	_record_card(card)
 	# 시작 드래프트(웨이브 시작 전)가 남아 있으면 다음 드래프트, 아니면 다음 웨이브
 	if start_drafts_left > 0:
 		start_drafts_left -= 1
@@ -875,6 +893,153 @@ func _relic_name(id: String) -> String:
 		if r.id == id:
 			return r.name
 	return id
+
+## 카드 획득 1건 기록 (이번 런 '내 카드' 리스트용)
+func _record_card(card) -> void:
+	var nm: String = card.card_name
+	if not _picked_count.has(nm):
+		_picked_order.append(nm)
+		_picked_rarity[nm] = card.rarity
+	_picked_count[nm] = int(_picked_count.get(nm, 0)) + 1
+
+## '내 카드' 버튼 + 스크롤 패널을 코드로 구성 (HUD에 추가)
+func _build_cards_ui() -> void:
+	cards_button = Button.new()
+	cards_button.text = "내 카드"
+	cards_button.add_theme_font_override("font", FONT)
+	cards_button.add_theme_font_size_override("font_size", 22)
+	cards_button.anchor_left = 1.0
+	cards_button.anchor_right = 1.0
+	cards_button.grow_horizontal = 0
+	cards_button.offset_left = -126.0
+	cards_button.offset_top = 120.0
+	cards_button.offset_right = -16.0
+	cards_button.offset_bottom = 164.0
+	$HUD.add_child(cards_button)
+	cards_button.pressed.connect(_open_cards)
+
+	cards_panel = Control.new()
+	cards_panel.process_mode = Node.PROCESS_MODE_ALWAYS  # 정지 중에도 동작
+	cards_panel.visible = false
+	cards_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	$HUD.add_child(cards_panel)
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.66)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.gui_input.connect(_on_cards_dim_input)
+	cards_panel.add_child(dim)
+
+	var panel := PanelContainer.new()
+	panel.anchor_left = 0.5
+	panel.anchor_top = 0.5
+	panel.anchor_right = 0.5
+	panel.anchor_bottom = 0.5
+	panel.offset_left = -290.0
+	panel.offset_right = 290.0
+	panel.offset_top = -430.0
+	panel.offset_bottom = 430.0
+	var pstyle := StyleBoxFlat.new()
+	pstyle.bg_color = Color(0.12, 0.11, 0.16, 0.98)
+	pstyle.set_corner_radius_all(14)
+	pstyle.set_content_margin_all(20)
+	pstyle.set_border_width_all(2)
+	pstyle.border_color = Color(0.4, 0.4, 0.5)
+	panel.add_theme_stylebox_override("panel", pstyle)
+	cards_panel.add_child(panel)
+
+	var center := VBoxContainer.new()
+	center.add_theme_constant_override("separation", 12)
+	panel.add_child(center)
+	var title := Label.new()
+	title.text = "획득 카드"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_override("font", FONT)
+	title.add_theme_font_size_override("font_size", 36)
+	center.add_child(title)
+	cards_count_label = Label.new()
+	cards_count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cards_count_label.add_theme_font_override("font", FONT)
+	cards_count_label.add_theme_font_size_override("font_size", 18)
+	cards_count_label.add_theme_color_override("font_color", Color(0.8, 0.82, 0.9))
+	center.add_child(cards_count_label)
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.custom_minimum_size = Vector2(520, 600)
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	center.add_child(scroll)
+	cards_list = VBoxContainer.new()
+	cards_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cards_list.add_theme_constant_override("separation", 6)
+	scroll.add_child(cards_list)
+	var close := Button.new()
+	close.text = "닫기"
+	close.custom_minimum_size = Vector2(220, 54)
+	close.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	close.add_theme_font_override("font", FONT)
+	close.add_theme_font_size_override("font_size", 24)
+	close.pressed.connect(_close_cards)
+	center.add_child(close)
+
+## 획득 카드 패널 열기 (현재까지 고른 카드 리스트 갱신 후 표시·일시정지)
+func _open_cards() -> void:
+	if card_select.visible:  # 카드 선택(드래프트) 중에는 막음
+		return
+	for ch in cards_list.get_children():
+		ch.queue_free()
+	var total := 0
+	for nm in _picked_order:
+		var cnt: int = _picked_count[nm]
+		total += cnt
+		cards_list.add_child(_card_row(nm, cnt, _picked_rarity.get(nm, "common")))
+	if _picked_order.is_empty():
+		var empty := Label.new()
+		empty.text = "아직 획득한 카드가 없습니다"
+		empty.add_theme_font_override("font", FONT)
+		empty.add_theme_font_size_override("font_size", 20)
+		empty.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
+		cards_list.add_child(empty)
+	cards_count_label.text = "총 %d장 · %d종" % [total, _picked_order.size()]
+	cards_panel.show()
+	get_tree().paused = true
+
+## 카드 한 줄: [희귀도 뱃지] 이름 ··· ×횟수 (희귀도 색)
+func _card_row(nm: String, cnt: int, rar: String) -> Control:
+	var row := HBoxContainer.new()
+	row.custom_minimum_size = Vector2(500, 0)
+	row.add_theme_constant_override("separation", 10)
+	var col: Color = RARITY_COLORS.get(rar, Color.WHITE)
+	var badge := Label.new()
+	badge.text = RARITY_BADGE.get(rar, "일반")
+	badge.add_theme_font_override("font", FONT)
+	badge.add_theme_font_size_override("font_size", 16)
+	badge.add_theme_color_override("font_color", col)
+	badge.custom_minimum_size = Vector2(52, 0)
+	badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(badge)
+	var name_lbl := Label.new()
+	name_lbl.text = nm
+	name_lbl.add_theme_font_override("font", FONT)
+	name_lbl.add_theme_font_size_override("font_size", 22)
+	name_lbl.add_theme_color_override("font_color", col)
+	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(name_lbl)
+	if cnt > 1:
+		var cnt_lbl := Label.new()
+		cnt_lbl.text = "×%d" % cnt
+		cnt_lbl.add_theme_font_override("font", FONT)
+		cnt_lbl.add_theme_font_size_override("font_size", 22)
+		cnt_lbl.add_theme_color_override("font_color", Color(0.95, 0.95, 1.0))
+		row.add_child(cnt_lbl)
+	return row
+
+func _close_cards() -> void:
+	cards_panel.hide()
+	if not game_over:  # 게임오버 중엔 멈춤 유지(사망 후 빌드 회고 가능)
+		get_tree().paused = false
+
+func _on_cards_dim_input(event: InputEvent) -> void:
+	if (event is InputEventMouseButton and event.pressed) or (event is InputEventScreenTouch and event.pressed):
+		_close_cards()
 
 func _on_resume_pressed() -> void:
 	get_tree().paused = false
