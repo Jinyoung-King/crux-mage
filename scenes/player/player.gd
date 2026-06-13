@@ -88,6 +88,22 @@ func effective_skill_power() -> float:
 func effective_skill_radius() -> float:
 	return character.skill_radius * build.skill_radius_mult if character else 0.0
 
+## 스킬 발사체 1발: 예측 조준으로 target에 마력탄을 쏨(위력=dmg). 평타 패시브/유물 미적용 — 순수 스킬.
+## fired 신호로 main이 사운드·데미지숫자 연결 + Projectiles에 추가. 상성/사망연출은 발사체가 자체 처리.
+func fire_skill_bolt(target, dmg: float) -> void:
+	var p = PROJECTILE_SCENE.instantiate()
+	if character and character.projectile_sprite:
+		p.get_node("Sprite2D").texture = character.projectile_sprite
+	if character:
+		p.element = character.element  # 오행 상성(발사체가 명중 시 적용)
+	p.position = global_position
+	# 적이 아래로 이동 중이므로 비행시간만큼 앞질러 예측 조준
+	var flight_time: float = global_position.distance_to(target.global_position) / p.speed
+	var predicted: Vector2 = target.global_position + Vector2.DOWN * target.speed * flight_time
+	p.direction = (predicted - global_position).normalized()
+	p.damage = dmg
+	fired.emit(p)
+
 func _on_attack_timer_timeout() -> void:
 	var shots := build.projectile_count
 	var targets := _nearest_enemies(shots)  # 가까운 순 최대 shots명

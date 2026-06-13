@@ -602,10 +602,10 @@ func _on_skill_cast(id: String) -> void:
 			var enemies := get_tree().get_nodes_in_group("enemies")
 			var pp: Vector2 = $Player.global_position
 			enemies.sort_custom(func(a, b): return pp.distance_squared_to(a.global_position) < pp.distance_squared_to(b.global_position))
-			for e in enemies.slice(0, c.skill_count):
+			var targets := enemies.slice(0, c.skill_count)
+			for e in targets:
 				if is_instance_valid(e):
-					_skill_hit(e, ep, c.element)
-			_skill_burst($Player.global_position, ElementLib.color(c.element))
+					$Player.fire_skill_bolt(e, ep)  # 보이는 마력탄이 날아가 명중(상성·데미지숫자 자체 처리)
 		"meteor":
 			var center := _densest_cluster(er)
 			if center != Vector2.INF:
