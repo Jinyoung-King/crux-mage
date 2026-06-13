@@ -27,3 +27,11 @@ extends Resource
 @export var passive_chain_range: float = 220.0   ## 연쇄 사정거리(px)
 @export var passive_splash_factor: float = 0.0   ## 포격: 명중 시 반경 내 적에게 (명중피해×이 비율) 광역 피해
 @export var passive_splash_radius: float = 90.0  ## 광역 반경(px)
+# 액티브 스킬 (쿨타임마다 자동 발동, 연사 스탯이 쿨타임 감소). 효과는 skill_id로 main에서 분기.
+@export var skill_id: String = ""          ## heal/meteor/barrage/chain/freeze
+@export var skill_name: String = ""
+@export var skill_desc: String = ""
+@export var skill_cooldown: float = 8.0    ## 기본 쿨타임(초). 실효 = base × base_fire_rate / build.fire_rate
+@export var skill_power: float = 0.0       ## 효과 세기(피해/회복량)
+@export var skill_radius: float = 120.0    ## 효과 반경(px) — meteor/barrage
+@export var skill_count: int = 1           ## 다중 횟수 — barrage(낙하)/chain(연쇄)

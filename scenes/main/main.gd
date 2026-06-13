@@ -91,6 +91,7 @@ func _ready() -> void:
 	$Player.fired.connect(_on_player_fired)
 	$Player.hp_changed.connect(_on_player_hp_changed)
 	$Player.died.connect(_on_player_died)
+	$Player.skill_cast.connect(_on_skill_cast)
 	spawn_timer.timeout.connect(_spawn_enemy)
 	card_select.card_chosen.connect(_on_card_chosen)
 	card_select.reroll_requested.connect(_on_reroll_requested)
@@ -143,6 +144,15 @@ func _process(delta: float) -> void:
 		position = Vector2(randf_range(-shake, shake), randf_range(-shake, shake))
 	elif position != Vector2.ZERO:
 		position = Vector2.ZERO
+	# 스킬 쿨타임 게이지
+	var pl = $Player
+	if pl.character and pl.character.skill_id != "":
+		var r: float = pl.skill_ratio()
+		$HUD/SkillUI/SkillName.text = pl.character.skill_name + ("  준비!" if r >= 1.0 else "")
+		$HUD/SkillUI/BarBg/BarFill.anchor_right = r
+		$HUD/SkillUI/BarBg/BarFill.color = Color(1, 0.88, 0.4, 0.95) if r >= 1.0 else Color(0.6, 0.8, 1, 0.85)
+	else:
+		$HUD/SkillUI.visible = false
 
 func _add_shake(amount: float) -> void:
 	shake = minf(shake + amount, 14.0)
@@ -519,8 +529,10 @@ func _build_summary() -> String:
 	var p = $Player
 	var b = p.build
 	var lines := []
-	lines.append("공격력 %d   ·   연사 %.1f/s" % [roundi(p.effective_damage()), p.effective_fire_rate()])
+	lines.append("공격력 %d   ·   평타 %.1f/s" % [roundi(p.effective_damage()), p.character.base_fire_rate])
 	lines.append("동시표적 %d   ·   방어 %d" % [b.projectile_count, int(b.defense)])
+	if p.character.skill_id != "":
+		lines.append("스킬 %s · 쿨 %.1f초" % [p.character.skill_name, p.effective_skill_cooldown()])
 	var extras := []
 	if p.lifesteal > 0.0:
 		extras.append("흡혈 %d%%" % roundi(p.lifesteal * 100.0))
@@ -567,6 +579,88 @@ func _on_projectile_damaged(amount: float, is_crit: bool, pos: Vector2) -> void:
 	dn.position = pos
 	$Fx.add_child(dn)
 	dn.setup(amount, is_crit)
+
+## --- 액티브 스킬 (player.skill_cast → 효과 처리. _process 흐름이라 비물리=안전) ---
+func _on_skill_cast(id: String) -> void:
+	if game_over:
+		return
+	var c: CharacterData = $Player.character
+	match id:
+		"heal":
+			$Player.heal(c.skill_power)
+			_skill_burst($Player.global_position, Color(0.5, 1.0, 0.6))
+		"meteor":
+			var center := _densest_cluster(c.skill_radius)
+			if center != Vector2.INF:
+				_skill_aoe(center, c.skill_radius, c.skill_power, true)
+				_skill_burst(center, ElementLib.color(c.element))
+		"barrage":
+			for pt in _random_enemy_points(c.skill_count):
+				_skill_aoe(pt, c.skill_radius, c.skill_power, false)
+				_skill_burst(pt, ElementLib.color(c.element))
+		"chain":
+			_skill_chain(c.skill_count, c.skill_power, c.element)
+		"freeze":
+			for e in get_tree().get_nodes_in_group("enemies"):
+				if is_instance_valid(e):
+					e.apply_slow(0.3, 2.5)
+					e.take_damage(c.skill_power * ElementLib.multiplier(c.element, e.element))
+			_skill_burst(Vector2(360, 360), Color(0.5, 0.8, 1.0))
+	_add_shake(4.0)
+
+## 반경 내 적에게 스킬 피해(+선택적 화상) — 캐릭터 속성 상성 적용
+func _skill_aoe(center: Vector2, radius: float, dmg: float, burn: bool) -> void:
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if is_instance_valid(e) and center.distance_to(e.global_position) <= radius:
+			e.take_damage(dmg * ElementLib.multiplier($Player.character.element, e.element))
+			if burn:
+				e.apply_burn(RelicLib.RELIC_BURN_DPS, RelicLib.RELIC_BURN_DUR)
+
+func _skill_burst(pos: Vector2, color: Color) -> void:
+	var b = DEATH_BURST_SCENE.instantiate()
+	b.position = pos
+	b.color = color
+	b.amount = 24
+	$Fx.add_child(b)
+
+## 가장 밀집한(반경 내 이웃이 많은) 적 위치. 적 없으면 Vector2.INF.
+func _densest_cluster(radius: float) -> Vector2:
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	if enemies.is_empty():
+		return Vector2.INF
+	var best: Vector2 = enemies[0].global_position
+	var best_n := -1
+	for e in enemies:
+		var n := 0
+		for o in enemies:
+			if e.global_position.distance_to(o.global_position) <= radius:
+				n += 1
+		if n > best_n:
+			best_n = n
+			best = e.global_position
+	return best
+
+func _random_enemy_points(count: int) -> Array:
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	enemies.shuffle()
+	var pts := []
+	for e in enemies.slice(0, count):
+		pts.append(e.global_position)
+	return pts
+
+func _skill_chain(count: int, dmg: float, element: String) -> void:
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	if enemies.is_empty():
+		return
+	var pp: Vector2 = $Player.global_position
+	enemies.sort_custom(func(a, b): return pp.distance_squared_to(a.global_position) < pp.distance_squared_to(b.global_position))
+	var prev := pp
+	for e in enemies.slice(0, count):
+		if not is_instance_valid(e):
+			continue
+		e.take_damage(dmg * ElementLib.multiplier(element, e.element))
+		_draw_arc(prev, e.global_position)
+		prev = e.global_position
 
 ## 뇌전 연쇄 시각: 두 적 사이에 짧게 번쩍이는 선 (물리 콜백 밖에서 생성 — call_deferred)
 func _on_chain(from: Vector2, to: Vector2) -> void:

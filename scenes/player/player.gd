@@ -4,6 +4,7 @@ extends Node2D
 signal fired(projectile)
 signal hp_changed(hp: float, max_hp: float)
 signal died
+signal skill_cast(skill_id: String)  ## 액티브 스킬 발동 (main이 효과 처리)
 
 const PROJECTILE_SCENE := preload("res://scenes/projectile/projectile.tscn")
 const FOCUS_SPREAD := PI / 90.0  ## 표적보다 발사 수가 많을 때 같은 표적에 겹쳐 쏘는 발사의 부채 각(≈2°)
@@ -15,6 +16,7 @@ var hp: float
 var character: CharacterData
 var lifesteal := 0.0  ## 입힌 피해의 흡혈 비율 (영구 강화)
 var relics: Array = []  ## 이번 런 보유 유물 id (보스 보상)
+var skill_cd_left := 0.0  ## 액티브 스킬 쿨타임 남은 시간(초)
 
 ## 유물 획득 (중복 없음)
 func grant_relic(id: String) -> void:
@@ -24,13 +26,19 @@ func grant_relic(id: String) -> void:
 func _process(delta: float) -> void:
 	if relics.has("regen") and hp > 0.0 and hp < max_hp:
 		heal(RelicLib.REGEN_PER_SEC * delta)  # 재생의 룬
+	# 액티브 스킬: 쿨타임마다 자동 발동 (연사 스탯이 쿨타임 단축)
+	if hp > 0.0 and character and character.skill_id != "":
+		skill_cd_left -= delta
+		if skill_cd_left <= 0.0:
+			skill_cast.emit(character.skill_id)
+			skill_cd_left = effective_skill_cooldown()
 
 @onready var attack_timer: Timer = $AttackTimer
 
 func _ready() -> void:
 	hp = max_hp
 	build = BuildState.new()  # 런타임 생성 (.tres 직접 참조 금지)
-	attack_timer.wait_time = 1.0 / effective_fire_rate()
+	attack_timer.wait_time = 0.5  # 임시값 — apply_character에서 캐릭터 기본 연사로 고정
 	attack_timer.timeout.connect(_on_attack_timer_timeout)
 	attack_timer.start()
 
@@ -45,7 +53,8 @@ func apply_character(c: CharacterData) -> void:
 	max_hp = (max_hp + GameState.upgrade_value("max_hp", c)) * mastery  # 기본 100 + 강화, 숙련 배율
 	hp = max_hp
 	lifesteal = GameState.upgrade_value("lifesteal", c)
-	attack_timer.wait_time = 1.0 / effective_fire_rate()
+	attack_timer.wait_time = 1.0 / c.base_fire_rate  # 평타 고정 (카드 연사는 스킬 쿨타임으로)
+	skill_cd_left = effective_skill_cooldown()
 	$Sprite2D.texture = c.mage_sprite
 
 ## 웨이브 시작 시 패시브 회복 (견습 마법사)
@@ -61,8 +70,15 @@ func effective_damage() -> float:
 		d *= RelicLib.BERSERK_MULT  # 격노의 룬
 	return d
 
-func effective_fire_rate() -> float:
-	return build.fire_rate
+## 실효 스킬 쿨타임: 기본 × (캐릭터 기본연사 / 현재 연사). 연사가 오를수록 짧아짐, 최소 2초.
+func effective_skill_cooldown() -> float:
+	if character == null or character.base_fire_rate <= 0.0 or build.fire_rate <= 0.0:
+		return 8.0
+	return maxf(character.skill_cooldown * character.base_fire_rate / build.fire_rate, 2.0)
+
+## 스킬 충전 진행도 0~1 (HUD 게이지용)
+func skill_ratio() -> float:
+	return clampf(1.0 - skill_cd_left / effective_skill_cooldown(), 0.0, 1.0)
 
 func _on_attack_timer_timeout() -> void:
 	var shots := build.projectile_count
@@ -105,11 +121,10 @@ func take_damage(amount: float) -> void:
 ## 카드 보너스를 빌드에 적용
 func apply_card(card: CardData) -> void:
 	build.damage += card.damage_bonus
-	build.fire_rate += card.fire_rate_bonus
+	build.fire_rate += card.fire_rate_bonus  # 평타 아님 — 스킬 쿨타임 감소에 반영
 	build.projectile_count += card.projectile_count_bonus
 	build.damage_per_target += card.damage_per_target_bonus
 	build.defense += card.defense_bonus
-	attack_timer.wait_time = 1.0 / effective_fire_rate()
 	if card.max_hp_bonus != 0.0:
 		max_hp = maxf(max_hp + card.max_hp_bonus, 10.0)  # 트레이드오프로도 최소 10은 보장
 		hp = minf(hp, max_hp)

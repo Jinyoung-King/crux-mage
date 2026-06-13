@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://scenes/main/main.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2"]
@@ -9,7 +9,6 @@
 [ext_resource type="AudioStream" path="res://assets/audio/player_hit.wav" id="7"]
 [ext_resource type="AudioStream" path="res://assets/audio/card_pick.wav" id="8"]
 [ext_resource type="AudioStream" path="res://assets/audio/game_over.wav" id="9"]
-[ext_resource type="PackedScene" path="res://scenes/ui/relic_select.tscn" id="10"]
 [ext_resource type="Script" path="res://scenes/fx/background.gd" id="11"]
 [ext_resource type="AudioStream" path="res://assets/audio/coin.wav" id="12"]
 
@@ -79,9 +78,6 @@ theme_override_font_sizes/font_size = 18
 text = "코인 0"
 
 [node name="CardSelect" parent="HUD" instance=ExtResource("3")]
-visible = false
-
-[node name="RelicSelect" parent="HUD" instance=ExtResource("10")]
 visible = false
 
 [node name="RestartButton" type="Button" parent="HUD"]
@@ -188,6 +184,41 @@ theme_override_fonts/font = ExtResource("4")
 theme_override_font_sizes/font_size = 52
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="SkillUI" type="Control" parent="HUD"]
+layout_mode = 1
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -120.0
+offset_top = -66.0
+offset_right = 120.0
+offset_bottom = -22.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="SkillName" type="Label" parent="HUD/SkillUI"]
+layout_mode = 1
+anchor_right = 1.0
+offset_bottom = 24.0
+theme_override_fonts/font = ExtResource("4")
+theme_override_font_sizes/font_size = 16
+horizontal_alignment = 1
+
+[node name="BarBg" type="ColorRect" parent="HUD/SkillUI"]
+layout_mode = 1
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -14.0
+color = Color(0, 0, 0, 0.5)
+
+[node name="BarFill" type="ColorRect" parent="HUD/SkillUI/BarBg"]
+layout_mode = 1
+anchor_bottom = 1.0
+color = Color(0.6, 0.8, 1, 0.85)
 
 [node name="PauseScreen" type="Control" parent="HUD"]
 process_mode = 3
