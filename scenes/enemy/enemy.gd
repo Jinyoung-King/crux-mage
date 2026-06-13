@@ -58,6 +58,7 @@ var dmg_scale := 1.0  ## 무한 모드 피해 배율 (접촉·탄막·돌진에 
 var element := ""  ## 오행 속성 (발사체 상성 판정용)
 var kind_key := ""  ## 적 종류 키(.tres 파일명) — 도감 처치 집계용
 var attack_range := 0.0  ## 원거리 사거리(기지까지 세로 거리). 0=무제한
+var is_huge := false  ## 거대 타입(보스·중간보스) — 넉백 면역
 # 광폭화(보스): 체력이 enrage_below 이하로 떨어지면 1회 광폭(속도·공격↑ + 붉게)
 var enrage_below := 0.0
 var enrage_speed_mult := 1.6
@@ -142,6 +143,7 @@ func setup(data: EnemyData, hp_scale: float = 1.0, dscale: float = 1.0, elite: D
 	$CollisionShape2D.shape = shape
 	if element != "":
 		_build_element_ring()  # 속성 색 테두리(상성 식별)
+	is_huge = data.show_hp_bar  # 거대 타입(보스·중간보스)
 	if data.show_hp_bar:
 		_build_hp_bar(body_size)
 	if not elite.is_empty():
