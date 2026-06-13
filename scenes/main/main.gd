@@ -94,6 +94,7 @@ func _ready() -> void:
 	$Player.hp_changed.connect(_on_player_hp_changed)
 	$Player.died.connect(_on_player_died)
 	$Player.skill_cast.connect(_on_skill_cast)
+	$Player.took_damage.connect(_on_player_took_damage)
 	spawn_timer.timeout.connect(_spawn_enemy)
 	card_select.card_chosen.connect(_on_card_chosen)
 	card_select.reroll_requested.connect(_on_reroll_requested)
@@ -223,6 +224,7 @@ func _start_wave(index: int) -> void:
 	spawn_list = _build_spawn_list(index)
 	endless_hp_scale = pow(1.0 + ENDLESS_HP_GROWTH, _endless_level(index))  # 복리: 후반 빌드 성장을 따라잡도록
 	endless_dmg_scale = pow(1.0 + ENDLESS_DMG_GROWTH, _endless_level(index))  # 적 피해도 상승
+	$HUD/ThreatLabel.text = ("적 피해 ×%.1f" % endless_dmg_scale) if endless_dmg_scale > 1.05 else ""
 	spawned = 0
 	alive = 0
 	var kind := _wave_kind(index)
@@ -585,6 +587,13 @@ func _on_projectile_damaged(amount: float, is_crit: bool, pos: Vector2) -> void:
 	dn.position = pos
 	$Fx.add_child(dn)
 	dn.setup(amount, is_crit)
+
+## 플레이어가 받는 피해 — 머리 위에 빨간 숫자
+func _on_player_took_damage(amount: float) -> void:
+	var dn = DAMAGE_NUMBER.new()
+	dn.position = $Player.global_position + Vector2(0, -40)
+	$Fx.add_child(dn)
+	dn.setup(amount, false, true)
 
 ## --- 액티브 스킬 (player.skill_cast → 효과 처리. _process 흐름이라 비물리=안전) ---
 func _on_skill_cast(id: String) -> void:

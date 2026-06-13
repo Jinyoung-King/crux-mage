@@ -5,6 +5,7 @@ signal fired(projectile)
 signal hp_changed(hp: float, max_hp: float)
 signal died
 signal skill_cast(skill_id: String)  ## 액티브 스킬 발동 (main이 효과 처리)
+signal took_damage(amount: float)  ## 받는 피해 (빨간 데미지 숫자 표시용)
 
 const PROJECTILE_SCENE := preload("res://scenes/projectile/projectile.tscn")
 const FOCUS_SPREAD := PI / 90.0  ## 표적보다 발사 수가 많을 때 같은 표적에 겹쳐 쏘는 발사의 부채 각(≈2°)
@@ -120,6 +121,7 @@ func take_damage(amount: float) -> void:
 	if hp <= 0.0:
 		return  # 사망 후 같은 프레임에 도달한 적의 중복 피해 방지
 	amount = maxf(amount - build.defense, 1.0)  # 방어력: 받는 피해 감소(최소 1)
+	took_damage.emit(amount)  # 받는 피해 숫자 표시
 	hp = maxf(hp - amount, 0.0)
 	hp_changed.emit(hp, max_hp)
 	if hp <= 0.0:
