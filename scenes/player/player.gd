@@ -74,9 +74,24 @@ func effective_damage() -> float:
 
 ## 스킬 인스턴스 생성 (시작 시 쿨타임만큼 충전 필요)
 func _make_skill(id: String, nm: String, cd: float, pwr: float, rad: float, cnt: int) -> Dictionary:
-	var s := {"id": id, "name": nm, "cooldown": cd, "power": pwr, "radius": rad, "count": cnt, "cd_left": 0.0}
+	var s := {"id": id, "name": nm, "cooldown": cd, "power": pwr, "radius": rad, "count": cnt, "cd_left": 0.0, "tier": 1}
 	s.cd_left = eff_cooldown(s)
 	return s
+
+## 같은 계열 스킬 재획득 → 한 단계 진화(현재 스탯에 배율/가산). 최고 티어면 false 반환(새 인스턴스로 누적).
+func _evolve_skill(id: String) -> bool:
+	var evos: Array = SkillLib.EVOLVE.get(id, [])
+	for s in skills:
+		if s.id == id and s.tier - 1 < evos.size():  # tier1 → evos[0]이 다음 단계
+			var e: Dictionary = evos[s.tier - 1]
+			s.tier += 1
+			s.name = e.name
+			s.count += int(e.get("count", 0))
+			s.cooldown *= float(e.get("cd_mult", 1.0))
+			s.power *= float(e.get("power_mult", 1.0))
+			s.radius *= float(e.get("radius_mult", 1.0))
+			return true
+	return false
 
 ## 스킬 발동: 실효 위력/범위를 풀어 main에 전달
 func _cast_skill(s: Dictionary) -> void:
@@ -182,10 +197,11 @@ func take_damage(amount: float) -> void:
 
 ## 카드 보너스를 빌드에 적용
 func apply_card(card: CardData) -> void:
-	if card.grant_skill_id != "":  # 스킬 획득 카드 — 보조 스킬을 목록에 추가(독립 쿨타임)
-		var d: Dictionary = SkillLib.DEFS.get(card.grant_skill_id, {})
-		if not d.is_empty():
-			skills.append(_make_skill(card.grant_skill_id, d.name, d.cooldown, d.power, d.radius, d.count))
+	if card.grant_skill_id != "":  # 스킬 카드 — 보유 시 진화, 없으면(또는 최고 티어면) 새 스킬 추가
+		if not _evolve_skill(card.grant_skill_id):
+			var d: Dictionary = SkillLib.DEFS.get(card.grant_skill_id, {})
+			if not d.is_empty():
+				skills.append(_make_skill(card.grant_skill_id, d.name, d.cooldown, d.power, d.radius, d.count))
 	build.damage += card.damage_bonus
 	build.fire_rate += card.fire_rate_bonus  # 평타 아님 — 스킬 쿨타임 감소에 반영
 	build.projectile_count += card.projectile_count_bonus

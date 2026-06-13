@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1")
 card_name = "마력탄 습득"
-description = "가까운 적 다수에 마력탄 (추가 스킬·독립 쿨)"
+description = "마력탄 — 없으면 습득, 있으면 진화(연발→마력 폭풍)"
 rarity = "common"
 grant_skill_id = "bolts"

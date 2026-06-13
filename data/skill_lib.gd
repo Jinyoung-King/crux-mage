@@ -10,3 +10,16 @@ const DEFS := {
 	"chain":   {"name": "전격", "cooldown": 4.0, "power": 13.0, "radius": 0.0, "count": 4},
 	"freeze":  {"name": "서리바람", "cooldown": 5.5, "power": 9.0, "radius": 0.0, "count": 0},
 }
+
+## 진화 트리 — 같은 스킬을 다시 획득하면 상위 티어로(현재 스탯에 배율/가산 적용 → 고유·획득 모두 진화).
+## 각 항목 = tier N→N+1 효과. 정의 없는 스킬은 진화 대신 새 인스턴스로 누적(다중 스킬).
+const EVOLVE := {
+	"bolts": [
+		{"name": "연발 마력탄", "count": 2, "cd_mult": 0.82, "power_mult": 1.25},
+		{"name": "마력 폭풍", "count": 3, "cd_mult": 0.70, "power_mult": 1.55},
+	],
+	"meteor": [
+		{"name": "쌍둥이 메테오", "radius_mult": 1.25, "power_mult": 1.4},
+		{"name": "운석 강우", "radius_mult": 1.6, "power_mult": 1.95},
+	],
+}
