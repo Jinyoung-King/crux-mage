@@ -324,6 +324,14 @@ theme_override_fonts/font = ExtResource("4")
 theme_override_font_sizes/font_size = 22
 text = "음소거"
 
+[node name="DamageButton" type="Button" parent="HUD/PauseScreen/Center"]
+custom_minimum_size = Vector2(280, 52)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_fonts/font = ExtResource("4")
+theme_override_font_sizes/font_size = 22
+text = "데미지 숫자: 켜짐"
+
 [node name="ResumeButton" type="Button" parent="HUD/PauseScreen/Center"]
 custom_minimum_size = Vector2(280, 60)
 layout_mode = 2

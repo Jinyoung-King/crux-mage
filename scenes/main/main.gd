@@ -121,6 +121,7 @@ var shake := 0.0  # 화면 흔들림 세기(px), 매 프레임 감쇠
 @onready var pause_screen: Control = $HUD/PauseScreen
 @onready var volume_slider: HSlider = $HUD/PauseScreen/Center/VolumeSlider
 @onready var mute_button: Button = $HUD/PauseScreen/Center/MuteButton
+@onready var damage_button: Button = $HUD/PauseScreen/Center/DamageButton
 
 func _ready() -> void:
 	var ch: CharacterData = GameState.selected
@@ -150,9 +151,11 @@ func _ready() -> void:
 	$HUD/PauseScreen/Center/RestartButton.pressed.connect(_on_restart_pressed)
 	$HUD/PauseScreen/Center/MenuButton.pressed.connect(_on_give_up)
 	mute_button.pressed.connect(_on_mute_pressed)
+	damage_button.pressed.connect(_on_damage_toggle)
 	volume_slider.value_changed.connect(_on_volume_changed)
 	volume_slider.value = GameState.sfx_volume
 	_update_mute_label()
+	_update_damage_label()
 	_on_player_hp_changed($Player.hp, $Player.max_hp)  # HP 초기 표시
 	_update_best_label()
 	_update_coin_label()
@@ -847,6 +850,13 @@ func _on_mute_pressed() -> void:
 func _update_mute_label() -> void:
 	mute_button.text = "음소거 해제" if GameState.muted else "음소거"
 
+func _on_damage_toggle() -> void:
+	GameState.set_show_damage_numbers(not GameState.show_damage_numbers)
+	_update_damage_label()
+
+func _update_damage_label() -> void:
+	damage_button.text = "데미지 숫자: 켜짐" if GameState.show_damage_numbers else "데미지 숫자: 꺼짐"
+
 func _on_player_fired(projectile) -> void:
 	$SfxShoot.play()
 	if projectile.chain_count > 0:
@@ -854,19 +864,22 @@ func _on_player_fired(projectile) -> void:
 	projectile.damaged.connect(_on_projectile_damaged)
 	$Projectiles.add_child(projectile)
 
-## 직격 피해 위치에 플로팅 데미지 숫자 생성 (비물리 FX라 충돌 콜백 중 즉시 추가 안전)
-func _on_projectile_damaged(amount: float, is_crit: bool, pos: Vector2, is_strong := false) -> void:
+## 플로팅 데미지 숫자 생성 (설정에서 끄면 표시 안 함). 비물리 FX라 충돌 콜백 중 즉시 추가 안전.
+func _damage_number(pos: Vector2, amount: float, is_crit := false, player := false, strong := false) -> void:
+	if not GameState.show_damage_numbers:
+		return
 	var dn = DAMAGE_NUMBER.new()
 	dn.position = pos
 	$Fx.add_child(dn)
-	dn.setup(amount, is_crit, false, is_strong)
+	dn.setup(amount, is_crit, player, strong)
+
+## 직격 피해 위치에 플로팅 데미지 숫자
+func _on_projectile_damaged(amount: float, is_crit: bool, pos: Vector2, is_strong := false) -> void:
+	_damage_number(pos, amount, is_crit, false, is_strong)
 
 ## 플레이어가 받는 피해 — 머리 위에 빨간 숫자
 func _on_player_took_damage(amount: float) -> void:
-	var dn = DAMAGE_NUMBER.new()
-	dn.position = $Player.global_position + Vector2(0, -40)
-	$Fx.add_child(dn)
-	dn.setup(amount, false, true)
+	_damage_number($Player.global_position + Vector2(0, -40), amount, false, true)
 
 ## --- 액티브 스킬 (player.skill_cast → 효과 처리. _process 흐름이라 비물리=안전) ---
 func _on_skill_cast(s: Dictionary) -> void:
@@ -971,10 +984,7 @@ func _skill_hit(e, dmg: float, element: String) -> void:
 	# 행동: 처치 폭발 — 이 명중으로 적이 죽으면 주변에 광역(직접 피해라 연쇄 폭주 없음)
 	if p.build.explode_power > 0.0 and is_instance_valid(e) and e.hp <= 0.0:
 		_explode(pos, d * p.build.explode_power, element)
-	var dn = DAMAGE_NUMBER.new()
-	dn.position = pos
-	$Fx.add_child(dn)
-	dn.setup(d, is_crit, false, mult > 1.0)
+	_damage_number(pos, d, is_crit, false, mult > 1.0)
 
 ## 처치 폭발: 중심 주변 적에게 직접 피해(+연출). _skill_hit를 안 거쳐 재귀 폭발 방지.
 func _explode(center: Vector2, dmg: float, element: String) -> void:
