@@ -69,6 +69,8 @@ var card_pool: Array = [
 	preload("res://resources/cards/card_zealot.tres"),
 	preload("res://resources/cards/card_deathblow.tres"),
 	preload("res://resources/cards/card_overload.tres"),
+	preload("res://resources/cards/card_echo.tres"),
+	preload("res://resources/cards/card_resonance.tres"),
 ]
 
 var wave_index := 0

@@ -95,14 +95,21 @@ func _evolve_skill(id: String) -> bool:
 
 ## 스킬 발동: 실효 위력/범위를 풀어 main에 전달
 func _cast_skill(s: Dictionary) -> void:
-	skill_cast.emit({
+	var data := {
 		"id": s.id,
 		"name": s.name,
 		"power": eff_power(s),
 		"radius": eff_radius(s),
 		"count": s.count,
 		"element": character.element if character else "",
-	})
+	}
+	skill_cast.emit(data)
+	if build.echo:  # 메아리: 0.25초 뒤 60% 위력으로 한 번 더(재귀 없음 — _cast_skill 안 거침)
+		var echo_data := data.duplicate()
+		echo_data["power"] = data["power"] * 0.6
+		get_tree().create_timer(0.25).timeout.connect(func() -> void:
+			if hp > 0.0:
+				skill_cast.emit(echo_data))
 
 ## 실효 쿨타임: 스킬 기본쿨 × (캐릭터 기본연사 / 현재 연사). 연사가 오를수록 짧아짐, 최소 2초.
 func eff_cooldown(s: Dictionary) -> float:
@@ -217,6 +224,8 @@ func apply_card(card: CardData) -> void:
 		build.apply_slow = true   # 부여: 둔화
 	build.detonate_burn += card.detonate_burn_bonus  # 격발: 기폭
 	build.frostbite += card.frostbite_bonus          # 격발: 파쇄
+	if card.grant_echo:
+		build.echo = true   # 메아리
 	if card.max_hp_bonus != 0.0:
 		max_hp = maxf(max_hp + card.max_hp_bonus, 10.0)  # 트레이드오프로도 최소 10은 보장
 		hp = minf(hp, max_hp)

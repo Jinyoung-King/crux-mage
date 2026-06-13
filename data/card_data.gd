@@ -27,3 +27,4 @@ extends Resource
 @export var grant_slow: bool = false      ## 부여: 둔화
 @export var detonate_burn_bonus: float = 0.0  ## 격발: 화상 터뜨리기 위력
 @export var frostbite_bonus: float = 0.0      ## 격발: 둔화/빙결 적 추가 피해
+@export var grant_echo: bool = false          ## 전설: 메아리(스킬 재발동)

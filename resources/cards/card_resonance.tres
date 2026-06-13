@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+card_name = "공명"
+description = "스킬이 화상·둔화를 부여하고 즉시 격발(기폭+파쇄) — 반응 엔진 통째 (전설)."
+rarity = "legendary"
+grant_burn = true
+grant_slow = true
+detonate_burn_bonus = 0.5
+frostbite_bonus = 0.4

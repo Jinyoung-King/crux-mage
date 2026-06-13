@@ -154,7 +154,7 @@ func _label(text: String, size: int, color: Color) -> Label:
 
 ## 카드 효과 필드에서 아이콘 종류를 자동 판별(가장 특징적인 효과 우선)
 func _card_icon_kind(card) -> String:
-	if card.grant_skill_id != "":
+	if card.grant_skill_id != "" or card.grant_echo:
 		return "skill"
 	if card.detonate_burn_bonus > 0.0 or card.explode_power_bonus > 0.0:
 		return "explode"
