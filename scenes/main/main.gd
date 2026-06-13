@@ -8,6 +8,8 @@ const DAMAGE_NUMBER := preload("res://scenes/fx/damage_number.gd")
 const SKILL_RING := preload("res://scenes/fx/skill_ring.gd")  # 광역 스킬 범위 링
 const SKILL_NAME := preload("res://scenes/fx/skill_name_popup.gd")  # 시전 스킬 이름 팝업
 const GROUND_HAZARD := preload("res://scenes/fx/ground_hazard.gd")  # 잔류 장판
+const FONT := preload("res://assets/fonts/NotoSansKR.ttf")
+var _skill_rows: Array = []  # 스킬별 쿨타임 게이지 행 {fill, label}
 const ENEMY_BOLT_SCENE := preload("res://scenes/projectile/enemy_bolt.tscn")
 const SPAWN_Y := -60.0  # 화면(720x1280) 위쪽 바깥
 const SPAWN_X_MIN := 60.0  # 스폰 가로 범위 (가장자리 여백 확보)
@@ -174,17 +176,54 @@ func _process(delta: float) -> void:
 		position = Vector2(randf_range(-shake, shake), randf_range(-shake, shake))
 	elif position != Vector2.ZERO:
 		position = Vector2.ZERO
-	# 스킬 쿨타임 게이지
+	# 스킬별 쿨타임 게이지 — 각 스킬이 독립 쿨타임으로 차오르는 걸 따로 표시
 	var pl = $Player
-	if not pl.skills.is_empty():
-		var r: float = pl.skill_ratio()  # 주 스킬(슬롯0) 게이지
-		var extra: int = pl.skills.size() - 1
-		var nm: String = pl.skills[0].name + (" +%d" % extra if extra > 0 else "")
-		$HUD/SkillUI/SkillName.text = nm + ("  준비!" if r >= 1.0 else "")
-		$HUD/SkillUI/BarBg/BarFill.anchor_right = r
-		$HUD/SkillUI/BarBg/BarFill.color = Color(1, 0.88, 0.4, 0.95) if r >= 1.0 else Color(0.6, 0.8, 1, 0.85)
-	else:
-		$HUD/SkillUI.visible = false
+	if pl.skills.size() != _skill_rows.size():
+		_rebuild_skill_rows(pl.skills)
+	for i in pl.skills.size():
+		var s: Dictionary = pl.skills[i]
+		var r: float = pl.cd_ratio(s)
+		var row: Dictionary = _skill_rows[i]
+		row.label.text = s.name + ("  준비!" if r >= 1.0 else "")
+		row.fill.anchor_right = r
+		row.fill.color = Color(1, 0.88, 0.4, 0.9) if r >= 1.0 else Color(0.55, 0.78, 1, 0.85)
+
+## 보유 스킬 수가 바뀌면 스킬별 쿨타임 게이지 행을 다시 만든다
+func _rebuild_skill_rows(skills: Array) -> void:
+	for c in $HUD/SkillUI.get_children():
+		c.queue_free()
+	_skill_rows.clear()
+	for s in skills:
+		_skill_rows.append(_make_skill_row())
+
+## 미니 쿨타임 게이지 행(어두운 바 + 채움 + 이름) 생성 → {fill, label}
+func _make_skill_row() -> Dictionary:
+	var row := Control.new()
+	row.custom_minimum_size = Vector2(260, 18)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var bg := ColorRect.new()
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	bg.color = Color(0, 0, 0, 0.5)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(bg)
+	var fill := ColorRect.new()
+	fill.anchor_left = 0.0
+	fill.anchor_top = 0.0
+	fill.anchor_right = 0.0
+	fill.anchor_bottom = 1.0
+	fill.color = Color(0.55, 0.78, 1, 0.85)
+	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bg.add_child(fill)
+	var label := Label.new()
+	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_override("font", FONT)
+	label.add_theme_font_size_override("font_size", 13)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(label)
+	$HUD/SkillUI.add_child(row)
+	return {"fill": fill, "label": label}
 
 func _add_shake(amount: float) -> void:
 	shake = minf(shake + amount, 14.0)

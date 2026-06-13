@@ -236,40 +236,21 @@ theme_override_font_sizes/font_size = 52
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="SkillUI" type="Control" parent="HUD"]
+[node name="SkillUI" type="VBoxContainer" parent="HUD"]
 layout_mode = 1
 anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -120.0
-offset_top = -66.0
-offset_right = 120.0
-offset_bottom = -22.0
+offset_left = -140.0
+offset_top = -120.0
+offset_right = 140.0
+offset_bottom = -18.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
-
-[node name="SkillName" type="Label" parent="HUD/SkillUI"]
-layout_mode = 1
-anchor_right = 1.0
-offset_bottom = 24.0
-theme_override_fonts/font = ExtResource("4")
-theme_override_font_sizes/font_size = 16
-horizontal_alignment = 1
-
-[node name="BarBg" type="ColorRect" parent="HUD/SkillUI"]
-layout_mode = 1
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_top = -14.0
-color = Color(0, 0, 0, 0.5)
-
-[node name="BarFill" type="ColorRect" parent="HUD/SkillUI/BarBg"]
-layout_mode = 1
-anchor_bottom = 1.0
-color = Color(0.6, 0.8, 1, 0.85)
+theme_override_constants/separation = 3
+alignment = 2
 
 [node name="PauseScreen" type="Control" parent="HUD"]
 process_mode = 3

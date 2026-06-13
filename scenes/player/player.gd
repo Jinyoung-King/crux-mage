@@ -130,8 +130,12 @@ func eff_radius(s: Dictionary) -> float:
 func skill_ratio() -> float:
 	if skills.is_empty():
 		return 0.0
-	var s = skills[0]
-	return clampf(1.0 - s.cd_left / eff_cooldown(s), 0.0, 1.0)
+	return cd_ratio(skills[0])
+
+## 개별 스킬 충전 진행도 0~1 (스킬별 게이지용)
+func cd_ratio(s: Dictionary) -> float:
+	var cd := eff_cooldown(s)
+	return clampf(1.0 - s.cd_left / cd, 0.0, 1.0) if cd > 0.0 else 1.0
 
 ## 스킬 발사체 1발: 예측 조준으로 target에 마력탄을 쏨(위력=dmg). 평타 패시브/유물 미적용 — 순수 스킬.
 ## fired 신호로 main이 사운드·데미지숫자 연결 + Projectiles에 추가. 상성/사망연출은 발사체가 자체 처리.
