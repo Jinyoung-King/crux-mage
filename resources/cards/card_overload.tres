@@ -4,8 +4,9 @@
 
 [resource]
 script = ExtResource("1")
-card_name = "비전 폭주"
-description = "공격력 +18 · 연사 +0.6 — 위력과 쿨을 동시에 끌어올린다."
+card_name = "폭주"
+description = "연사 +1.5 · 스킬 위력 +40%. 대신 방어 -2로 받는 피해 증가 (전설 리스크)."
 rarity = "legendary"
-damage_bonus = 18.0
-fire_rate_bonus = 0.6
+fire_rate_bonus = 1.5
+skill_power_bonus = 0.4
+defense_bonus = -2.0

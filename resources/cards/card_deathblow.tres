@@ -4,7 +4,8 @@
 
 [resource]
 script = ExtResource("1")
-card_name = "화염 각인"
-description = "화염 각인 — 스킬 명중 시 화상(지속 피해). 기폭과 조합하면 폭발."
-rarity = "common"
-grant_burn = true
+card_name = "필사의 각오"
+description = "공격력 +30 — 모든 스킬 대폭 강화. 대신 최대 체력 -50."
+rarity = "rare"
+damage_bonus = 30.0
+max_hp_bonus = -50.0

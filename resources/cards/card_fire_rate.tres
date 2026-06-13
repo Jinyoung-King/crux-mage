@@ -5,5 +5,5 @@
 [resource]
 script = ExtResource("1")
 card_name = "신속한 시전"
-description = "스킬 쿨타임 단축"
+description = "연사 +0.5 — 모든 스킬의 쿨타임이 짧아진다."
 fire_rate_bonus = 0.5

@@ -66,6 +66,9 @@ var card_pool: Array = [
 	preload("res://resources/cards/card_brand_frost.tres"),
 	preload("res://resources/cards/card_detonate.tres"),
 	preload("res://resources/cards/card_shatter.tres"),
+	preload("res://resources/cards/card_zealot.tres"),
+	preload("res://resources/cards/card_deathblow.tres"),
+	preload("res://resources/cards/card_overload.tres"),
 ]
 
 var wave_index := 0

@@ -6,6 +6,7 @@ signal card_chosen(card)
 signal reroll_requested  ## 드래프트당 무료 1회 — main이 새 카드를 뽑아 refill
 
 const FONT := preload("res://assets/fonts/NotoSansKR.ttf")
+const CARD_ICON := preload("res://scenes/fx/card_icon.gd")
 const GOLD := Color(1.0, 0.84, 0.4)
 const STEEL := Color(0.62, 0.72, 0.88)
 const LEGEND := Color(0.8, 0.52, 1.0)  ## 전설 등급(보라)
@@ -129,6 +130,11 @@ func _style_card(btn: Button, card) -> void:
 	box.add_theme_constant_override("separation", 10)
 
 	var tier := _tier_color(rarity)
+	var icon := CARD_ICON.new()  # 카드 종류 아이콘(효과 필드에서 자동 판별)
+	icon.custom_minimum_size = Vector2(38, 38)
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon.set_kind(_card_icon_kind(card))
+	box.add_child(icon)
 	box.add_child(_label(_tier_badge(rarity), 15, tier))
 	box.add_child(_label(card.card_name, 23, tier if rarity != "common" else Color(0.95, 0.97, 1.0)))
 	var desc := _label(card.description, 15, Color(0.78, 0.81, 0.86))
@@ -145,6 +151,28 @@ func _label(text: String, size: int, color: Color) -> Label:
 	l.add_theme_font_size_override("font_size", size)
 	l.add_theme_color_override("font_color", color)
 	return l
+
+## 카드 효과 필드에서 아이콘 종류를 자동 판별(가장 특징적인 효과 우선)
+func _card_icon_kind(card) -> String:
+	if card.grant_skill_id != "":
+		return "skill"
+	if card.detonate_burn_bonus > 0.0 or card.explode_power_bonus > 0.0:
+		return "explode"
+	if card.grant_burn:
+		return "fire"
+	if card.grant_slow or card.frostbite_bonus > 0.0:
+		return "frost"
+	if card.extra_targets_bonus > 0:
+		return "multi"
+	if card.skill_power_bonus > 0.0 or card.skill_radius_bonus > 0.0:
+		return "power"
+	if card.fire_rate_bonus > 0.0:
+		return "speed"
+	if card.heal > 0.0 or card.defense_bonus > 0.0 or card.max_hp_bonus > 0.0:
+		return "defense"
+	if card.damage_bonus > 0.0:
+		return "attack"
+	return ""
 
 func _tier_color(rarity: String) -> Color:
 	if rarity == "legendary":

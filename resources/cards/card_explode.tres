@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1")
 card_name = "폭발 각인"
-description = "스킬로 적을 처치하면 주변이 폭발한다"
+description = "처치 폭발 — 스킬로 적 처치 시 주변에 명중 피해의 45% 광역. 무리전 연쇄 폭발."
 rarity = "common"
 explode_power_bonus = 0.45

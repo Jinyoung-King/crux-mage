@@ -5,5 +5,5 @@
 [resource]
 script = ExtResource("1")
 card_name = "광역 확장"
-description = "스킬 범위 +40%"
+description = "스킬 범위 +40% — 메테오·융단폭격 등 광역 스킬 확대."
 skill_radius_bonus = 0.4

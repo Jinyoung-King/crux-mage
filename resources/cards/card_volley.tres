@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1")
 card_name = "일제 사격"
-description = "표적형 스킬이 적 2명을 더 노린다"
+description = "다발 +2 — 표적형 스킬이 적 2명을 더 타격."
 rarity = "rare"
 extra_targets_bonus = 2

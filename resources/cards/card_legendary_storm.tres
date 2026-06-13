@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 card_name = "폭풍의 핵"
-description = "스킬 위력 +40% · 쿨타임 단축"
+description = "스킬 위력 +40% · 연사 +0.6 — 스킬 빌드의 핵심."
 rarity = "legendary"
 skill_power_bonus = 0.4
 fire_rate_bonus = 0.6

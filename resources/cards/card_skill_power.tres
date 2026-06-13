@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1")
 card_name = "마력 집중"
-description = "스킬 위력 +35%"
+description = "스킬 위력 +35% — 모든 스킬 피해 배율 증가."
 rarity = "rare"
 skill_power_bonus = 0.35

@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1")
 card_name = "파쇄"
-description = "둔화·빙결 상태의 적에게 추가 피해"
+description = "파쇄 — 둔화·빙결 상태 적에게 +50% 추가 피해. 서리 각인·서리 마도사와 조합."
 rarity = "rare"
 frostbite_bonus = 0.5

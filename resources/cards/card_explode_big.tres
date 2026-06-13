@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1")
 card_name = "연쇄 폭발"
-description = "처치 폭발의 위력이 크게 강해진다"
+description = "처치 폭발 위력 +55%p — 폭발이 더 강해진다(보유 시 누적)."
 rarity = "rare"
 explode_power_bonus = 0.55

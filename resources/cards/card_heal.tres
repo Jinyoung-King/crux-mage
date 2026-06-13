@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1")
 card_name = "치유의 샘"
-description = "체력 +30"
+description = "기지 내구도를 즉시 30 회복."
 rarity = "common"
 heal = 30.0

@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 card_name = "피의 계약"
-description = "데미지 +20, 최대 체력 -30"
+description = "공격력 +20(스킬도 강화). 대신 최대 체력 -30 (피의 계약)."
 rarity = "rare"
 damage_bonus = 20.0
 max_hp_bonus = -30.0

@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1")
 card_name = "서리 각인"
-description = "스킬 명중 시 적을 둔화시킨다"
+description = "서리 각인 — 스킬 명중 시 둔화. 파쇄와 조합하면 추가타."
 rarity = "common"
 grant_slow = true

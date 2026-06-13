@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1")
 card_name = "다발 시전"
-description = "표적형 스킬(마력탄·융단·체인)이 적 1명을 더 노린다"
+description = "다발 +1 — 마력탄·융단폭격·체인이 적을 1명 더 동시 타격."
 rarity = "common"
 extra_targets_bonus = 1

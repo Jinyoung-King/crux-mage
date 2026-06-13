@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1")
 card_name = "파멸의 마탄"
-description = "발사체 데미지 +15"
+description = "공격력 +15. 모든 스킬 위력이 대폭 상승."
 rarity = "rare"
 damage_bonus = 15.0
