@@ -112,11 +112,13 @@ func _cast_skill(s: Dictionary) -> void:
 			if hp > 0.0:
 				skill_cast.emit(echo_data))
 
-## 실효 쿨타임: 스킬 기본쿨 × (캐릭터 기본연사 / 현재 연사). 연사가 오를수록 짧아짐, 최소 2초.
+## 실효 쿨타임: 스킬 기본쿨 × (캐릭터 기본연사 / 현재 연사). 연사가 오를수록 짧아지되,
+## 기본쿨의 60% 밑으론 안 내려간다(최소 2초) — 강력·광역 스킬이 연사로 난사되는 것 방지.
 func eff_cooldown(s: Dictionary) -> float:
+	var floor_cd: float = maxf(2.0, s.cooldown * 0.6)
 	if character == null or character.base_fire_rate <= 0.0 or build.fire_rate <= 0.0:
-		return maxf(s.cooldown, 2.0)
-	return maxf(s.cooldown * character.base_fire_rate / build.fire_rate, 2.0)
+		return maxf(s.cooldown, floor_cd)
+	return maxf(s.cooldown * character.base_fire_rate / build.fire_rate, floor_cd)
 
 ## 실효 위력 = 스킬 기본위력 × (현재 공격력/기본 공격력) × 강화배율 — 공격력 카드·강화·숙련이 모든 스킬을 키움
 func eff_power(s: Dictionary) -> float:

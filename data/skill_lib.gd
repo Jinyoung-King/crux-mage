@@ -5,11 +5,11 @@ extends RefCounted
 
 ## element = 카드에 표시할 대표 오행 속성(불/물/나무/쇠/흙). 실제 시전 상성은 시전 캐릭터 속성을 따름.
 const DEFS := {
-	"bolts":   {"name": "마력탄", "cooldown": 4.5, "power": 10.0, "radius": 0.0, "count": 3, "element": "wood"},
-	"meteor":  {"name": "유성", "cooldown": 7.5, "power": 18.0, "radius": 90.0, "count": 0, "element": "fire"},
-	"barrage": {"name": "융단폭격", "cooldown": 7.0, "power": 13.0, "radius": 65.0, "count": 3, "element": "earth"},
-	"chain":   {"name": "전격", "cooldown": 6.0, "power": 13.0, "radius": 0.0, "count": 4, "element": "metal"},
-	"freeze":  {"name": "서리바람", "cooldown": 8.0, "power": 9.0, "radius": 0.0, "count": 0, "element": "water"},
+	"bolts":   {"name": "마력탄", "cooldown": 5.5, "power": 10.0, "radius": 0.0, "count": 3, "element": "wood"},
+	"meteor":  {"name": "유성", "cooldown": 10.5, "power": 18.0, "radius": 90.0, "count": 0, "element": "fire"},
+	"barrage": {"name": "융단폭격", "cooldown": 9.5, "power": 13.0, "radius": 65.0, "count": 3, "element": "earth"},
+	"chain":   {"name": "전격", "cooldown": 8.0, "power": 13.0, "radius": 0.0, "count": 4, "element": "metal"},
+	"freeze":  {"name": "서리바람", "cooldown": 12.0, "power": 9.0, "radius": 0.0, "count": 0, "element": "water"},
 }
 
 ## 진화 트리 — 같은 스킬을 다시 획득하면 상위 티어로(현재 스탯에 배율/가산 적용 → 고유·획득 모두 진화).
