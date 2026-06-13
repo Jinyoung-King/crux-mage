@@ -19,6 +19,12 @@ const RELICS := [
 	{"id": "regen", "name": "재생의 룬", "desc": "초당 체력 +3", "cost": 90},
 	{"id": "greed", "name": "황금의 룬", "desc": "코인 획득 2배", "cost": 100},
 	{"id": "berserk", "name": "격노의 룬", "desc": "체력 50% 이하 시 데미지 +50%", "cost": 150},
+	{"id": "bulwark", "name": "방벽의 룬", "desc": "받는 피해를 줄임"},
+	{"id": "twin", "name": "쌍둥이의 룬", "desc": "스킬이 적을 더 노림"},
+	{"id": "vamp", "name": "흡혈의 룬", "desc": "스킬 명중 시 흡혈"},
+	{"id": "swift", "name": "신속의 룬", "desc": "스킬 쿨타임 단축"},
+	{"id": "split", "name": "분열의 룬", "desc": "처치 시 주변 폭발"},
+	{"id": "giant", "name": "거인의 룬", "desc": "최대 체력 증가"},
 ]
 
 ## id로 유물 정의 조회 (없으면 빈 Dictionary)
@@ -51,4 +57,10 @@ static func effect_text(id: String, lv: int) -> String:
 		"regen":   return "초당 체력 +%d" % int(regen_per_sec(lv))
 		"greed":   return "코인 획득 %.1f배" % greed_mult(lv)
 		"berserk": return "체력 50%% 이하 시 데미지 +%d%%" % int(round((berserk_mult(lv) - 1.0) * 100.0))
+		"bulwark": return "받는 피해 -%d" % int(2 * lv)
+		"twin":    return "스킬이 적 +%d명 더 타격" % lv
+		"vamp":    return "스킬 흡혈 %d%%" % int(3 * lv)
+		"swift":   return "연사 +%.1f (쿨 단축)" % (0.3 * lv)
+		"split":   return "처치 시 폭발(피해 ×%.1f)" % (0.3 * lv)
+		"giant":   return "최대 체력 +%d" % int(20 * lv)
 		_: return ""

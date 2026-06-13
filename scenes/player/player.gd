@@ -23,6 +23,17 @@ var skills_paused := false  ## 카드 선택(드래프트/상점) 중 스킬 쿨
 ## 유물 획득 (중복 없음)
 func grant_relic(id: String, level: int = 1) -> void:
 	relic_levels[id] = level
+	# 스탯형 신규 유물은 보유 즉시 빌드에 반영(기존 BuildState 처리점 재활용)
+	match id:
+		"bulwark": build.defense += 2.0 * level       # 방벽: 받는 피해 감소
+		"twin":    build.extra_targets += level        # 쌍둥이: 표적형 스킬 추가 표적
+		"vamp":    lifesteal += 0.03 * level            # 흡혈
+		"swift":   build.fire_rate += 0.3 * level       # 신속: 연사↑ → 쿨 단축
+		"split":   build.explode_power += 0.3 * level   # 분열: 처치 폭발
+		"giant":
+			var add := 20.0 * level                     # 거인: 최대 체력↑(현재 체력도 함께)
+			max_hp += add
+			hp += add
 
 func _process(delta: float) -> void:
 	if relic_levels.has("regen") and hp > 0.0 and hp < max_hp:
