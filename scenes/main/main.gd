@@ -5,6 +5,8 @@ const ENEMY_SCENE := preload("res://scenes/enemy/enemy.tscn")
 const DEATH_BURST_SCENE := preload("res://scenes/fx/death_burst.tscn")
 const DEATH_REMAINS := preload("res://scenes/fx/death_remains.gd")
 const DAMAGE_NUMBER := preload("res://scenes/fx/damage_number.gd")
+const SKILL_RING := preload("res://scenes/fx/skill_ring.gd")  # 광역 스킬 범위 링
+const SKILL_NAME := preload("res://scenes/fx/skill_name_popup.gd")  # 시전 스킬 이름 팝업
 const ENEMY_BOLT_SCENE := preload("res://scenes/projectile/enemy_bolt.tscn")
 const SPAWN_Y := -60.0  # 화면(720x1280) 위쪽 바깥
 const SPAWN_X_MIN := 60.0  # 스폰 가로 범위 (가장자리 여백 확보)
@@ -97,6 +99,9 @@ func _ready() -> void:
 	$Player.died.connect(_on_player_died)
 	$Player.skill_cast.connect(_on_skill_cast)
 	$Player.took_damage.connect(_on_player_took_damage)
+	$Player.tapped.connect(_on_player_tapped)  # 마법사 탭 → 능력치 창
+	$HUD/StatsPanel/Center/CloseButton.pressed.connect(_close_stats)
+	$HUD/StatsPanel/Dim.gui_input.connect(_on_stats_dim_input)
 	spawn_timer.timeout.connect(_spawn_enemy)
 	card_select.card_chosen.connect(_on_card_chosen)
 	card_select.reroll_requested.connect(_on_reroll_requested)
@@ -473,7 +478,7 @@ func _on_card_chosen(card: CardData) -> void:
 	_start_wave(wave_index + 1)
 
 func _on_player_hp_changed(hp: float, max_hp: float) -> void:
-	hp_label.text = "HP %d / %d" % [hp, max_hp]
+	hp_label.text = "기지 내구도 %d / %d" % [hp, max_hp]
 
 func _on_player_died() -> void:
 	game_over = true
@@ -538,6 +543,24 @@ func _on_pause_pressed() -> void:
 	$HUD/PauseScreen/Center/BuildLabel.text = _build_summary()
 	get_tree().paused = true
 	pause_screen.show()
+
+## 마법사 탭 → 현재 능력치 창(잠깐 멈춤). 게임오버·이미 멈춤이면 무시.
+func _on_player_tapped() -> void:
+	if game_over or get_tree().paused:
+		return
+	var p = $Player
+	$HUD/StatsPanel/Center/StatsLabel.text = "기지 내구도 %d / %d\n\n%s" % [int(p.hp), int(p.max_hp), _build_summary()]
+	$HUD/StatsPanel.show()
+	get_tree().paused = true
+
+func _close_stats() -> void:
+	$HUD/StatsPanel.hide()
+	get_tree().paused = false
+
+## 어두운 배경을 탭해도 닫힘
+func _on_stats_dim_input(event: InputEvent) -> void:
+	if (event is InputEventMouseButton and event.pressed) or (event is InputEventScreenTouch and event.pressed):
+		_close_stats()
 
 ## 현재 빌드 요약(일시정지 표시) — 카드·강화·숙련·유물이 반영된 실효 스탯
 func _build_summary() -> String:
@@ -609,6 +632,8 @@ func _on_skill_cast(s: Dictionary) -> void:
 	var er: float = s.radius
 	var element: String = s.element
 	var count: int = s.count
+	var col: Color = ElementLib.color(element)
+	var focus: Vector2 = $Player.global_position + Vector2(0, -150)  # 이름 팝업 위치(기본=마법사 위)
 	match s.id:
 		"bolts":
 			var enemies := get_tree().get_nodes_in_group("enemies")
@@ -621,11 +646,15 @@ func _on_skill_cast(s: Dictionary) -> void:
 			var center := _densest_cluster(er)
 			if center != Vector2.INF:
 				_skill_aoe(center, er, ep, true)
-				_skill_burst(center, ElementLib.color(element))
+				_skill_ring(center, er, col)  # 범위 링
+				_skill_burst(center, col)
+				focus = center
 		"barrage":
 			for pt in _random_enemy_points(count):
 				_skill_aoe(pt, er, ep, false)
-				_skill_burst(pt, ElementLib.color(element))
+				_skill_ring(pt, er, col)
+				_skill_burst(pt, col)
+				focus = pt
 		"chain":
 			_skill_chain(count, ep, element)
 		"freeze":
@@ -633,8 +662,25 @@ func _on_skill_cast(s: Dictionary) -> void:
 				if is_instance_valid(e):
 					e.apply_slow(0.3, 2.5)
 					_skill_hit(e, ep, element)
-			_skill_burst(Vector2(360, 360), Color(0.5, 0.8, 1.0))
+			_skill_ring(Vector2(360, 420), 460.0, Color(0.5, 0.8, 1.0))  # 화면 전체 서리 링
+			_skill_burst(Vector2(360, 420), Color(0.5, 0.8, 1.0))
+			focus = Vector2(360, 360)
+	_skill_name_popup(focus, s.name, col)  # 시전 스킬 이름 표시
 	_add_shake(4.0)
+
+## 광역 스킬 범위 링 FX
+func _skill_ring(pos: Vector2, radius: float, color: Color) -> void:
+	var r = SKILL_RING.new()
+	r.position = pos
+	$Fx.add_child(r)
+	r.setup(radius, color)
+
+## 시전 스킬 이름 팝업 FX (살짝 떠오르며 사라짐)
+func _skill_name_popup(pos: Vector2, txt: String, color: Color) -> void:
+	var l = SKILL_NAME.new()
+	l.position = pos + Vector2(-70, -20)  # 대략 가운데 정렬
+	$Fx.add_child(l)
+	l.setup(txt, color)
 
 ## 스킬 1회 명중: 격노·치명타·상성 적용 → 피해 → 흡혈·점화·즉사(유물/흡혈 공용) + 데미지 숫자
 func _skill_hit(e, dmg: float, element: String) -> void:
@@ -672,7 +718,7 @@ func _skill_burst(pos: Vector2, color: Color) -> void:
 	var b = DEATH_BURST_SCENE.instantiate()
 	b.position = pos
 	b.color = color
-	b.amount = 24
+	b.amount = 40
 	$Fx.add_child(b)
 
 ## 가장 밀집한(반경 내 이웃이 많은) 적 위치. 적 없으면 Vector2.INF.

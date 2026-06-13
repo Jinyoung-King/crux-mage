@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://scenes/main/main.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2"]
@@ -11,6 +11,7 @@
 [ext_resource type="AudioStream" path="res://assets/audio/game_over.wav" id="9"]
 [ext_resource type="Script" path="res://scenes/fx/background.gd" id="11"]
 [ext_resource type="AudioStream" path="res://assets/audio/coin.wav" id="12"]
+[ext_resource type="Script" path="res://scenes/fx/base.gd" id="13"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1")
@@ -20,6 +21,9 @@ layer = -1
 
 [node name="Bg" type="Node2D" parent="Background"]
 script = ExtResource("11")
+
+[node name="Base" type="Node2D" parent="."]
+script = ExtResource("13")
 
 [node name="Player" parent="." instance=ExtResource("2")]
 position = Vector2(360, 1100)
@@ -324,6 +328,63 @@ size_flags_horizontal = 4
 theme_override_fonts/font = ExtResource("4")
 theme_override_font_sizes/font_size = 22
 text = "나가기 (기록 저장)"
+
+[node name="StatsPanel" type="Control" parent="HUD"]
+process_mode = 3
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Dim" type="ColorRect" parent="HUD/StatsPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.62)
+
+[node name="Center" type="VBoxContainer" parent="HUD/StatsPanel"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -270.0
+offset_top = -250.0
+offset_right = 270.0
+offset_bottom = 250.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 22
+alignment = 1
+
+[node name="Title" type="Label" parent="HUD/StatsPanel/Center"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("4")
+theme_override_font_sizes/font_size = 38
+horizontal_alignment = 1
+text = "능력치"
+
+[node name="StatsLabel" type="Label" parent="HUD/StatsPanel/Center"]
+modulate = Color(0.86, 0.9, 1, 1)
+layout_mode = 2
+theme_override_fonts/font = ExtResource("4")
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 1
+
+[node name="CloseButton" type="Button" parent="HUD/StatsPanel/Center"]
+custom_minimum_size = Vector2(220, 56)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_fonts/font = ExtResource("4")
+theme_override_font_sizes/font_size = 24
+text = "닫기"
 
 [node name="SpawnTimer" type="Timer" parent="."]
 
