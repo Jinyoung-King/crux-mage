@@ -15,6 +15,7 @@ const CHOICES_PER_CLEAR := 3
 const RARITY_WEIGHT := {"common": 3.0, "rare": 1.0, "legendary": 0.3}  # 카드 등장 가중치(전설 희소)
 const ENDLESS_HP_GROWTH := 0.15  # 무한 모드 단계당 적 체력 증가율
 const ENDLESS_DMG_GROWTH := 0.10  # 무한 모드 단계당 적 피해 증가율(체력보다 완만, 흡혈 무한지속 방지)
+const ENDLESS_DMG_CAP := 12.0  # 적 피해 배율 상한 — 체력은 무한 증가하되 '한 방 즉사'는 방지(체력안배 가능)
 const SPEEDS := [1.0, 2.0, 3.0]  # 배속 순환 단계(탭마다 1→2→3→1x)
 # 무한 모드 엘리트 수식어 (잡몹이 일정 확률로 하나를 달고 등장). 누락 배수는 1.0 취급.
 const MODIFIERS := [
@@ -145,7 +146,7 @@ func _update_best_label() -> void:
 	best_label.text = "최고: Wave %d" % GameState.best_wave if GameState.best_wave > 0 else ""
 
 func _update_coin_label() -> void:
-	coin_label.text = "코인 %d" % run_coins
+	coin_label.text = "%d" % run_coins  # 앞의 동전 아이콘(CoinIcon)이 '코인'을 표시
 
 func _process(delta: float) -> void:
 	# 화면 흔들림: 월드(Main)만 움직임 — HUD(CanvasLayer)는 영향 없음
@@ -232,8 +233,8 @@ func _start_wave(index: int) -> void:
 	wave_index = index
 	spawn_list = _build_spawn_list(index)
 	endless_hp_scale = pow(1.0 + ENDLESS_HP_GROWTH, _endless_level(index))  # 복리: 후반 빌드 성장을 따라잡도록
-	endless_dmg_scale = pow(1.0 + ENDLESS_DMG_GROWTH, _endless_level(index))  # 적 피해도 상승
-	$HUD/ThreatLabel.text = ("적 피해 ×%.1f" % endless_dmg_scale) if endless_dmg_scale > 1.05 else ""
+	endless_dmg_scale = minf(pow(1.0 + ENDLESS_DMG_GROWTH, _endless_level(index)), ENDLESS_DMG_CAP)  # 적 피해 상승(상한 적용)
+	$HUD/ThreatLabel.text = ("적 피해 ×%.1f%s" % [endless_dmg_scale, " (최대)" if endless_dmg_scale >= ENDLESS_DMG_CAP else ""]) if endless_dmg_scale > 1.05 else ""
 	spawned = 0
 	alive = 0
 	var kind := _wave_kind(index)
@@ -491,7 +492,7 @@ func _on_player_died() -> void:
 	var lvl_before: int = GameState.char_level(GameState.selected)
 	GameState.add_xp(GameState.selected, wave_index + 1)  # 캐릭터 숙련 경험치(= 도달 웨이브)
 	var lvl_after: int = GameState.char_level(GameState.selected)
-	coin_label.text = "코인 +%d · 숙련 +%d" % [run_coins, wave_index + 1]
+	coin_label.text = "+%d · 숙련 +%d" % [run_coins, wave_index + 1]  # 앞의 동전 아이콘이 '코인'
 	if lvl_after > lvl_before:  # 레벨업: 강조 표기 + 금색 펄스
 		coin_label.text += "  → %s 숙련 Lv %d!" % [GameState.selected.display_name, lvl_after]
 	_update_best_label()
