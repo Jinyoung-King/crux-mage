@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 card_name = "비전 폭주"
-description = "데미지 +18 · 연사 +0.6"
+description = "데미지 +18 · 스킬 쿨타임 단축"
 rarity = "legendary"
 damage_bonus = 18.0
 fire_rate_bonus = 0.6

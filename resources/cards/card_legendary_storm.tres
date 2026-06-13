@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 card_name = "폭풍의 핵"
-description = "동시 표적 +2 · 표적당 공격력 +2"
+description = "스킬 위력 +40% · 쿨타임 단축"
 rarity = "legendary"
-projectile_count_bonus = 2
-damage_per_target_bonus = 2.0
+skill_power_bonus = 0.4
+fire_rate_bonus = 0.6

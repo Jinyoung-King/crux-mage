@@ -39,9 +39,7 @@ func _process(delta: float) -> void:
 func _ready() -> void:
 	hp = max_hp
 	build = BuildState.new()  # 런타임 생성 (.tres 직접 참조 금지)
-	attack_timer.wait_time = 0.5  # 임시값 — apply_character에서 캐릭터 기본 연사로 고정
-	attack_timer.timeout.connect(_on_attack_timer_timeout)
-	attack_timer.start()
+	attack_timer.stop()  # v0.60 스킬-캐스터 전환: 연속 평타 없음 — 공격은 _process의 스킬 자동 시전으로만
 
 ## 선택 캐릭터의 무기·기본 빌드·외형 적용 (게임 시작 시 main이 호출)
 func apply_character(c: CharacterData) -> void:
@@ -81,9 +79,11 @@ func effective_skill_cooldown() -> float:
 func skill_ratio() -> float:
 	return clampf(1.0 - skill_cd_left / effective_skill_cooldown(), 0.0, 1.0)
 
-## 스킬 강화 카드 반영 실효 위력/범위
+## 스킬 위력 = 기본 위력 × (현재 공격력/기본 공격력) × 강화배율 — 공격력 카드·강화·숙련이 스킬을 키움
 func effective_skill_power() -> float:
-	return character.skill_power * build.skill_power_mult if character else 0.0
+	if character == null or character.base_damage <= 0.0:
+		return 0.0
+	return character.skill_power * (build.damage / character.base_damage) * build.skill_power_mult
 
 func effective_skill_radius() -> float:
 	return character.skill_radius * build.skill_radius_mult if character else 0.0
