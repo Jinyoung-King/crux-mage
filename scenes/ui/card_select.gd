@@ -10,16 +10,46 @@ const GOLD := Color(1.0, 0.84, 0.4)
 const STEEL := Color(0.62, 0.72, 0.88)
 const LEGEND := Color(0.8, 0.52, 1.0)  ## 전설 등급(보라)
 
+const AUTO_SECS := 10.0  ## 자동선택까지 대기 시간
+
 @onready var buttons: Array = [$Center/Cards/Card1, $Center/Cards/Card2, $Center/Cards/Card3]
 @onready var reroll_button: Button = $Center/RerollButton
+@onready var auto_button: Button = $Center/AutoButton
 
 var shown_cards: Array = []
 var can_reroll := false
+var auto_left := 0.0  ## >0이면 자동선택 카운트다운 진행 중
 
 func _ready() -> void:
 	for i in buttons.size():
 		buttons[i].pressed.connect(_on_button_pressed.bind(i))
 	reroll_button.pressed.connect(_on_reroll_pressed)
+	auto_button.pressed.connect(_on_auto_pressed)
+
+func _process(delta: float) -> void:
+	# 드래프트가 떠 있고 자동선택이 켜져 있으면 카운트다운 → 0이면 무작위 선택
+	if not (visible and GameState.auto_card and auto_left > 0.0):
+		return
+	auto_left -= delta
+	if auto_left <= 0.0:
+		pick_random()
+	else:
+		_update_auto_label()
+
+## 자동선택 카운트다운 (재)시작 — 켜져 있으면 10초, 꺼져 있으면 정지
+func _start_auto() -> void:
+	auto_left = AUTO_SECS if GameState.auto_card else 0.0
+	_update_auto_label()
+
+func _update_auto_label() -> void:
+	if GameState.auto_card:
+		auto_button.text = "자동선택: 켜짐 (%d초)" % ceili(auto_left)
+	else:
+		auto_button.text = "자동선택: 꺼짐"
+
+func _on_auto_pressed() -> void:
+	GameState.set_auto_card(not GameState.auto_card)  # 토글 + 영속 저장
+	_start_auto()
 
 ## cards(CardData 배열, 최대 3장)를 꾸며서 표시 + 리롤 1회 초기화
 func open(cards: Array) -> void:
@@ -33,10 +63,12 @@ func open(cards: Array) -> void:
 	center.pivot_offset = center.size / 2.0
 	center.scale = Vector2(0.9, 0.9)
 	create_tween().tween_property(center, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_start_auto()  # 자동선택 카운트다운 시작(켜져 있을 때)
 
 ## 리롤: 카드만 교체 (리롤 1회는 이미 소진된 상태로 유지)
 func refill(cards: Array) -> void:
 	_render_cards(cards)
+	_start_auto()  # 새 카드이므로 카운트다운 재시작
 
 ## 카드 버튼 스타일링 + 순차 등장(딜링 느낌)
 func _render_cards(cards: Array) -> void:
@@ -141,6 +173,7 @@ func _card_style(rarity: String, hl: bool) -> StyleBoxFlat:
 	return sb
 
 func _on_button_pressed(index: int) -> void:
+	auto_left = 0.0  # 선택됨 — 카운트다운 정지
 	hide()
 	card_chosen.emit(shown_cards[index])
 

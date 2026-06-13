@@ -3,10 +3,11 @@ extends Node
 ## 씬을 새로 로드해도 유지되며, 최고 기록은 user://에 영속 저장된다.
 
 const SAVE_PATH := "user://save.cfg"
-const VERSION := "v0.70"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
+const VERSION := "v0.71"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
 
 # 패치노트 (최신이 위). 새 버전 추가 시 맨 앞에 한 항목 추가. 시작 화면 "패치노트" + 업데이트 시 자동 안내.
 const CHANGELOG := [
+	{"v": "v0.71", "notes": ["카드 자동선택 — 드래프트에서 10초 동안 안 고르면 자동으로 1장 선택. 카드 화면의 토글로 켜고 끄며(설정 영속), 켜면 남은 시간 표시. 기본은 꺼짐"]},
 	{"v": "v0.70", "notes": ["원소 반응 1차 — 부여(화염/서리 각인: 스킬이 화상·둔화 부여) + 격발(기폭: 화상 적을 터뜨려 광역 / 파쇄: 둔화·빙결 적 추가타). 화염각인+기폭 같은 콤보로 멀티원소 빌드 시작"]},
 	{"v": "v0.69", "notes": ["행동 카드 1차 — 숫자 대신 '플레이가 바뀌는' 카드 도입. 처치 폭발(스킬로 적 처치 시 주변 폭발)·다발(표적형 스킬이 적을 더 노림). 관통·연쇄·장판·원소 반응 등은 이후 확장"]},
 	{"v": "v0.68", "notes": ["밸런스 — 무한 모드 적 '피해'에 상한(×12) 도입. 체력은 계속 증가하되 한 방 즉사를 막아 체력 안배가 가능(라운드 60 즉사 해결). 위협 표기에 '(최대)' 안내", "코인 표시를 텍스트 대신 동전 아이콘으로(인게임 카운터)"]},
@@ -77,6 +78,7 @@ var best_wave := 0
 var game_speed := 1.0  ## 배속 설정(1/2/3x) — 씬 리로드·재시작에도 유지, user://에 영속
 var sfx_volume := 1.0  ## 효과음 음량(0~1) — 영속
 var muted := false  ## 음소거 — 영속
+var auto_card := false  ## 카드 드래프트 10초 후 자동선택 토글 — 영속
 var coins := 0  ## 영구 재화 (런 종료 시 누적, 캐릭터 공용 지갑)
 var upgrades := {}  ## 영구 강화 레벨 — 캐릭터별 {char_key: {id: level}}
 var char_xp := {}  ## 캐릭터별 누적 경험치 {char_key: xp} → 숙련도 레벨(자동 패시브)
@@ -107,6 +109,10 @@ func set_sfx_volume(v: float) -> void:
 func set_muted(b: bool) -> void:
 	muted = b
 	apply_audio()
+	_save()
+
+func set_auto_card(b: bool) -> void:
+	auto_card = b
 	_save()
 
 func is_unlocked(c: CharacterData) -> bool:
@@ -278,6 +284,7 @@ func _load() -> void:
 		game_speed = cf.get_value("settings", "game_speed", 1.0)
 		sfx_volume = cf.get_value("settings", "sfx_volume", 1.0)
 		muted = cf.get_value("settings", "muted", false)
+		auto_card = cf.get_value("settings", "auto_card", false)
 		coins = cf.get_value("meta", "coins", 0)
 		upgrades = cf.get_value("meta", "upgrades", {})
 		char_xp = cf.get_value("meta", "char_xp", {})
@@ -296,6 +303,7 @@ func _save() -> void:
 	cf.set_value("settings", "game_speed", game_speed)
 	cf.set_value("settings", "sfx_volume", sfx_volume)
 	cf.set_value("settings", "muted", muted)
+	cf.set_value("settings", "auto_card", auto_card)
 	cf.set_value("meta", "coins", coins)
 	cf.set_value("meta", "upgrades", upgrades)
 	cf.set_value("meta", "char_xp", char_xp)
