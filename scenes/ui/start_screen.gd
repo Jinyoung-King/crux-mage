@@ -39,6 +39,7 @@ func _ready() -> void:
 	upgrade_button.pressed.connect(_on_upgrade)  # 코인 잔액은 상단 BestLabel에 표기
 	$NavBar/Row/PatchButton.pressed.connect(_on_patch)
 	$NavBar/Row/RelicButton.pressed.connect(_on_relics)
+	$NavBar/Row/BestiaryButton.pressed.connect(_on_bestiary)
 	# 시작 웨이브 다이얼: 1 ~ 최고 기록(1단위). 기록이 2 미만이면 숨김(아직 스킵 구간 없음).
 	if GameState.best_wave < 2:
 		start_wave_box.hide()
@@ -156,3 +157,6 @@ func _on_patch() -> void:
 
 func _on_relics() -> void:
 	get_tree().change_scene_to_file("res://scenes/ui/relic_manage.tscn")
+
+func _on_bestiary() -> void:
+	get_tree().change_scene_to_file("res://scenes/ui/bestiary.tscn")

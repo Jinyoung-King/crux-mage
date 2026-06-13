@@ -3,10 +3,11 @@ extends Node
 ## 씬을 새로 로드해도 유지되며, 최고 기록은 user://에 영속 저장된다.
 
 const SAVE_PATH := "user://save.cfg"
-const VERSION := "v0.90"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
+const VERSION := "v0.91"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
 
 # 패치노트 (최신이 위). 새 버전 추가 시 맨 앞에 한 항목 추가. 시작 화면 "패치노트" + 업데이트 시 자동 안내.
 const CHANGELOG := [
+	{"v": "v0.91", "notes": ["몹 도감 추가 — 홈 화면 '도감'에서 적 종류별 처치 수·속성·상성을 확인(아직 안 잡은 적은 미발견 실루엣). 적을 처치할수록 채워짐", "처치 업적 — 누적 처치가 마일스톤(100·300·700·1500·3000…)을 넘을 때마다 공격력·체력이 영구히 소폭(+1·+10) 상승. 많이 잡을수록 모든 캐릭터가 강해지는 영구 성장"]},
 	{"v": "v0.90", "notes": ["숙련 시스템 표시 — 시작 화면에 선택 캐릭터의 숙련 Lv·전투력 보너스(+%)·경험치 게이지를 추가. 숙련도가 오를수록 공격력·체력이 소폭(레벨당 +2%) 오르는 효과를 한눈에 확인(경험치는 매 판 도달 웨이브만큼 적립). 캐릭터를 바꾸면 그 캐릭터의 진척이 보임"]},
 	{"v": "v0.89", "notes": ["스킬 이펙트 강화 — 광역 범위 링이 이중 링+글로우로 회전하며 더 오래 남고(0.35→0.7초), 번개는 굵은 2겹으로, 스킬 이름은 팝 등장 후 길게, 잔류 장판도 더 오래 유지. 시전 연출이 전반적으로 화려하고 길어짐", "홈 화면 개선 — 단색 배경을 게임과 같은 보랏빛 그라데이션+흐르는 별 배경으로 통일, 타이틀 글로우, 선택한 캐릭터 카드를 확대 강조"]},
 	{"v": "v0.88", "notes": ["스킬 쿨타임 밸런스 — 기본 쿨타임을 전반 상향하고 스킬 성격별로 차등. 약한 마력탄은 짧게(고유 3.5초), 강력한 메테오·융단폭격과 전체 둔화 절대영도는 길게(6~7초). 강한 한 방엔 더 긴 텀, 약한 스킬은 자주 — 스킬 선택·조합의 무게가 생김(연사·진화로 단축은 유지)"]},
@@ -83,6 +84,11 @@ const MASTERY_PER_LEVEL := 0.02  ## 숙련 레벨당 공격력·체력 +2%
 const RELIC_SLOTS := 2  ## 기본 유물 장착 슬롯 수
 const RELIC_SLOTS_MAX := 4  ## 슬롯 강화 상한
 
+# 처치 업적: 누적 처치가 마일스톤을 넘을 때마다 영구 고정 보너스(공격력·체력). 마일스톤은 높게(기하급수).
+const KILL_MILESTONES := [100, 300, 700, 1500, 3000, 6000, 12000, 25000, 50000]
+const KILL_BONUS_DMG := 1.0   ## 마일스톤 1단계당 공격력 +flat
+const KILL_BONUS_HP := 10.0   ## 마일스톤 1단계당 체력 +flat
+
 # 컬렉션 로스터 (unlock_wave 오름차순)
 var characters: Array = [
 	preload("res://resources/characters/char_apprentice.tres"),
@@ -90,6 +96,21 @@ var characters: Array = [
 	preload("res://resources/characters/char_frost.tres"),
 	preload("res://resources/characters/char_arc.tres"),
 	preload("res://resources/characters/char_bomb.tres"),
+]
+# 몹 도감 로스터 (도감 표시 순서: 약→강). 종류 키 = .tres 파일명
+var enemies: Array = [
+	preload("res://resources/enemies/enemy_basic.tres"),
+	preload("res://resources/enemies/enemy_fast.tres"),
+	preload("res://resources/enemies/enemy_slime_big.tres"),
+	preload("res://resources/enemies/enemy_slime_mini.tres"),
+	preload("res://resources/enemies/enemy_tank.tres"),
+	preload("res://resources/enemies/enemy_ghost.tres"),
+	preload("res://resources/enemies/enemy_caster.tres"),
+	preload("res://resources/enemies/enemy_storm.tres"),
+	preload("res://resources/enemies/enemy_guardian.tres"),
+	preload("res://resources/enemies/enemy_treasure.tres"),
+	preload("res://resources/enemies/enemy_midboss.tres"),
+	preload("res://resources/enemies/enemy_boss.tres"),
 ]
 var selected: CharacterData
 var start_wave := 1  ## 이번 게임 시작 웨이브 (시작 화면에서 선택, 인메모리 — best_wave 이하)
@@ -102,6 +123,7 @@ var coins := 0  ## 영구 재화 (런 종료 시 누적, 캐릭터 공용 지갑
 var upgrades := {}  ## 영구 강화 레벨 — 캐릭터별 {char_key: {id: level}}
 var char_xp := {}  ## 캐릭터별 누적 경험치 {char_key: xp} → 숙련도 레벨(자동 패시브)
 var char_best := {}  ## 캐릭터별 최고 도달 웨이브 {char_key: wave} (기록 표시용)
+var kills := {}  ## 적 종류별 누적 처치 수 {kind_key: count} — 도감·처치 업적용
 var total_runs := 0  ## 누적 플레이 횟수(통계)
 var lifetime_coins := 0  ## 누적 획득 코인(통계)
 var seen_version := ""  ## 마지막으로 패치노트를 본 버전 — 다르면 시작 시 자동 안내
@@ -242,6 +264,46 @@ func add_coins(n: int) -> void:
 	lifetime_coins += n
 	_save()
 
+## --- 처치 도감 / 처치 업적 ---
+## 적 처치 1회 기록(메모리 누적). 저장은 런 종료(add_coins/note_run)의 _save와 함께 — 매 처치 디스크 쓰기 방지.
+func record_kill(kind: String) -> void:
+	if kind == "":
+		return
+	kills[kind] = int(kills.get(kind, 0)) + 1
+
+## 전체 누적 처치 수
+func total_kills() -> int:
+	var t := 0
+	for v in kills.values():
+		t += int(v)
+	return t
+
+## 누적 처치가 넘은 마일스톤 개수(= 보너스 단계)
+func kill_tier(total := -1) -> int:
+	if total < 0:
+		total = total_kills()
+	var n := 0
+	for m in KILL_MILESTONES:
+		if total >= m:
+			n += 1
+	return n
+
+## 다음 마일스톤 처치 수 (모두 달성 시 0)
+func next_kill_milestone(total := -1) -> int:
+	if total < 0:
+		total = total_kills()
+	for m in KILL_MILESTONES:
+		if total < m:
+			return m
+	return 0
+
+## 처치 업적 누적 보너스 (영구 고정값 — apply_character에서 가산)
+func kill_bonus_damage() -> float:
+	return kill_tier() * KILL_BONUS_DMG
+
+func kill_bonus_hp() -> float:
+	return kill_tier() * KILL_BONUS_HP
+
 ## --- 유물 (코인 영구 해금 + 런 장착) ---
 func relic_slots() -> int:
 	return RELIC_SLOTS + relic_slot_bonus
@@ -312,6 +374,7 @@ func _load() -> void:
 		equipped_relics = cf.get_value("meta", "equipped_relics", [])
 		relic_slot_bonus = cf.get_value("meta", "relic_slot_bonus", 0)
 		char_best = cf.get_value("record", "char_best", {})
+		kills = cf.get_value("record", "kills", {})
 		total_runs = cf.get_value("record", "total_runs", 0)
 		lifetime_coins = cf.get_value("record", "lifetime_coins", 0)
 		_migrate_upgrades()  # 구형(글로벌) 강화 → 코인 환불 후 캐릭터별로 전환
@@ -331,6 +394,7 @@ func _save() -> void:
 	cf.set_value("meta", "equipped_relics", equipped_relics)
 	cf.set_value("meta", "relic_slot_bonus", relic_slot_bonus)
 	cf.set_value("record", "char_best", char_best)
+	cf.set_value("record", "kills", kills)
 	cf.set_value("record", "total_runs", total_runs)
 	cf.set_value("record", "lifetime_coins", lifetime_coins)
 	cf.save(SAVE_PATH)

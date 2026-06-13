@@ -1,0 +1,77 @@
+extends Control
+## 몹 도감: 적 종류별 처치 수를 보여주고, 누적 처치 업적(영구 공격력·체력 보너스)을 표시한다.
+
+const FONT := preload("res://assets/fonts/NotoSansKR.ttf")
+
+@onready var grid: GridContainer = $Center/Scroll/Grid
+@onready var summary: Label = $Center/Summary
+
+func _ready() -> void:
+	$Center/Title.text = "몹 도감"
+	$Center/BackButton.pressed.connect(_on_back)
+	_refresh_summary()
+	for ed in GameState.enemies:
+		grid.add_child(_make_entry(ed))
+
+## 상단 요약: 총 처치 + 현재 업적 보너스 + 다음 마일스톤까지
+func _refresh_summary() -> void:
+	var total := GameState.total_kills()
+	var dmg := int(GameState.kill_bonus_damage())
+	var hp := int(GameState.kill_bonus_hp())
+	var nextm := GameState.next_kill_milestone(total)
+	var line2: String
+	if nextm > 0:
+		line2 = "다음 업적까지 %d 마리 (달성 시 공격력 +%d · 체력 +%d)" % [nextm - total, int(GameState.KILL_BONUS_DMG), int(GameState.KILL_BONUS_HP)]
+	else:
+		line2 = "모든 처치 업적 달성!"
+	summary.text = "총 처치 %d   ·   업적 보너스 공격력 +%d · 체력 +%d\n%s" % [total, dmg, hp, line2]
+
+## 적 1종 도감 카드 (처치 0이면 미발견 실루엣 + ???)
+func _make_entry(ed) -> Control:
+	var key: String = ed.resource_path.get_file().get_basename()
+	var n: int = int(GameState.kills.get(key, 0))
+	var seen := n > 0
+
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(330, 92)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.16, 0.15, 0.21, 0.92) if seen else Color(0.12, 0.11, 0.15, 0.92)
+	sb.set_corner_radius_all(8)
+	sb.set_content_margin_all(10)
+	panel.add_theme_stylebox_override("panel", sb)
+
+	var box := HBoxContainer.new()
+	box.add_theme_constant_override("separation", 12)
+	panel.add_child(box)
+
+	var icon := TextureRect.new()
+	icon.texture = ed.sprite
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.custom_minimum_size = Vector2(60, 60)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	if not seen:
+		icon.modulate = Color(0, 0, 0, 0.85)  # 미발견 실루엣
+	box.add_child(icon)
+
+	var info := VBoxContainer.new()
+	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_child(info)
+	info.add_child(_label(ed.display_name if seen else "???", 19, Color(1, 1, 1) if seen else Color(0.55, 0.55, 0.55)))
+	if seen and ed.element != "":
+		info.add_child(_label("%s 속성 · %s에 강함" % [ElementLib.display_name(ed.element), ElementLib.strong_against(ed.element)], 13, ElementLib.color(ed.element)))
+	info.add_child(_label("처치 %d" % n if seen else "미발견", 15, Color(0.86, 0.8, 0.6) if seen else Color(0.5, 0.5, 0.5)))
+	return panel
+
+func _label(text: String, size: int, color: Color) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.add_theme_font_override("font", FONT)
+	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_color_override("font_color", color)
+	return l
+
+func _on_back() -> void:
+	get_tree().change_scene_to_file("res://scenes/ui/start_screen.tscn")

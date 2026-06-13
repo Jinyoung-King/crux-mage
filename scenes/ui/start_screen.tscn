@@ -132,6 +132,14 @@ theme_override_fonts/font = ExtResource("2")
 theme_override_font_sizes/font_size = 22
 text = "유물"
 
+[node name="BestiaryButton" type="Button" parent="NavBar/Row"]
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_fonts/font = ExtResource("2")
+theme_override_font_sizes/font_size = 22
+text = "도감"
+
 [node name="PatchButton" type="Button" parent="NavBar/Row"]
 custom_minimum_size = Vector2(0, 56)
 layout_mode = 2

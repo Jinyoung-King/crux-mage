@@ -47,10 +47,10 @@ func apply_character(c: CharacterData) -> void:
 	character = c
 	# 캐릭터 기본 빌드 + 영구 강화(메타) 보너스 가산
 	var mastery := GameState.mastery_mult(c)  # 캐릭터 숙련도: 공격력·체력 +2%/레벨
-	build.damage = (c.base_damage + GameState.upgrade_value("damage", c)) * mastery
+	build.damage = (c.base_damage + GameState.upgrade_value("damage", c) + GameState.kill_bonus_damage()) * mastery
 	build.fire_rate = c.base_fire_rate + GameState.upgrade_value("fire_rate", c)
 	build.projectile_count = c.base_projectile_count
-	max_hp = (max_hp + GameState.upgrade_value("max_hp", c)) * mastery  # 기본 100 + 강화, 숙련 배율
+	max_hp = (max_hp + GameState.upgrade_value("max_hp", c) + GameState.kill_bonus_hp()) * mastery  # 기본 100 + 강화 + 처치업적, 숙련 배율
 	hp = max_hp
 	lifesteal = GameState.upgrade_value("lifesteal", c)
 	attack_timer.wait_time = 1.0 / c.base_fire_rate  # 평타 고정 (카드 연사는 스킬 쿨타임으로)

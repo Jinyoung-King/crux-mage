@@ -470,7 +470,8 @@ func _on_enemy_charge_hit(damage: float) -> void:
 	_flash_screen()
 	$Player.take_damage(damage)
 
-func _on_enemy_died(pos: Vector2, color: Color, size: float, tex: Texture2D, coins: int) -> void:
+func _on_enemy_died(pos: Vector2, color: Color, size: float, tex: Texture2D, coins: int, kind: String) -> void:
+	GameState.record_kill(kind)  # 도감·처치 업적 집계 (처치만 — 도달로 사라진 적은 제외)
 	if _wave_kind(wave_index) == "bonus":
 		$SfxCoin.play()  # 보너스 웨이브 보물: 코인 픽업음
 	else:

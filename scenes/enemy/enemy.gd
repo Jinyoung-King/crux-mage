@@ -1,7 +1,7 @@
 extends Area2D
 ## 위에서 스폰되어 아래(플레이어 쪽)로 직진하는 적.
 
-signal died(pos: Vector2, color: Color, size: float, tex: Texture2D, coins: int)
+signal died(pos: Vector2, color: Color, size: float, tex: Texture2D, coins: int, kind: String)
 signal reached_player(contact_damage: float, pos: Vector2)
 signal summon(data: EnemyData, count: int, pos: Vector2)
 signal ranged_attack(damage: float, from_pos: Vector2, count: int, spread_deg: float, bolt_scale: float)
@@ -54,6 +54,7 @@ var shield_node: ColorRect
 var coin_value := 1
 var dmg_scale := 1.0  ## 무한 모드 피해 배율 (접촉·탄막·돌진에 적용)
 var element := ""  ## 오행 속성 (발사체 상성 판정용)
+var kind_key := ""  ## 적 종류 키(.tres 파일명) — 도감 처치 집계용
 
 func _ready() -> void:
 	add_to_group("enemies")
@@ -74,6 +75,7 @@ func setup(data: EnemyData, hp_scale: float = 1.0, dscale: float = 1.0, elite: D
 	body_size = data.size
 	coin_value = data.coin_value  # 데이터 기반 코인 (엘리트면 아래에서 덮어씀)
 	element = data.element  # 오행 속성 (상성)
+	kind_key = data.resource_path.get_file().get_basename()  # 도감 집계 키
 	zigzag_amplitude = data.zigzag_amplitude
 	zigzag_period = data.zigzag_period
 	split_count = data.split_count
@@ -281,7 +283,7 @@ func _die() -> void:
 	# 마지막 적이 분열할 때 웨이브 클리어가 새끼 생성 전에 판정되는 것을 막는다.
 	if split_count > 0 and split_enemy != null:
 		summon.emit(split_enemy, split_count, global_position)
-	died.emit(global_position, effect_color, body_size, $Sprite2D.texture, coin_value)
+	died.emit(global_position, effect_color, body_size, $Sprite2D.texture, coin_value, kind_key)
 	queue_free()
 
 func _on_summon_timer(data: EnemyData) -> void:
