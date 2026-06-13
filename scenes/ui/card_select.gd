@@ -158,7 +158,7 @@ func _label(text: String, size: int, color: Color) -> Label:
 func _card_icon_kind(card) -> String:
 	if card.grant_skill_id != "" or card.grant_echo:
 		return "skill"
-	if card.detonate_burn_bonus > 0.0 or card.explode_power_bonus > 0.0:
+	if card.detonate_burn_bonus > 0.0 or card.explode_power_bonus > 0.0 or card.grant_ground_field:
 		return "explode"
 	if card.grant_burn:
 		return "fire"

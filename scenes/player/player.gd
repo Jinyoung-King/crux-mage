@@ -227,6 +227,8 @@ func apply_card(card: CardData) -> void:
 	if card.grant_echo:
 		build.echo = true   # 메아리
 	build.knockback += card.knockback_bonus  # 넉백
+	if card.grant_ground_field:
+		build.ground_field = true  # 잔류 장판
 	if card.max_hp_bonus != 0.0:
 		max_hp = maxf(max_hp + card.max_hp_bonus, 10.0)  # 트레이드오프로도 최소 10은 보장
 		hp = minf(hp, max_hp)

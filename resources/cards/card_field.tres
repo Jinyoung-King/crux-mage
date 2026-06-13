@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+card_name = "잔류 장판"
+description = "메테오·융단폭격이 명중 지점에 지속 피해 장판을 남긴다(약 2.6초)."
+rarity = "uncommon"
+grant_ground_field = true

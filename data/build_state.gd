@@ -21,3 +21,4 @@ extends Resource
 @export var frostbite: float = 0.0      ## 격발: 둔화/빙결 적 명중 시 추가 피해(명중 피해 × 이 값)
 @export var echo: bool = false          ## 전설: 모든 스킬이 잠시 뒤 60% 위력으로 한 번 더(메아리)
 @export var knockback: float = 0.0      ## 행동: 스킬 명중 시 적을 위로 밀어냄(px) — 기지에서 멀어짐
+@export var ground_field: bool = false  ## 행동: 광역 스킬(메테오·융단)이 명중 지점에 지속 피해 장판

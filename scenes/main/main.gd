@@ -7,6 +7,7 @@ const DEATH_REMAINS := preload("res://scenes/fx/death_remains.gd")
 const DAMAGE_NUMBER := preload("res://scenes/fx/damage_number.gd")
 const SKILL_RING := preload("res://scenes/fx/skill_ring.gd")  # 광역 스킬 범위 링
 const SKILL_NAME := preload("res://scenes/fx/skill_name_popup.gd")  # 시전 스킬 이름 팝업
+const GROUND_HAZARD := preload("res://scenes/fx/ground_hazard.gd")  # 잔류 장판
 const ENEMY_BOLT_SCENE := preload("res://scenes/projectile/enemy_bolt.tscn")
 const SPAWN_Y := -60.0  # 화면(720x1280) 위쪽 바깥
 const SPAWN_X_MIN := 60.0  # 스폰 가로 범위 (가장자리 여백 확보)
@@ -72,6 +73,7 @@ var card_pool: Array = [
 	preload("res://resources/cards/card_echo.tres"),
 	preload("res://resources/cards/card_resonance.tres"),
 	preload("res://resources/cards/card_knockback.tres"),
+	preload("res://resources/cards/card_field.tres"),
 ]
 
 var wave_index := 0
@@ -489,8 +491,8 @@ func _has_slow_source() -> bool:
 
 ## 현재 빌드에서 의미 있는 카드인지 — 죽은 픽(조건 미충족 시너지 등)을 드래프트에서 제외
 func _is_card_useful(card: CardData) -> bool:
-	if card.skill_radius_bonus > 0.0 and not _has_radius_skill():
-		return false  # 범위 스킬(메테오/융단폭격)을 하나도 안 가졌으면 범위 강화 무의미
+	if (card.skill_radius_bonus > 0.0 or card.grant_ground_field) and not _has_radius_skill():
+		return false  # 범위 스킬(메테오/융단폭격)이 없으면 범위 강화·장판 무의미
 	if card.extra_targets_bonus > 0 and not _has_count_skill():
 		return false  # 표적형 스킬이 없으면 다발 무의미
 	if card.detonate_burn_bonus > 0.0 and not _has_burn_source():
@@ -721,12 +723,16 @@ func _on_skill_cast(s: Dictionary) -> void:
 				_skill_aoe(center, er, ep, true)
 				_skill_ring(center, er, col)  # 범위 링
 				_skill_burst(center, col)
+				if $Player.build.ground_field:
+					_ground_field(center, er, ep, element)  # 잔류 장판
 				focus = center
 		"barrage":
 			for pt in _random_enemy_points(count):
 				_skill_aoe(pt, er, ep, false)
 				_skill_ring(pt, er, col)
 				_skill_burst(pt, col)
+				if $Player.build.ground_field:
+					_ground_field(pt, er, ep, element)
 				focus = pt
 		"chain":
 			_skill_chain(count, ep, element)
@@ -747,6 +753,13 @@ func _skill_ring(pos: Vector2, radius: float, color: Color) -> void:
 	r.position = pos
 	$Fx.add_child(r)
 	r.setup(radius, color)
+
+## 잔류 장판: 명중 지점에 지속 피해 필드(초당 ep의 절반)
+func _ground_field(pos: Vector2, radius: float, ep: float, element: String) -> void:
+	var h = GROUND_HAZARD.new()
+	h.position = pos
+	$Fx.add_child(h)
+	h.setup(maxf(radius, 70.0), ep * 0.5, element, ElementLib.color(element))
 
 ## 시전 스킬 이름 팝업 FX (살짝 떠오르며 사라짐)
 func _skill_name_popup(pos: Vector2, txt: String, color: Color) -> void:
