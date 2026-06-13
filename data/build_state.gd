@@ -14,3 +14,8 @@ extends Resource
 # 행동(behavior) — 카드로 켜는 플레이 변경 효과
 @export var explode_power: float = 0.0  ## >0이면 스킬로 적 처치 시 주변 폭발(명중 피해 × 이 값)
 @export var extra_targets: int = 0      ## 표적형 스킬(마력탄·융단·체인)이 추가로 노리는 적 수
+# 원소 반응 — 상태 부여 / 격발
+@export var apply_burn: bool = false    ## 부여: 스킬 명중 시 화상
+@export var apply_slow: bool = false    ## 부여: 스킬 명중 시 둔화
+@export var detonate_burn: float = 0.0  ## 격발: 화상 중인 적 명중 시 화상을 터뜨려 광역(명중 피해 × 이 값)
+@export var frostbite: float = 0.0      ## 격발: 둔화/빙결 적 명중 시 추가 피해(명중 피해 × 이 값)

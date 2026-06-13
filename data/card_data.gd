@@ -22,3 +22,8 @@ extends Resource
 # 행동(behavior) 부여 — 숫자보다 플레이 변경
 @export var explode_power_bonus: float = 0.0  ## 처치 폭발 위력(명중 피해 대비 비율) 가산
 @export var extra_targets_bonus: int = 0      ## 표적형 스킬 추가 표적 수
+# 원소 반응
+@export var grant_burn: bool = false      ## 부여: 화상
+@export var grant_slow: bool = false      ## 부여: 둔화
+@export var detonate_burn_bonus: float = 0.0  ## 격발: 화상 터뜨리기 위력
+@export var frostbite_bonus: float = 0.0      ## 격발: 둔화/빙결 적 추가 피해

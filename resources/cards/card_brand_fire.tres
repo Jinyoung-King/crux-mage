@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+card_name = "화염 각인"
+description = "스킬 명중 시 적에게 화상을 남긴다"
+rarity = "common"
+grant_burn = true

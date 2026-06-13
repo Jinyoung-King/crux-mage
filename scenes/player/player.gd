@@ -132,6 +132,12 @@ func fire_skill_bolt(target, dmg: float) -> void:
 	p.lifesteal = lifesteal
 	if lifesteal > 0.0:
 		p.dealt.connect(_on_lifesteal)  # 명중 시 흡혈 회복
+	if build.apply_burn:
+		p.burn_dps = maxf(p.burn_dps, RelicLib.RELIC_BURN_DPS)  # 부여: 화상
+		p.burn_duration = maxf(p.burn_duration, RelicLib.RELIC_BURN_DUR)
+	if build.apply_slow:
+		p.slow_factor = 0.6  # 부여: 둔화
+		p.slow_duration = 2.0
 	_apply_relics_to(p)  # 수확·연쇄·점화의 룬을 발사체에 적용
 	fired.emit(p)
 
@@ -189,6 +195,12 @@ func apply_card(card: CardData) -> void:
 	build.skill_radius_mult += card.skill_radius_bonus
 	build.explode_power += card.explode_power_bonus  # 처치 폭발
 	build.extra_targets += card.extra_targets_bonus   # 다발(추가 표적)
+	if card.grant_burn:
+		build.apply_burn = true   # 부여: 화상
+	if card.grant_slow:
+		build.apply_slow = true   # 부여: 둔화
+	build.detonate_burn += card.detonate_burn_bonus  # 격발: 기폭
+	build.frostbite += card.frostbite_bonus          # 격발: 파쇄
 	if card.max_hp_bonus != 0.0:
 		max_hp = maxf(max_hp + card.max_hp_bonus, 10.0)  # 트레이드오프로도 최소 10은 보장
 		hp = minf(hp, max_hp)

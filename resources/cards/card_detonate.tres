@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+card_name = "기폭"
+description = "화상 중인 적을 때리면 화상을 터뜨려 광역 피해"
+rarity = "rare"
+detonate_burn_bonus = 0.6

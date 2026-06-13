@@ -62,6 +62,10 @@ var card_pool: Array = [
 	preload("res://resources/cards/card_explode_big.tres"),
 	preload("res://resources/cards/card_multi_target.tres"),
 	preload("res://resources/cards/card_volley.tres"),
+	preload("res://resources/cards/card_brand_fire.tres"),
+	preload("res://resources/cards/card_brand_frost.tres"),
+	preload("res://resources/cards/card_detonate.tres"),
+	preload("res://resources/cards/card_shatter.tres"),
 ]
 
 var wave_index := 0
@@ -437,12 +441,34 @@ func _has_count_skill() -> bool:
 			return true
 	return false
 
+## 화상 부여원(부여 카드·점화 유물·메테오 스킬)이 있나 — 기폭 카드 유효성
+func _has_burn_source() -> bool:
+	if $Player.build.apply_burn or $Player.relics.has("ignite"):
+		return true
+	for s in $Player.skills:
+		if s.id == "meteor":
+			return true
+	return false
+
+## 둔화 부여원(부여 카드·빙결 스킬)이 있나 — 파쇄 카드 유효성
+func _has_slow_source() -> bool:
+	if $Player.build.apply_slow:
+		return true
+	for s in $Player.skills:
+		if s.id == "freeze":
+			return true
+	return false
+
 ## 현재 빌드에서 의미 있는 카드인지 — 죽은 픽(조건 미충족 시너지 등)을 드래프트에서 제외
 func _is_card_useful(card: CardData) -> bool:
 	if card.skill_radius_bonus > 0.0 and not _has_radius_skill():
 		return false  # 범위 스킬(메테오/융단폭격)을 하나도 안 가졌으면 범위 강화 무의미
 	if card.extra_targets_bonus > 0 and not _has_count_skill():
 		return false  # 표적형 스킬이 없으면 다발 무의미
+	if card.detonate_burn_bonus > 0.0 and not _has_burn_source():
+		return false  # 화상 부여원 없으면 기폭 무의미
+	if card.frostbite_bonus > 0.0 and not _has_slow_source():
+		return false  # 둔화 부여원 없으면 파쇄 무의미
 	if card.heal > 0.0 and $Player.hp >= $Player.max_hp:
 		return false  # 만피에 회복 카드 금지
 	if card.max_hp_bonus < 0.0 and $Player.max_hp + card.max_hp_bonus < 30.0:
@@ -711,11 +737,24 @@ func _skill_hit(e, dmg: float, element: String) -> void:
 		dmg *= p.character.passive_crit_mult  # 치명타(보유 캐릭터/유물 한정)
 		is_crit = true
 	var pos: Vector2 = e.global_position
+	var was_burning: bool = e.burn_time_left > 0.0   # 격발 판정은 이번 명중 부여 '전' 상태 기준
+	var was_slowed: bool = e.slow_time_left > 0.0
 	var d := dmg * ElementLib.multiplier(element, e.element)  # 오행 상성
 	e.take_damage(d)
 	if p.lifesteal > 0.0:
 		p.heal(d * p.lifesteal)  # 흡혈
 	if is_instance_valid(e) and e.hp > 0.0:
+		# 원소 반응 — 격발(기존 상태 소모)
+		if p.build.frostbite > 0.0 and was_slowed:
+			e.take_damage(d * p.build.frostbite)  # 파쇄: 둔화/빙결 적 추가타
+		if p.build.detonate_burn > 0.0 and was_burning:
+			e.burn_time_left = 0.0  # 화상 소모
+			_explode(pos, d * p.build.detonate_burn, element)  # 기폭: 화상 터뜨려 광역
+		# 원소 반응 — 부여
+		if p.build.apply_burn:
+			e.apply_burn(RelicLib.RELIC_BURN_DPS, RelicLib.RELIC_BURN_DUR)
+		if p.build.apply_slow:
+			e.apply_slow(0.6, 2.0)
 		if p.relics.has("ignite"):
 			e.apply_burn(RelicLib.RELIC_BURN_DPS, RelicLib.RELIC_BURN_DUR)  # 점화의 룬
 		if p.relics.has("execute") and e.hp <= e.max_hp * RelicLib.EXECUTE_THRESHOLD:
