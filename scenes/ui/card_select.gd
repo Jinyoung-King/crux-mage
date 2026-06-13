@@ -163,8 +163,10 @@ func _style_card(btn: Button, card) -> void:
 	box.add_child(icon)
 	box.add_child(_label(_tier_badge(rarity), 15, tier))
 	box.add_child(_label(card.card_name, 23, tier if rarity != "common" else Color(0.95, 0.97, 1.0)))
-	var desc := _label(card.description, 15, Color(0.78, 0.81, 0.86))
+	var desc_text: String = _skill_detail(card.grant_skill_id) if card.grant_skill_id != "" else card.description
+	var desc := _label(desc_text, 16, Color(0.82, 0.85, 0.9))
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	desc.add_theme_constant_override("line_spacing", 5)  # 줄간격 ↑ (가독성)
 	box.add_child(desc)
 	btn.add_child(box)
 
@@ -177,6 +179,30 @@ func _label(text: String, size: int, color: Color) -> Label:
 	l.add_theme_font_size_override("font_size", size)
 	l.add_theme_color_override("font_color", color)
 	return l
+
+## 스킬 획득 카드: SkillLib.DEFS 수치로 자세한 다줄 설명(데미지·쿨타임·특성·진화 안내)
+func _skill_detail(id: String) -> String:
+	var d: Dictionary = SkillLib.DEFS.get(id, {})
+	if d.is_empty():
+		return ""
+	var lines: PackedStringArray = []
+	lines.append("%s 스킬을 획득합니다." % d.get("name", "스킬"))
+	lines.append("적에게 데미지 %d의 피해를 줍니다." % int(d.get("power", 0)))
+	lines.append("%s초의 쿨타임마다 발동됩니다." % _fmt_cd(d.get("cooldown", 0.0)))
+	var cnt := int(d.get("count", 0))
+	var rad := int(d.get("radius", 0))
+	match id:
+		"bolts": lines.append("가까운 적 %d명에게 마력탄을 날립니다." % cnt)
+		"chain": lines.append("최대 %d명에게 번개가 연쇄됩니다." % cnt)
+		"barrage": lines.append("%d곳에 반경 %d의 폭격이 떨어집니다." % [cnt, rad])
+		"meteor": lines.append("가장 밀집한 곳에 반경 %d 광역 피해." % rad)
+		"freeze": lines.append("화면의 모든 적을 둔화시킵니다.")
+	lines.append("이미 보유 시 더 강력하게 진화합니다.")
+	return "\n".join(lines)
+
+## 쿨타임 표기: 정수면 정수로, 소수면 한 자리(4.5초 등)
+func _fmt_cd(v: float) -> String:
+	return str(int(v)) if v == float(int(v)) else "%.1f" % v
 
 ## 카드 효과 필드에서 아이콘 종류를 자동 판별(가장 특징적인 효과 우선)
 func _card_icon_kind(card) -> String:
