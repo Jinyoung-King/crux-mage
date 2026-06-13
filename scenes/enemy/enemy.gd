@@ -2,7 +2,7 @@ extends Area2D
 ## 위에서 스폰되어 아래(플레이어 쪽)로 직진하는 적.
 
 signal died(pos: Vector2, color: Color, size: float, tex: Texture2D, coins: int)
-signal reached_player(contact_damage: float)
+signal reached_player(contact_damage: float, pos: Vector2)
 signal summon(data: EnemyData, count: int, pos: Vector2)
 signal ranged_attack(damage: float, from_pos: Vector2, count: int, spread_deg: float, bolt_scale: float)
 signal charge_hit(damage: float)  ## 보스 돌진이 플레이어에 닿을 때
@@ -207,7 +207,7 @@ func _physics_process(delta: float) -> void:
 	_update_visuals()
 	if position.y >= goal_y:
 		hp = 0.0  # 도달한 적은 이후 피격/사망 처리에서 제외
-		reached_player.emit(contact_damage)
+		reached_player.emit(contact_damage, global_position)
 		queue_free()
 
 ## 상태 색조(피격 플래시·예고 중이 아닐 때만) + HP바 갱신 — 일반 이동·돌진 공통

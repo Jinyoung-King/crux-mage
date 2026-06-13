@@ -402,15 +402,27 @@ func _on_enemy_died(pos: Vector2, color: Color, size: float, tex: Texture2D, coi
 	_update_coin_label()
 	_unregister_enemy()
 
-func _on_enemy_reached_player(contact_damage: float) -> void:
+func _on_enemy_reached_player(contact_damage: float, pos: Vector2) -> void:
 	if contact_damage <= 0.0:
 		_unregister_enemy()  # 무해한 적(보물)은 피해·연출 없이 사라짐(놓치면 코인만 손해)
 		return
 	$SfxPlayerHit.play()
-	_add_shake(8.0)
+	_base_impact(pos.x)  # 콰과과광 — 기지 충돌 임팩트
+	_add_shake(16.0)
 	_flash_screen()
 	$Player.take_damage(contact_damage)
 	_unregister_enemy()
+
+## 기지 충돌 임팩트: 충돌 지점에 큰 폭발 + 충격파 링 2겹
+func _base_impact(x: float) -> void:
+	var p := Vector2(clampf(x, 40.0, 680.0), 1150.0)  # 기지 윗변
+	var b = DEATH_BURST_SCENE.instantiate()
+	b.position = p
+	b.color = Color(1.0, 0.5, 0.2)
+	b.amount = 48
+	$Fx.add_child(b)
+	_skill_ring(p, 95.0, Color(1.0, 0.55, 0.2))
+	_skill_ring(p, 150.0, Color(1.0, 0.8, 0.35))
 
 ## 사망/도달로 적이 빠질 때의 공통 집계. 웨이브 클리어 판정도 여기서.
 func _unregister_enemy() -> void:
