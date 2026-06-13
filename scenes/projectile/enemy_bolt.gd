@@ -1,7 +1,7 @@
 extends Area2D
 ## 적이 쏘는 마탄. 기지 판정 영역(Base/BaseHitbox, 레이어 4)만 감지 — 마법사가 아닌 기지가 맞는다.
 
-signal hit_player(damage: float)
+signal hit_player(damage: float, pos: Vector2)
 
 @export var speed: float = 230.0
 
@@ -20,5 +20,5 @@ func _physics_process(delta: float) -> void:
 	position += direction * speed * delta
 
 func _on_area_entered(_area) -> void:
-	hit_player.emit(damage)
+	hit_player.emit(damage, global_position)
 	queue_free()

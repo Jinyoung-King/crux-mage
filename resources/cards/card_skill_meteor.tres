@@ -6,5 +6,5 @@
 script = ExtResource("1")
 card_name = "유성 습득"
 description = "유성 — 없으면 습득, 있으면 진화(쌍둥이→운석 강우)"
-rarity = "rare"
+rarity = "epic"
 grant_skill_id = "meteor"

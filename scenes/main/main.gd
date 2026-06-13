@@ -12,7 +12,7 @@ const SPAWN_Y := -60.0  # 화면(720x1280) 위쪽 바깥
 const SPAWN_X_MIN := 60.0  # 스폰 가로 범위 (가장자리 여백 확보)
 const SPAWN_X_MAX := 660.0
 const CHOICES_PER_CLEAR := 3
-const RARITY_WEIGHT := {"common": 3.0, "rare": 1.0, "legendary": 0.3}  # 카드 등장 가중치(전설 희소)
+const RARITY_WEIGHT := {"common": 3.0, "uncommon": 1.7, "rare": 1.0, "epic": 0.45, "legendary": 0.22}  # 등장 가중치(고급<희귀<영웅<전설 순 희소)
 const ENDLESS_HP_GROWTH := 0.15  # 무한 모드 단계당 적 체력 증가율
 const ENDLESS_DMG_GROWTH := 0.10  # 무한 모드 단계당 적 피해 증가율(체력보다 완만, 흡혈 무한지속 방지)
 const ENDLESS_DMG_CAP := 12.0  # 적 피해 배율 상한 — 체력은 무한 증가하되 '한 방 즉사'는 방지(체력안배 가능)
@@ -365,11 +365,21 @@ func _on_enemy_ranged_attack(damage: float, from_pos: Vector2, count: int, sprea
 		b.hit_player.connect(_on_player_hit_by_bolt)
 		$Projectiles.add_child(b)
 
-func _on_player_hit_by_bolt(damage: float) -> void:
+func _on_player_hit_by_bolt(damage: float, pos: Vector2) -> void:
 	$SfxPlayerHit.play()
+	_bolt_impact(pos)  # 탄막 명중 시 작은 폭발
 	_add_shake(6.0)
 	_flash_screen()
 	$Player.take_damage(damage)
+
+## 탄막 명중 임팩트: 작은 폭발 + 작은 충격파 링 (마탄 보랏빛)
+func _bolt_impact(pos: Vector2) -> void:
+	var b = DEATH_BURST_SCENE.instantiate()
+	b.position = pos
+	b.color = Color(0.82, 0.52, 1.0)
+	b.amount = 14
+	$Fx.add_child(b)
+	_skill_ring(pos, 38.0, Color(0.85, 0.6, 1.0))
 
 ## 보스 돌진 적중: 마탄보다 크게 울리도록 흔들림 강화
 func _on_enemy_charge_hit(damage: float) -> void:
@@ -497,7 +507,7 @@ func _is_card_useful(card: CardData) -> bool:
 func _draw_cards(count: int, rare_only: bool = false) -> Array:
 	var pool := card_pool.filter(_is_card_useful)
 	if rare_only:
-		pool = pool.filter(func(c): return c.rarity == "rare" or c.rarity == "legendary")
+		pool = pool.filter(func(c): return c.rarity in ["rare", "epic", "legendary"])  # 보스 보상: 희귀+ 확정
 	var picked: Array = []
 	while picked.size() < count and not pool.is_empty():
 		var total := 0.0
