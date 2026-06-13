@@ -9,6 +9,7 @@ signal took_damage(amount: float)  ## 받는 피해 (빨간 데미지 숫자 표
 
 const PROJECTILE_SCENE := preload("res://scenes/projectile/projectile.tscn")
 const FOCUS_SPREAD := PI / 90.0  ## 표적보다 발사 수가 많을 때 같은 표적에 겹쳐 쏘는 발사의 부채 각(≈2°)
+const MAX_SKILL_SLOTS := 4  ## 스킬 슬롯 제한(캐릭터 고유 1 포함) — 다 쓰기 방지, 슬롯 차면 진화 유도
 
 @export var max_hp: float = 100.0
 
@@ -235,10 +236,10 @@ func take_damage(amount: float) -> void:
 
 ## 카드 보너스를 빌드에 적용
 func apply_card(card: CardData) -> void:
-	if card.grant_skill_id != "":  # 스킬 카드 — 보유 시 진화, 없으면(또는 최고 티어면) 새 스킬 추가
+	if card.grant_skill_id != "":  # 스킬 카드 — 보유 시 진화, 없으면 슬롯 여유 시에만 새 스킬
 		if not _evolve_skill(card.grant_skill_id):
 			var d: Dictionary = SkillLib.DEFS.get(card.grant_skill_id, {})
-			if not d.is_empty():
+			if not d.is_empty() and skills.size() < MAX_SKILL_SLOTS:
 				skills.append(_make_skill(card.grant_skill_id, d.name, d.cooldown, d.power, d.radius, d.count))
 	build.damage += card.damage_bonus
 	build.fire_rate += card.fire_rate_bonus  # 평타 아님 — 스킬 쿨타임 감소에 반영

@@ -599,6 +599,13 @@ func _has_bolts_skill() -> bool:
 			return true
 	return false
 
+## 해당 스킬을 이미 보유했나 (스킬 슬롯 필터용)
+func _has_skill(id: String) -> bool:
+	for s in $Player.skills:
+		if s.id == id:
+			return true
+	return false
+
 ## 화상 부여원(부여 카드·점화 유물·메테오 스킬)이 있나 — 기폭 카드 유효성
 func _has_burn_source() -> bool:
 	if $Player.build.apply_burn or $Player.relic_levels.has("ignite"):
@@ -619,6 +626,8 @@ func _has_slow_source() -> bool:
 
 ## 현재 빌드에서 의미 있는 카드인지 — 죽은 픽(조건 미충족 시너지 등)을 드래프트에서 제외
 func _is_card_useful(card: CardData) -> bool:
+	if card.grant_skill_id != "" and not _has_skill(card.grant_skill_id) and $Player.skills.size() >= $Player.MAX_SKILL_SLOTS:
+		return false  # 스킬 슬롯이 꽉 차면 미보유 스킬 카드는 제외(보유 스킬 진화 카드만 노출)
 	if (card.skill_radius_bonus > 0.0 or card.grant_ground_field) and not _has_radius_skill():
 		return false  # 범위 스킬(메테오/융단폭격)이 없으면 범위 강화·장판 무의미
 	if card.extra_targets_bonus > 0 and not _has_count_skill():
