@@ -121,9 +121,8 @@ var shake := 0.0  # 화면 흔들림 세기(px), 매 프레임 감쇠
 func _ready() -> void:
 	var ch: CharacterData = GameState.selected
 	$Player.apply_character(ch)
-	for id in GameState.equipped_relics:  # 장착 유물 적용(런 시작)
-		if GameState.is_relic_unlocked(id):
-			$Player.grant_relic(id)
+	for id in GameState.relic_levels:  # 모은 유물 전부 적용(런 시작, 레벨=강화)
+		$Player.grant_relic(id, GameState.relic_levels[id])
 	$SfxShoot.stream = ch.shoot_sound  # 캐릭터 전용 발사음
 	$Player.fired.connect(_on_player_fired)
 	$Player.hp_changed.connect(_on_player_hp_changed)
@@ -500,8 +499,8 @@ func _on_enemy_died(pos: Vector2, color: Color, size: float, tex: Texture2D, coi
 	if size >= 42.0:
 		_add_shake(size / 8.0)  # 큰 적이 죽을수록 화면이 더 울리도록 (보스 9)
 	var gain := coins  # 처치 코인 (엘리트 보너스 포함, 도달한 적은 _unregister만)
-	if $Player.relics.has("greed"):
-		gain *= RelicLib.GREED_MULT  # 황금의 룬
+	if $Player.relic_levels.has("greed"):
+		gain = int(round(gain * RelicLib.greed_mult($Player.relic_levels["greed"])))  # 황금의 룬(레벨별)
 	run_coins += gain
 	_update_coin_label()
 	_unregister_enemy()
@@ -542,8 +541,8 @@ func _on_wave_cleared() -> void:
 	for b in get_tree().get_nodes_in_group("enemy_bolts"):
 		b.queue_free()
 	var bonus := wave_index + 1  # 웨이브 클리어 보너스 = 웨이브 번호
-	if $Player.relics.has("greed"):
-		bonus *= RelicLib.GREED_MULT
+	if $Player.relic_levels.has("greed"):
+		bonus = int(round(bonus * RelicLib.greed_mult($Player.relic_levels["greed"])))
 	run_coins += bonus
 	_update_coin_label()
 	# 끝자리 6 웨이브 클리어 후엔 상점(코인 사용처), 그 외엔 카드 드래프트(보스는 희귀 확정)
@@ -575,7 +574,7 @@ func _has_bolts_skill() -> bool:
 
 ## 화상 부여원(부여 카드·점화 유물·메테오 스킬)이 있나 — 기폭 카드 유효성
 func _has_burn_source() -> bool:
-	if $Player.build.apply_burn or $Player.relics.has("ignite"):
+	if $Player.build.apply_burn or $Player.relic_levels.has("ignite"):
 		return true
 	for s in $Player.skills:
 		if s.id == "meteor":
@@ -796,10 +795,10 @@ func _build_summary() -> String:
 		extras.append("흡혈 %d%%" % roundi(p.lifesteal * 100.0))
 	if not extras.is_empty():
 		lines.append("   ·   ".join(extras))
-	if not p.relics.is_empty():
+	if not p.relic_levels.is_empty():
 		var names := []
-		for id in p.relics:
-			names.append(_relic_name(id))
+		for id in p.relic_levels:
+			names.append("%s Lv%d" % [_relic_name(id), p.relic_levels[id]])
 		lines.append("유물: " + ", ".join(names))
 	return "\n".join(lines)
 
@@ -910,8 +909,8 @@ func _skill_name_popup(pos: Vector2, txt: String, color: Color) -> void:
 ## 스킬 1회 명중: 격노·치명타·상성 적용 → 피해 → 흡혈·점화·즉사(유물/흡혈 공용) + 데미지 숫자
 func _skill_hit(e, dmg: float, element: String) -> void:
 	var p = $Player
-	if p.relics.has("berserk") and p.hp < p.max_hp * RelicLib.BERSERK_HP_RATIO:
-		dmg *= RelicLib.BERSERK_MULT  # 격노의 룬: 저체력 시 데미지 증가
+	if p.relic_levels.has("berserk") and p.hp < p.max_hp * RelicLib.BERSERK_HP_RATIO:
+		dmg *= RelicLib.berserk_mult(p.relic_levels["berserk"])  # 격노의 룬(레벨별)
 	var is_crit := false
 	if p.character and p.character.passive_crit_chance > 0.0 and randf() < p.character.passive_crit_chance:
 		dmg *= p.character.passive_crit_mult  # 치명타(보유 캐릭터/유물 한정)
@@ -936,11 +935,11 @@ func _skill_hit(e, dmg: float, element: String) -> void:
 			e.apply_burn(RelicLib.RELIC_BURN_DPS, RelicLib.RELIC_BURN_DUR)
 		if p.build.apply_slow:
 			e.apply_slow(0.6, 2.0)
-		if p.relics.has("ignite"):
-			e.apply_burn(RelicLib.RELIC_BURN_DPS, RelicLib.RELIC_BURN_DUR)  # 점화의 룬
+		if p.relic_levels.has("ignite"):
+			e.apply_burn(RelicLib.burn_dps(p.relic_levels["ignite"]), RelicLib.RELIC_BURN_DUR)  # 점화의 룬(레벨별)
 		var ex_thr: float = p.build.execute_threshold
-		if p.relics.has("execute"):
-			ex_thr = maxf(ex_thr, RelicLib.EXECUTE_THRESHOLD)
+		if p.relic_levels.has("execute"):
+			ex_thr = maxf(ex_thr, RelicLib.execute_threshold(p.relic_levels["execute"]))
 		if ex_thr > 0.0 and e.hp <= e.max_hp * ex_thr:
 			e.take_damage(e.hp)  # 즉사(수확의 룬 + 수확자 카드)
 		if p.build.knockback > 0.0 and is_instance_valid(e) and e.hp > 0.0:

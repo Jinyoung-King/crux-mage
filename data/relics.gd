@@ -27,3 +27,28 @@ static func relic_def(id: String) -> Dictionary:
 		if r.id == id:
 			return r
 	return {}
+
+## --- 레벨별 효과(같은 유물 중복 뽑기로 강화). lv는 1부터(0이면 미보유). ---
+static func execute_threshold(lv: int) -> float:
+	return 0.12 + 0.04 * (lv - 1)   # 즉사 체력 비율: 12% → 레벨당 +4%p
+static func chain_count(lv: int) -> int:
+	return lv                        # 마력탄 연쇄 횟수: 레벨당 +1
+static func burn_dps(lv: int) -> float:
+	return 5.0 + 2.0 * (lv - 1)      # 화상 dps: 5 → 레벨당 +2
+static func regen_per_sec(lv: int) -> float:
+	return 3.0 * lv                  # 초당 회복: 레벨당 +3
+static func greed_mult(lv: int) -> float:
+	return 1.5 + 0.5 * lv            # 코인 배수: lv1=2.0배, 레벨당 +0.5
+static func berserk_mult(lv: int) -> float:
+	return 1.4 + 0.1 * lv            # 저체력 데미지 배수: lv1=1.5, 레벨당 +0.1
+
+## 유물 효과를 현재 레벨 기준 한 줄로 (뽑기 화면 표시용)
+static func effect_text(id: String, lv: int) -> String:
+	match id:
+		"execute": return "체력 %d%% 이하 적 즉사" % int(round(execute_threshold(lv) * 100.0))
+		"chain":   return "마력탄이 %d회 연쇄" % chain_count(lv)
+		"ignite":  return "스킬 명중 시 화상 %d/초" % int(burn_dps(lv))
+		"regen":   return "초당 체력 +%d" % int(regen_per_sec(lv))
+		"greed":   return "코인 획득 %.1f배" % greed_mult(lv)
+		"berserk": return "체력 50%% 이하 시 데미지 +%d%%" % int(round((berserk_mult(lv) - 1.0) * 100.0))
+		_: return ""

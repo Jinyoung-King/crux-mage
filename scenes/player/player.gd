@@ -16,18 +16,17 @@ var build: BuildState
 var hp: float
 var character: CharacterData
 var lifesteal := 0.0  ## 입힌 피해의 흡혈 비율 (영구 강화)
-var relics: Array = []  ## 이번 런 보유 유물 id (보스 보상)
+var relic_levels := {}  ## 이번 런 보유 유물 {id: level} (GameState에서 복사 — 보유분 전부 적용, 레벨=강화)
 var skills: Array = []  ## 보유 스킬 목록(각 dict: id/name/cooldown/power/radius/count/cd_left). [0]=캐릭터 고유, 이후=카드 획득
 var skills_paused := false  ## 카드 선택(드래프트/상점) 중 스킬 쿨타임 정지
 
 ## 유물 획득 (중복 없음)
-func grant_relic(id: String) -> void:
-	if not relics.has(id):
-		relics.append(id)
+func grant_relic(id: String, level: int = 1) -> void:
+	relic_levels[id] = level
 
 func _process(delta: float) -> void:
-	if relics.has("regen") and hp > 0.0 and hp < max_hp:
-		heal(RelicLib.REGEN_PER_SEC * delta)  # 재생의 룬
+	if relic_levels.has("regen") and hp > 0.0 and hp < max_hp:
+		heal(RelicLib.regen_per_sec(relic_levels["regen"]) * delta)  # 재생의 룬(레벨별)
 	# 액티브 스킬: 보유 스킬마다 독립 쿨타임으로 자동 발동 (연사 스탯이 모든 쿨타임 단축)
 	if hp > 0.0 and not skills_paused:
 		for s in skills:
@@ -69,8 +68,8 @@ func on_wave_start() -> void:
 ## 시너지 반영 실효 데미지: 기본 + (동시 표적당 데미지 × 동시 표적 수)
 func effective_damage() -> float:
 	var d := build.damage + build.damage_per_target * build.projectile_count
-	if relics.has("berserk") and hp < max_hp * RelicLib.BERSERK_HP_RATIO:
-		d *= RelicLib.BERSERK_MULT  # 격노의 룬
+	if relic_levels.has("berserk") and hp < max_hp * RelicLib.BERSERK_HP_RATIO:
+		d *= RelicLib.berserk_mult(relic_levels["berserk"])  # 격노의 룬(레벨별)
 	return d
 
 ## 스킬 인스턴스 생성 (시작 시 쿨타임만큼 충전 필요)
@@ -156,8 +155,8 @@ func fire_skill_bolt(target, dmg: float) -> void:
 	var flight_time: float = global_position.distance_to(target.global_position) / p.speed
 	var predicted: Vector2 = target.global_position + Vector2.DOWN * target.speed * flight_time
 	p.direction = (predicted - global_position).normalized()
-	if relics.has("berserk") and hp < max_hp * RelicLib.BERSERK_HP_RATIO:
-		dmg *= RelicLib.BERSERK_MULT  # 격노의 룬
+	if relic_levels.has("berserk") and hp < max_hp * RelicLib.BERSERK_HP_RATIO:
+		dmg *= RelicLib.berserk_mult(relic_levels["berserk"])  # 격노의 룬(레벨별)
 	p.damage = dmg
 	p.lifesteal = lifesteal
 	if lifesteal > 0.0:
@@ -294,16 +293,16 @@ func _fire_at(target, aim_offset := 0.0) -> void:
 
 ## 유물 효과를 발사체에 적용 (캐릭터 패시브 위에 가산/강화)
 func _apply_relics_to(p) -> void:
-	if relics.is_empty():
+	if relic_levels.is_empty():
 		return
-	if relics.has("execute"):
-		p.execute_threshold = RelicLib.EXECUTE_THRESHOLD
-	if relics.has("chain"):
-		p.chain_count += 1
+	if relic_levels.has("execute"):
+		p.execute_threshold = RelicLib.execute_threshold(relic_levels["execute"])
+	if relic_levels.has("chain"):
+		p.chain_count += RelicLib.chain_count(relic_levels["chain"])  # 레벨당 연쇄 +1
 		p.chain_factor = maxf(p.chain_factor, RelicLib.RELIC_CHAIN_FACTOR)
 		p.chain_range = maxf(p.chain_range, 220.0)
-	if relics.has("ignite"):
-		p.burn_dps = maxf(p.burn_dps, RelicLib.RELIC_BURN_DPS)
+	if relic_levels.has("ignite"):
+		p.burn_dps = maxf(p.burn_dps, RelicLib.burn_dps(relic_levels["ignite"]))
 		p.burn_duration = maxf(p.burn_duration, RelicLib.RELIC_BURN_DUR)
 
 ## 흡혈 회복 (발사체가 적에 피해를 입힐 때마다)

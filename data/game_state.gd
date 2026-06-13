@@ -3,10 +3,11 @@ extends Node
 ## 씬을 새로 로드해도 유지되며, 최고 기록은 user://에 영속 저장된다.
 
 const SAVE_PATH := "user://save.cfg"
-const VERSION := "v0.99"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
+const VERSION := "v1.0"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
 
 # 패치노트 (최신이 위). 새 버전 추가 시 맨 앞에 한 항목 추가. 시작 화면 "패치노트" + 업데이트 시 자동 안내.
 const CHANGELOG := [
+	{"v": "v1.0", "notes": ["유물 시스템 개편 — '코인 해금 + 장착'에서 '코인 랜덤 뽑기'로 변경. 뽑아 모은 유물은 전부 자동 적용되고, 같은 유물이 또 나오면 레벨이 올라 효과가 강해진다(즉사 비율·연쇄 횟수·화상·회복·코인배수·격노 데미지). 장착·슬롯 제거, 홈 '유물'에서 100코인으로 뽑기"]},
 	{"v": "v0.99", "notes": ["픽셀 폰트 적용 — 전체 UI 폰트를 한글 지원 픽셀 폰트(갈무리11, OFL)로 교체. 안티앨리어싱을 꺼 도트가 또렷한 레트로 느낌으로 단색 도형 아트와 톤을 통일"]},
 	{"v": "v0.98", "notes": ["스킬 카드 진화명 표시 — 이미 보유한 스킬의 카드가 나오면 이름이 '다음 진화 단계'로 표시(예: 마력탄 보유 시 '연발 마력탄' → '마력 폭풍'). 배지도 '✦ 진화', 설명도 'OO(으)로 진화합니다'. 무엇으로 진화할지 미리 보임"]},
 	{"v": "v0.97", "notes": ["메테오·융단 낙하 연출 — 즉시 폭발 대신 하늘에서 불덩이(꼬리 잔상)가 떨어져 도달 지점에 폭발+피해. 떨어지는 광역기다운 타격감", "스킬 시전 포즈 — 스킬을 쓸 때 마법사가 위로 쭉 뻗으며 번쩍이는 시전 포즈"]},
@@ -89,8 +90,7 @@ const UPGRADES := [
 const XP_BASE := 50
 const XP_STEP := 25
 const MASTERY_PER_LEVEL := 0.02  ## 숙련 레벨당 공격력·체력 +2%
-const RELIC_SLOTS := 2  ## 기본 유물 장착 슬롯 수
-const RELIC_SLOTS_MAX := 4  ## 슬롯 강화 상한
+const ROLL_COST := 100  ## 유물 뽑기 1회 비용(코인)
 
 # 처치 업적: 누적 처치가 마일스톤을 넘을 때마다 영구 고정 보너스(공격력·체력). 마일스톤은 높게(기하급수).
 const KILL_MILESTONES := [100, 300, 700, 1500, 3000, 6000, 12000, 25000, 50000]
@@ -135,9 +135,7 @@ var kills := {}  ## 적 종류별 누적 처치 수 {kind_key: count} — 도감
 var total_runs := 0  ## 누적 플레이 횟수(통계)
 var lifetime_coins := 0  ## 누적 획득 코인(통계)
 var seen_version := ""  ## 마지막으로 패치노트를 본 버전 — 다르면 시작 시 자동 안내
-var unlocked_relics: Array = []  ## 코인으로 영구 해금한 유물 id
-var equipped_relics: Array = []  ## 이번 런에 장착할 유물 id (해금분 중 최대 relic_slots개)
-var relic_slot_bonus := 0  ## 코인으로 늘린 추가 유물 슬롯 (relic_slots = RELIC_SLOTS + 이것)
+var relic_levels := {}  ## 유물 id별 보유 레벨 {id: level} — 뽑기로 모음, 중복은 레벨↑. 보유분 전부 적용
 
 func _ready() -> void:
 	_load()
@@ -312,59 +310,25 @@ func kill_bonus_damage() -> float:
 func kill_bonus_hp() -> float:
 	return kill_tier() * KILL_BONUS_HP
 
-## --- 유물 (코인 영구 해금 + 런 장착) ---
-func relic_slots() -> int:
-	return RELIC_SLOTS + relic_slot_bonus
+## --- 유물 (코인 랜덤 뽑기 → 모은 유물 전부 적용, 중복은 레벨↑로 강화) ---
+func can_roll_relic() -> bool:
+	return coins >= ROLL_COST
 
-## 다음 유물 슬롯 비용 (상한 도달 시 -1). 비용 = 300 × 2^현재추가슬롯.
-func relic_slot_cost() -> int:
-	if relic_slots() >= RELIC_SLOTS_MAX:
-		return -1
-	return int(300 * pow(2, relic_slot_bonus))
-
-func can_buy_relic_slot() -> bool:
-	var c := relic_slot_cost()
-	return c >= 0 and coins >= c
-
-## 슬롯 +1 (코인 공용 차감·영속). 성공 시 true.
-func buy_relic_slot() -> bool:
-	if not can_buy_relic_slot():
-		return false
-	coins -= relic_slot_cost()
-	relic_slot_bonus += 1
+## 코인으로 유물 1개 뽑기 — 랜덤 유물 레벨 +1(중복이면 강화). 반환 {id, level, is_new}(코인 부족 시 {})
+func roll_relic() -> Dictionary:
+	if not can_roll_relic():
+		return {}
+	coins -= ROLL_COST
+	var r: Dictionary = RelicLib.RELICS[randi() % RelicLib.RELICS.size()]
+	var id: String = r.id
+	var was: int = int(relic_levels.get(id, 0))
+	relic_levels[id] = was + 1
 	_save()
-	return true
+	return {"id": id, "level": was + 1, "is_new": was == 0}
 
-func relic_cost(id: String) -> int:
-	return int(RelicLib.relic_def(id).get("cost", 100))
-
-func is_relic_unlocked(id: String) -> bool:
-	return unlocked_relics.has(id)
-
-func can_unlock_relic(id: String) -> bool:
-	return not is_relic_unlocked(id) and coins >= relic_cost(id)
-
-## 해금 성공 시 코인 차감·영속 저장하고 true
-func unlock_relic(id: String) -> bool:
-	if not can_unlock_relic(id):
-		return false
-	coins -= relic_cost(id)
-	unlocked_relics.append(id)
-	_save()
-	return true
-
-func is_relic_equipped(id: String) -> bool:
-	return equipped_relics.has(id)
-
-## 장착/해제 토글 (해금된 것만, 슬롯 한도 내). 변경 시 저장.
-func toggle_relic(id: String) -> void:
-	if is_relic_equipped(id):
-		equipped_relics.erase(id)
-	elif is_relic_unlocked(id) and equipped_relics.size() < relic_slots():
-		equipped_relics.append(id)
-	else:
-		return
-	_save()
+## 유물 보유 레벨 (0=미보유)
+func relic_level(id: String) -> int:
+	return int(relic_levels.get(id, 0))
 
 func _load() -> void:
 	var cf := ConfigFile.new()
@@ -378,9 +342,10 @@ func _load() -> void:
 		upgrades = cf.get_value("meta", "upgrades", {})
 		char_xp = cf.get_value("meta", "char_xp", {})
 		seen_version = cf.get_value("meta", "seen_version", "")
-		unlocked_relics = cf.get_value("meta", "unlocked_relics", [])
-		equipped_relics = cf.get_value("meta", "equipped_relics", [])
-		relic_slot_bonus = cf.get_value("meta", "relic_slot_bonus", 0)
+		relic_levels = cf.get_value("meta", "relic_levels", {})
+		if relic_levels.is_empty():  # 구형 세이브(해금 유물) → 레벨 1로 마이그레이션
+			for rid in cf.get_value("meta", "unlocked_relics", []):
+				relic_levels[rid] = 1
 		char_best = cf.get_value("record", "char_best", {})
 		kills = cf.get_value("record", "kills", {})
 		total_runs = cf.get_value("record", "total_runs", 0)
@@ -398,9 +363,7 @@ func _save() -> void:
 	cf.set_value("meta", "upgrades", upgrades)
 	cf.set_value("meta", "char_xp", char_xp)
 	cf.set_value("meta", "seen_version", seen_version)
-	cf.set_value("meta", "unlocked_relics", unlocked_relics)
-	cf.set_value("meta", "equipped_relics", equipped_relics)
-	cf.set_value("meta", "relic_slot_bonus", relic_slot_bonus)
+	cf.set_value("meta", "relic_levels", relic_levels)
 	cf.set_value("record", "char_best", char_best)
 	cf.set_value("record", "kills", kills)
 	cf.set_value("record", "total_runs", total_runs)
