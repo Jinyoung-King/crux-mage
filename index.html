@@ -93,7 +93,7 @@ body {
 		<link id="-gd-engine-icon" rel="icon" type="image/png" href="index.icon.png" />
 <link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
 <link rel="manifest" href="index.manifest.json">
-<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('index.service.worker.js').then(function(r){if(r.waiting&&navigator.serviceWorker.controller){r.waiting.postMessage('update');}r.addEventListener('updatefound',function(){var n=r.installing;if(!n)return;n.addEventListener('statechange',function(){if(n.state==='installed'&&navigator.serviceWorker.controller){n.postMessage('update');}});});}).catch(function(){});});}</script>
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><script>if('serviceWorker' in navigator){function cmBanner(w){if(document.getElementById('cm-upd'))return;var b=document.createElement('div');b.id='cm-upd';b.textContent='새 버전 있음 · 탭하여 업데이트';b.style.cssText='position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:99999;background:#4d7bff;color:#fff;font:600 15px sans-serif;padding:11px 20px;border-radius:22px;box-shadow:0 4px 16px rgba(0,0,0,.45);cursor:pointer';b.onclick=function(){b.textContent='업데이트 중…';if(w){w.postMessage('update');}else{location.reload();}};document.body.appendChild(b);}window.addEventListener('load',function(){navigator.serviceWorker.register('index.service.worker.js').then(function(r){if(r.waiting&&navigator.serviceWorker.controller){cmBanner(r.waiting);}r.addEventListener('updatefound',function(){var n=r.installing;if(!n)return;n.addEventListener('statechange',function(){if(n.state==='installed'&&navigator.serviceWorker.controller){cmBanner(n);}});});}).catch(function(){});});}</script>
 	</head>
 	<body>
 		<canvas id="canvas">
@@ -112,7 +112,7 @@ body {
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":6984512,"index.wasm":37700666},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":6984640,"index.wasm":37700666},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
