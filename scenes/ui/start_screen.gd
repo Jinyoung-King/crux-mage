@@ -59,6 +59,7 @@ func _ready() -> void:
 	mastery_bar.add_theme_stylebox_override("background", xp_bg)
 	mastery_bar.add_theme_stylebox_override("fill", _xp_fill)
 	_refresh()
+	_build_stage_buttons()  # 무한모드(PlayButton) 아래에 속성 스테이지 선택 버튼 추가
 
 func _on_start_wave_changed(v: float) -> void:
 	GameState.start_wave = int(v)
@@ -144,9 +145,35 @@ func _update_mastery() -> void:
 	mastery_bar.value = st[1]
 	_xp_fill.bg_color = c.accent_color
 
-func _on_play() -> void:
+func _on_play() -> void:  # 무한모드 (속성 순환, 끝없음)
 	GameState.selected = GameState.characters[selected_index]
+	GameState.game_mode = "endless"
 	get_tree().change_scene_to_file("res://scenes/main/main.tscn")
+
+## 속성 스테이지(유한 클리어 모드) 시작 — 고른 속성으로
+func _on_stage(elem: String) -> void:
+	GameState.selected = GameState.characters[selected_index]
+	GameState.game_mode = "stage"
+	GameState.stage_element = elem
+	get_tree().change_scene_to_file("res://scenes/main/main.tscn")
+
+## 속성 스테이지 선택 버튼 5개(목·화·토·금·수) 생성
+func _build_stage_buttons() -> void:
+	var lbl := _label("─ 속성 스테이지 (유한 클리어) ─", 15, Color(0.72, 0.72, 0.78))
+	$Center.add_child(lbl)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 8)
+	$Center.add_child(row)
+	for elem in ["wood", "fire", "earth", "metal", "water"]:
+		var b := Button.new()
+		b.text = ElementLib.display_name(elem)
+		b.custom_minimum_size = Vector2(52, 48)
+		b.add_theme_font_override("font", FONT)
+		b.add_theme_font_size_override("font_size", 22)
+		b.add_theme_color_override("font_color", ElementLib.color(elem))
+		row.add_child(b)
+		b.pressed.connect(_on_stage.bind(elem))
 
 func _on_upgrade() -> void:
 	GameState.selected = GameState.characters[selected_index]  # 강조 중인 캐릭터를 강화 대상으로

@@ -23,7 +23,8 @@ const ENDLESS_HP_GROWTH := 0.15  # 무한 모드 단계당 적 체력 증가율
 const ENDLESS_DMG_GROWTH := 0.10  # 무한 모드 단계당 적 피해 증가율(체력보다 완만, 흡혈 무한지속 방지)
 const ENDLESS_DMG_CAP := 12.0  # 적 피해 배율 상한 — 체력은 무한 증가하되 '한 방 즉사'는 방지(체력안배 가능)
 const ELEMENT_ORDER := ["wood", "fire", "earth", "metal", "water"]  # 속성 스테이지 순환 순서(목→화→토→금→수)
-const WAVES_PER_STAGE := 10  # 스테이지당 웨이브 수(보스로 끝). 스테이지마다 속성이 바뀜
+const WAVES_PER_STAGE := 10  # (무한모드) 스테이지당 웨이브 수(보스로 끝). 스테이지마다 속성이 바뀜
+const STAGE_WAVES := 12  # (스테이지 모드) 클리어까지 웨이브 수 — 마지막 웨이브가 보스
 const SPEEDS := [1.0, 2.0, 3.0]  # 배속 순환 단계(탭마다 1→2→3→1x)
 # 무한 모드 엘리트 수식어 (잡몹이 일정 확률로 하나를 달고 등장). 누락 배수는 1.0 취급.
 const MODIFIERS := [
@@ -164,11 +165,14 @@ func _ready() -> void:
 	if OS.has_feature("web"):
 		auto_pick = str(JavaScriptBridge.eval("window.location.search")).contains("auto=1")
 	# 게임 시작: 시작 웨이브 도약 보정(건너뛴 분 무작위 카드 자동 지급) 후 카드 드래프트
-	var sw: int = GameState.start_wave
-	if sw > 1:
-		_grant_head_start(int((sw - 1) * 0.7))
-		$Player.heal($Player.max_hp)  # 만피로 시작
-	wave_index = sw - 2  # 시작 드래프트 후 _start_wave(sw-1) = Wave sw
+	if GameState.game_mode == "stage":
+		wave_index = -1  # 스테이지 모드: Wave 1부터(시작 웨이브 도약 없음)
+	else:
+		var sw: int = GameState.start_wave
+		if sw > 1:
+			_grant_head_start(int((sw - 1) * 0.7))
+			$Player.heal($Player.max_hp)  # 만피로 시작
+		wave_index = sw - 2  # 시작 드래프트 후 _start_wave(sw-1) = Wave sw
 	start_drafts_left = 1 + GameState.upgrade_level("extra_card")
 	_open_draft()
 
@@ -286,6 +290,12 @@ func _flash_screen() -> void:
 
 ## 웨이브 종류: 끝자리 0(10,20…)=보스, 3·5·7=중간보스, 그 외=일반. 무한에서도 10단위 반복.
 func _wave_kind(index: int) -> String:
+	if GameState.game_mode == "stage":
+		if index >= STAGE_WAVES - 1:
+			return "boss"  # 스테이지 마지막 = 그 속성 보스
+		if (index + 1) % 4 == 0:
+			return "midboss"
+		return "normal"
 	var n := (index + 1) % 10
 	if n == 0:
 		return "boss"
@@ -300,8 +310,10 @@ func _endless_level(index: int) -> int:
 	return maxi(index + 1 - 5, 0)
 
 ## 보스 웨이브 회차에 따라 보스 3종 순환: 마왕(10·40) / 수호 마왕(20·50) / 폭풍 마왕(30·60)
-## 현재 웨이브가 속한 스테이지의 속성 (10웨이브마다 목→화→토→금→수 순환)
+## 현재 웨이브 속성 — 스테이지 모드는 고른 속성 고정, 무한모드는 10웨이브마다 순환
 func _stage_element(index: int) -> String:
+	if GameState.game_mode == "stage":
+		return GameState.stage_element
 	return ELEMENT_ORDER[(index / WAVES_PER_STAGE) % ELEMENT_ORDER.size()]
 
 ## 스테이지 속성에 맞는 보스 웨이브
@@ -572,6 +584,10 @@ func _on_wave_cleared() -> void:
 		bonus = int(round(bonus * RelicLib.greed_mult($Player.relic_levels["greed"])))
 	run_coins += bonus
 	_update_coin_label()
+	# 스테이지 모드: 마지막(보스) 웨이브를 깨면 클리어(다음 웨이브 없음)
+	if GameState.game_mode == "stage" and wave_index >= STAGE_WAVES - 1:
+		_stage_cleared()
+		return
 	# 끝자리 6 웨이브 클리어 후엔 상점(코인 사용처), 그 외엔 카드 드래프트(보스는 희귀 확정)
 	if _is_shop_wave(wave_index):
 		_open_shop()
@@ -726,6 +742,22 @@ func _on_card_chosen(card: CardData) -> void:
 
 func _on_player_hp_changed(hp: float, max_hp: float) -> void:
 	hp_label.text = "%s / %s" % [NumFmt.compact(int(hp)), NumFmt.compact(int(max_hp))]  # 앞의 방패 아이콘(HpIcon)이 '기지 내구도'를 표시
+
+## 스테이지 모드 클리어 — 마지막(보스) 웨이브 격파. 승리 화면(코인·숙련 정산).
+func _stage_cleared() -> void:
+	game_over = true
+	print("STAGE CLEAR")
+	pause_button.hide()
+	wave_label.text = "%s 스테이지 클리어!" % ElementLib.display_name(GameState.stage_element)
+	wave_label.modulate = ElementLib.color(GameState.stage_element)
+	GameState.add_coins(run_coins)
+	GameState.add_xp(GameState.selected, wave_index + 1)
+	GameState.note_run(GameState.selected, wave_index + 1)
+	coin_label.text = "+%s 클리어 보상" % NumFmt.compact(run_coins)
+	_update_best_label()
+	get_tree().paused = true
+	restart_button.show()
+	char_select_button.show()
 
 func _on_player_died() -> void:
 	game_over = true
