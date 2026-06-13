@@ -169,7 +169,7 @@ func _style_card(btn: Button, card) -> void:
 	if skill_framed:  # 스킬 카드: 속성 배지 + 속성 색 이름(보유 중이면 다음 진화명)
 		var evo := _next_evolve_name(card.grant_skill_id)
 		var title: String = evo if evo != "" else SkillLib.DEFS.get(card.grant_skill_id, {}).get("name", card.card_name)
-		var tag: String = "✦ 진화" if evo != "" else "✦ 스킬"
+		var tag: String = "★ 진화" if evo != "" else "★ 스킬"
 		box.add_child(_label("%s · %s속성" % [tag, ElementLib.display_name(elem)], 15, ElementLib.color(elem)))
 		box.add_child(_label(title, 23, ElementLib.color(elem)))
 	else:
