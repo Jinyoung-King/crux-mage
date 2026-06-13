@@ -99,7 +99,7 @@ func _ready() -> void:
 	$Player.died.connect(_on_player_died)
 	$Player.skill_cast.connect(_on_skill_cast)
 	$Player.took_damage.connect(_on_player_took_damage)
-	$Player.tapped.connect(_on_player_tapped)  # 마법사 탭 → 능력치 창
+	$HUD/WizardTapZone.gui_input.connect(_on_wizard_zone_input)  # 마법사 탭 → 능력치 창
 	$HUD/StatsPanel/Center/CloseButton.pressed.connect(_close_stats)
 	$HUD/StatsPanel/Dim.gui_input.connect(_on_stats_dim_input)
 	spawn_timer.timeout.connect(_spawn_enemy)
@@ -543,6 +543,11 @@ func _on_pause_pressed() -> void:
 	$HUD/PauseScreen/Center/BuildLabel.text = _build_summary()
 	get_tree().paused = true
 	pause_screen.show()
+
+## 마법사 탭존(HUD 투명 Control) 입력 → 능력치 창. Control이라 클릭을 확실히 받음.
+func _on_wizard_zone_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		_on_player_tapped()
 
 ## 마법사 탭 → 현재 능력치 창(잠깐 멈춤). 게임오버·이미 멈춤이면 무시.
 func _on_player_tapped() -> void:

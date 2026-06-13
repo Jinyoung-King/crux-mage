@@ -6,7 +6,6 @@ signal hp_changed(hp: float, max_hp: float)
 signal died
 signal skill_cast(data: Dictionary)  ## 액티브 스킬 발동 — {id,power,radius,count,element} (main이 효과 처리)
 signal took_damage(amount: float)  ## 받는 피해 (빨간 데미지 숫자 표시용)
-signal tapped  ## 마법사를 탭 (능력치 창 열기)
 
 const PROJECTILE_SCENE := preload("res://scenes/projectile/projectile.tscn")
 const FOCUS_SPREAD := PI / 90.0  ## 표적보다 발사 수가 많을 때 같은 표적에 겹쳐 쏘는 발사의 부채 각(≈2°)
@@ -42,13 +41,6 @@ func _ready() -> void:
 	hp = max_hp
 	build = BuildState.new()  # 런타임 생성 (.tres 직접 참조 금지)
 	attack_timer.stop()  # v0.60 스킬-캐스터 전환: 연속 평타 없음 — 공격은 _process의 스킬 자동 시전으로만
-	$TapArea.input_event.connect(_on_tap_area_input)  # 마법사 탭 → 능력치 창
-
-## 마법사 탭 감지 → tapped 발화
-func _on_tap_area_input(_viewport: Node, event: InputEvent, _shape: int) -> void:
-	if (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT) \
-			or (event is InputEventScreenTouch and event.pressed):
-		tapped.emit()
 
 ## 선택 캐릭터의 무기·기본 빌드·외형 적용 (게임 시작 시 main이 호출)
 func apply_character(c: CharacterData) -> void:
