@@ -1,13 +1,26 @@
 extends Control
-## 캐릭터 선택(컬렉션) 화면. 해금된 캐릭터를 골라 게임을 시작한다.
+## 홈(시작) 화면. 선택된 캐릭터 한 명만 크게 보여주고 ◀▶로 전환한다.
+## 선택 캐릭터의 오행 속성색으로 배경·오라·강조 UI를 테마화.
 
 const FONT := preload("res://assets/fonts/NotoSansKR.ttf")
+const ELEMENT_AURA := preload("res://scenes/fx/element_aura.gd")
 
-var selected_index := 0
-var cards: Array = []
-var _xp_fill: StyleBoxFlat  # 숙련 게이지 채움 스타일(선택 캐릭터 accent 색)
+var view_chars: Array = []   # 해금된 캐릭터(◀▶ 순환 대상)
+var view_pos: int = 0
+var _xp_fill: StyleBoxFlat   # 숙련 게이지 채움(선택 속성색)
+var _play_style: StyleBoxFlat  # 시작 버튼 배경(선택 속성색)
 
-@onready var grid: GridContainer = $Center/Grid
+# 동적 생성 노드
+var mage_view: TextureRect
+var aura: Node2D
+var name_lbl: Label
+var elem_lbl: Label
+var desc_lbl: Label
+var prev_btn: Button
+var next_btn: Button
+
+@onready var bg: Node2D = $BgLayer/Background
+@onready var char_view: VBoxContainer = $Center/CharView
 @onready var play_button: Button = $Center/PlayButton
 @onready var best_label: Label = $Center/BestLabel
 @onready var upgrade_button: Button = $NavBar/Row/UpgradeButton
@@ -28,19 +41,20 @@ func _ready() -> void:
 		best_label.text = "최고 Wave %d   ·   코인 %s" % [GameState.best_wave, NumFmt.compact(GameState.coins)]
 	else:
 		best_label.text = "첫 도전을 시작하세요"
-	for i in GameState.characters.size():
-		var card := _make_card(GameState.characters[i], i)
-		grid.add_child(card)
-		cards.append(card)
-	selected_index = maxi(GameState.characters.find(GameState.selected), 0)
-	if not GameState.is_unlocked(GameState.characters[selected_index]):
-		selected_index = 0  # 해금된 캐릭터로 보정
+	# 해금된 캐릭터만 순환 대상
+	for c in GameState.characters:
+		if GameState.is_unlocked(c):
+			view_chars.append(c)
+	if view_chars.is_empty():
+		view_chars = [GameState.characters[0]]
+	view_pos = maxi(view_chars.find(GameState.selected), 0)
+	_build_char_view()
 	play_button.pressed.connect(_on_play)
-	upgrade_button.pressed.connect(_on_upgrade)  # 코인 잔액은 상단 BestLabel에 표기
+	upgrade_button.pressed.connect(_on_upgrade)
 	$NavBar/Row/PatchButton.pressed.connect(_on_patch)
 	$NavBar/Row/RelicButton.pressed.connect(_on_relics)
 	$NavBar/Row/BestiaryButton.pressed.connect(_on_bestiary)
-	# 시작 웨이브 다이얼: 1 ~ 최고 기록(1단위). 기록이 2 미만이면 숨김(아직 스킵 구간 없음).
+	# 시작 웨이브 다이얼: 1 ~ 최고 기록(1단위). 기록이 2 미만이면 숨김.
 	if GameState.best_wave < 2:
 		start_wave_box.hide()
 		GameState.start_wave = 1
@@ -50,7 +64,7 @@ func _ready() -> void:
 		GameState.start_wave = int(start_wave_slider.value)
 		start_wave_slider.value_changed.connect(_on_start_wave_changed)
 		_refresh_start_wave()
-	# 숙련 게이지 스타일 (채움 색은 _update_mastery에서 선택 캐릭터 accent로 갱신)
+	# 숙련 게이지 스타일 (채움 색은 _update_mastery에서 선택 속성색으로 갱신)
 	var xp_bg := StyleBoxFlat.new()
 	xp_bg.bg_color = Color(0, 0, 0, 0.4)
 	xp_bg.set_corner_radius_all(5)
@@ -58,8 +72,98 @@ func _ready() -> void:
 	_xp_fill.set_corner_radius_all(5)
 	mastery_bar.add_theme_stylebox_override("background", xp_bg)
 	mastery_bar.add_theme_stylebox_override("fill", _xp_fill)
-	_refresh()
-	_build_stage_buttons()  # 무한모드(PlayButton) 아래에 속성 스테이지 선택 버튼 추가
+	# 시작 버튼 속성색 배경
+	_play_style = StyleBoxFlat.new()
+	_play_style.set_corner_radius_all(10)
+	_play_style.set_border_width_all(3)
+	play_button.add_theme_stylebox_override("normal", _play_style)
+	play_button.add_theme_stylebox_override("hover", _play_style)
+	play_button.add_theme_stylebox_override("pressed", _play_style)
+	_build_stage_buttons()
+	_apply_char()  # 텍스처·이름·속성색·배경·오라 적용
+
+## 캐릭터 뷰(◀ [오라+마법사] ▶ + 이름·속성·설명) 구성
+func _build_char_view() -> void:
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 10)
+	prev_btn = _arrow("◀")
+	prev_btn.pressed.connect(_cycle.bind(-1))
+	row.add_child(prev_btn)
+	var stage := Control.new()
+	stage.custom_minimum_size = Vector2(200, 200)
+	stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	aura = ELEMENT_AURA.new()
+	aura.position = Vector2(100, 100)
+	stage.add_child(aura)
+	mage_view = TextureRect.new()
+	mage_view.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	mage_view.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	mage_view.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	mage_view.size = Vector2(140, 140)
+	mage_view.position = Vector2(30, 30)
+	mage_view.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stage.add_child(mage_view)
+	row.add_child(stage)
+	next_btn = _arrow("▶")
+	next_btn.pressed.connect(_cycle.bind(1))
+	row.add_child(next_btn)
+	char_view.add_child(row)
+	name_lbl = _label("", 34, Color.WHITE)
+	char_view.add_child(name_lbl)
+	elem_lbl = _label("", 18, Color.WHITE)
+	char_view.add_child(elem_lbl)
+	desc_lbl = _label("", 17, Color(0.82, 0.82, 0.88))
+	char_view.add_child(desc_lbl)
+
+## 오행 속성별 오라 변 수(0=원). fire=3·water=0·wood=5·metal=4·earth=6
+func _sides(elem: String) -> int:
+	match elem:
+		"fire": return 3
+		"water": return 0
+		"wood": return 5
+		"metal": return 4
+		_: return 6  # earth
+
+## 현재 캐릭터를 화면 전체에 반영 (속성색 테마)
+func _apply_char() -> void:
+	var c: CharacterData = view_chars[view_pos]
+	GameState.selected = c
+	var col: Color = ElementLib.color(c.element)
+	mage_view.texture = c.mage_sprite
+	aura.setup(col, _sides(c.element), 86.0)
+	name_lbl.text = c.display_name
+	name_lbl.add_theme_color_override("font_color", col)
+	elem_lbl.text = "%s 속성 · %s에 강함" % [ElementLib.display_name(c.element), ElementLib.strong_against(c.element)]
+	elem_lbl.add_theme_color_override("font_color", col)
+	desc_lbl.text = c.description
+	# 배경 속성색 테마
+	bg.set_theme_color(col)
+	# 시작 버튼 속성색
+	_play_style.bg_color = Color(col.r, col.g, col.b, 0.22)
+	_play_style.border_color = col
+	play_button.add_theme_color_override("font_color", Color.WHITE)
+	# 제목 외곽선 속성색
+	$Center/Title.add_theme_color_override("font_outline_color", Color(col.r, col.g, col.b, 0.9))
+	# 화살표 속성색
+	prev_btn.add_theme_color_override("font_color", col)
+	next_btn.add_theme_color_override("font_color", col)
+	prev_btn.visible = view_chars.size() > 1
+	next_btn.visible = view_chars.size() > 1
+	_update_mastery()
+
+func _cycle(dir: int) -> void:
+	view_pos = (view_pos + dir + view_chars.size()) % view_chars.size()
+	_apply_char()
+
+func _arrow(text: String) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.flat = true
+	b.custom_minimum_size = Vector2(52, 80)
+	b.add_theme_font_override("font", FONT)
+	b.add_theme_font_size_override("font_size", 34)
+	return b
 
 func _on_start_wave_changed(v: float) -> void:
 	GameState.start_wave = int(v)
@@ -67,41 +171,6 @@ func _on_start_wave_changed(v: float) -> void:
 
 func _refresh_start_wave() -> void:
 	start_wave_label.text = "시작: Wave %d" % GameState.start_wave
-
-func _make_card(c: CharacterData, idx: int) -> Button:
-	var unlocked := GameState.is_unlocked(c)
-	var btn := Button.new()
-	btn.custom_minimum_size = Vector2(300, 150)
-	btn.pivot_offset = Vector2(150, 75)  # 선택 강조 확대가 카드 중앙 기준이 되도록
-	btn.disabled = not unlocked
-	btn.pressed.connect(_on_card_pressed.bind(idx))
-
-	var box := VBoxContainer.new()
-	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_KEEP_SIZE, 8)
-	box.alignment = BoxContainer.ALIGNMENT_CENTER
-	box.add_theme_constant_override("separation", 4)
-
-	var icon := TextureRect.new()
-	icon.texture = c.mage_sprite
-	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	icon.custom_minimum_size = Vector2(72, 72)
-	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_child(icon)
-
-	var name_lbl := _label(c.display_name if unlocked else "???", 22, c.accent_color if unlocked else Color(0.6, 0.6, 0.6))
-	box.add_child(name_lbl)
-
-	var info := c.description if unlocked else "Wave %d 도달 시 해금" % c.unlock_wave
-	box.add_child(_label(info, 15, Color(0.8, 0.8, 0.8) if unlocked else Color(0.55, 0.55, 0.55)))
-
-	if unlocked and c.element != "":  # 간결화: 오행 속성·상성만 (틀린 스탯줄·기록줄 제거)
-		box.add_child(_label("%s · %s에 강함" % [ElementLib.display_name(c.element), ElementLib.strong_against(c.element)], 14, ElementLib.color(c.element)))
-
-	btn.add_child(box)
-	return btn
 
 func _label(text: String, size: int, color: Color) -> Label:
 	var l := Label.new()
@@ -113,46 +182,23 @@ func _label(text: String, size: int, color: Color) -> Label:
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return l
 
-func _on_card_pressed(idx: int) -> void:
-	selected_index = idx
-	_refresh()
-
-func _refresh() -> void:
-	for i in cards.size():
-		var unlocked := GameState.is_unlocked(GameState.characters[i])
-		if not unlocked:
-			cards[i].modulate = Color(0.45, 0.45, 0.45)
-			cards[i].scale = Vector2(1, 1)
-		elif i == selected_index:
-			cards[i].modulate = Color(1, 1, 1)
-			cards[i].scale = Vector2(1.06, 1.06)  # 선택 카드 확대 강조
-		else:
-			cards[i].modulate = Color(0.6, 0.6, 0.6)  # 비선택은 더 어둡게(대비↑)
-			cards[i].scale = Vector2(1, 1)
-	_update_mastery()  # 선택 캐릭터 숙련 패널 갱신
-
 ## 선택 캐릭터의 숙련 Lv·전투력 보너스·exp 게이지 갱신
 func _update_mastery() -> void:
-	var c: CharacterData = GameState.characters[selected_index]
-	if not GameState.is_unlocked(c):
-		mastery_box.hide()
-		return
+	var c: CharacterData = GameState.selected
 	mastery_box.show()
 	var st: Array = GameState._xp_state(c)  # [레벨, 레벨 내 경험치, 다음 레벨 필요치]
 	var bonus := int(round((GameState.mastery_mult(c) - 1.0) * 100.0))
 	mastery_label.text = "%s 숙련 Lv %d · 전투력 +%d%%" % [c.display_name, st[0], bonus]
 	mastery_bar.max_value = st[2]
 	mastery_bar.value = st[1]
-	_xp_fill.bg_color = c.accent_color
+	_xp_fill.bg_color = ElementLib.color(c.element)
 
 func _on_play() -> void:  # 무한모드 (속성 순환, 끝없음)
-	GameState.selected = GameState.characters[selected_index]
 	GameState.game_mode = "endless"
 	get_tree().change_scene_to_file("res://scenes/main/main.tscn")
 
 ## 속성 스테이지(유한 클리어 모드) 시작 — 고른 속성으로
 func _on_stage(elem: String) -> void:
-	GameState.selected = GameState.characters[selected_index]
 	GameState.game_mode = "stage"
 	GameState.stage_element = elem
 	get_tree().change_scene_to_file("res://scenes/main/main.tscn")
@@ -176,7 +222,6 @@ func _build_stage_buttons() -> void:
 		b.pressed.connect(_on_stage.bind(elem))
 
 func _on_upgrade() -> void:
-	GameState.selected = GameState.characters[selected_index]  # 강조 중인 캐릭터를 강화 대상으로
 	get_tree().change_scene_to_file("res://scenes/ui/meta_upgrade.tscn")
 
 func _on_patch() -> void:
