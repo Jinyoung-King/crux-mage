@@ -956,7 +956,7 @@ func _skill_hit(e, dmg: float, element: String) -> void:
 	var was_burning: bool = e.burn_time_left > 0.0   # 격발 판정은 이번 명중 부여 '전' 상태 기준
 	var was_slowed: bool = e.slow_time_left > 0.0
 	var mult := ElementLib.multiplier(element, e.element)  # 오행 상성
-	var d := dmg * mult
+	var d := dmg * mult * randf_range(0.95, 1.05)  # ±5% 데미지 분산
 	e.take_damage(d)
 	if p.lifesteal > 0.0:
 		p.heal(d * p.lifesteal)  # 흡혈
@@ -992,7 +992,7 @@ func _explode(center: Vector2, dmg: float, element: String) -> void:
 	_skill_ring(center, 72.0, Color(1.0, 0.55, 0.15))
 	for e in get_tree().get_nodes_in_group("enemies"):
 		if is_instance_valid(e) and center.distance_to(e.global_position) <= 72.0:
-			e.take_damage(dmg * ElementLib.multiplier(element, e.element))
+			e.take_damage(dmg * ElementLib.multiplier(element, e.element) * randf_range(0.95, 1.05))
 
 ## 반경 내 적에게 스킬 피해(+선택적 화상) — 캐릭터 속성 상성 적용
 func _skill_aoe(center: Vector2, radius: float, dmg: float, burn: bool) -> void:

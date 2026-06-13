@@ -46,7 +46,7 @@ func _on_area_entered(area) -> void:
 		dmg *= crit_mult  # 치명타
 		is_crit = true
 	var mult := ElementLib.multiplier(element, area.element)  # 오행 상성
-	var hit_dmg := dmg * mult
+	var hit_dmg := dmg * mult * randf_range(0.95, 1.05)  # ±5% 데미지 분산
 	area.take_damage(hit_dmg)
 	damaged.emit(hit_dmg, is_crit, area.global_position, mult > 1.0)  # 플로팅 데미지 숫자(상성 강타 강조)
 	if lifesteal > 0.0:
@@ -79,7 +79,7 @@ func _chain_from(hit, dmg: float) -> void:
 		var ep: Vector2 = e.global_position
 		if origin.distance_to(ep) > chain_range:
 			break  # 정렬돼 있으므로 사정거리 밖이면 이후도 전부 밖
-		var cd := dmg * chain_factor * ElementLib.multiplier(element, e.element)
+		var cd := dmg * chain_factor * ElementLib.multiplier(element, e.element) * randf_range(0.95, 1.05)
 		e.take_damage(cd)
 		if lifesteal > 0.0:
 			dealt.emit(cd * lifesteal)
@@ -93,7 +93,7 @@ func _splash_from(hit, dmg: float, center: Vector2) -> void:
 			continue
 		if center.distance_to(e.global_position) <= splash_radius:
 			var em := ElementLib.multiplier(element, e.element)
-			var sd := dmg * splash_factor * em
+			var sd := dmg * splash_factor * em * randf_range(0.95, 1.05)
 			e.take_damage(sd)
 			damaged.emit(sd, false, e.global_position, em > 1.0)
 			if lifesteal > 0.0:
