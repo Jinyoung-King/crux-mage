@@ -7,6 +7,8 @@ signal summon(data: EnemyData, count: int, pos: Vector2)
 signal ranged_attack(damage: float, from_pos: Vector2, count: int, spread_deg: float, bolt_scale: float)
 signal charge_hit(damage: float)  ## 보스 돌진이 플레이어에 닿을 때
 
+const ELEMENT_AURA := preload("res://scenes/fx/element_aura.gd")  ## 속성 표시 오라
+
 @export var max_hp: float = 30.0
 @export var speed: float = 60.0  ## 이동 속도(px/s)
 @export var contact_damage: float = 10.0  ## 플레이어 도달 시 입히는 피해
@@ -154,16 +156,12 @@ func _build_hp_bar(enemy_size: float) -> void:
 ## 속성 색 테두리: 본체 뒤에 속성 색 사각을 본체보다 크게 깔아 가장자리가 속성 색으로 보이게(상성 식별).
 ## $Sprite2D.modulate(피격 플래시·화상/둔화 색조)와 무관하게 항상 속성 색을 유지한다.
 func _build_element_ring() -> void:
-	var m := maxf(5.0, body_size * 0.12)  # 테두리 두께(px)
-	var s := body_size + m * 2.0
-	var ring := ColorRect.new()
-	ring.color = ElementLib.color(element)
-	ring.color.a = 0.5
-	ring.size = Vector2(s, s)
-	ring.position = Vector2(-s / 2.0, -s / 2.0)  # 본체 중앙 정렬
-	ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(ring)
-	move_child(ring, 0)  # 본체 스프라이트 뒤에 그려지도록
+	var aura := ELEMENT_AURA.new()
+	# 오행별 외곽 모양: 불=삼각·물=원·나무=오각·쇠=마름모(4각)·흙=육각
+	var sides: int = {"fire": 3, "water": 0, "wood": 5, "metal": 4, "earth": 6}.get(element, 0)
+	aura.setup(ElementLib.color(element), sides, body_size * 0.72)
+	add_child(aura)
+	move_child(aura, 0)  # 본체 스프라이트 뒤에 그려지도록
 
 ## 엘리트 오라: 몹 스프라이트의 '모양'(알파)만 빌려 수식어 색의 단색 실루엣을 만들고,
 ## 8방향으로 살짝 밀어 본체 뒤에 깔아 몹을 감싸는 빛나는 외곽선을 만든다(은은한 맥동).
