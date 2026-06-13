@@ -19,3 +19,6 @@ extends Resource
 @export var skill_radius_bonus: float = 0.0  ## 스킬 범위 +% (meteor/barrage만 유효)
 # 스킬 획득 (SkillLib.DEFS의 id) — 보조 스킬을 독립 쿨타임으로 추가
 @export var grant_skill_id: String = ""
+# 행동(behavior) 부여 — 숫자보다 플레이 변경
+@export var explode_power_bonus: float = 0.0  ## 처치 폭발 위력(명중 피해 대비 비율) 가산
+@export var extra_targets_bonus: int = 0      ## 표적형 스킬 추가 표적 수

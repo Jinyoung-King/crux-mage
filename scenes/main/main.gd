@@ -58,6 +58,10 @@ var card_pool: Array = [
 	preload("res://resources/cards/card_skill_chain.tres"),
 	preload("res://resources/cards/card_skill_freeze.tres"),
 	preload("res://resources/cards/card_skill_barrage.tres"),
+	preload("res://resources/cards/card_explode.tres"),
+	preload("res://resources/cards/card_explode_big.tres"),
+	preload("res://resources/cards/card_multi_target.tres"),
+	preload("res://resources/cards/card_volley.tres"),
 ]
 
 var wave_index := 0
@@ -426,10 +430,19 @@ func _has_radius_skill() -> bool:
 			return true
 	return false
 
+## 보유 스킬 중 표적형(마력탄·융단·체인 — count 사용) 스킬이 있나
+func _has_count_skill() -> bool:
+	for s in $Player.skills:
+		if s.id in ["bolts", "barrage", "chain"]:
+			return true
+	return false
+
 ## 현재 빌드에서 의미 있는 카드인지 — 죽은 픽(조건 미충족 시너지 등)을 드래프트에서 제외
 func _is_card_useful(card: CardData) -> bool:
 	if card.skill_radius_bonus > 0.0 and not _has_radius_skill():
 		return false  # 범위 스킬(메테오/융단폭격)을 하나도 안 가졌으면 범위 강화 무의미
+	if card.extra_targets_bonus > 0 and not _has_count_skill():
+		return false  # 표적형 스킬이 없으면 다발 무의미
 	if card.heal > 0.0 and $Player.hp >= $Player.max_hp:
 		return false  # 만피에 회복 카드 금지
 	if card.max_hp_bonus < 0.0 and $Player.max_hp + card.max_hp_bonus < 30.0:
@@ -637,7 +650,7 @@ func _on_skill_cast(s: Dictionary) -> void:
 	var ep: float = s.power
 	var er: float = s.radius
 	var element: String = s.element
-	var count: int = s.count
+	var count: int = s.count + $Player.build.extra_targets  # 다발: 표적형 스킬 추가 표적
 	var col: Color = ElementLib.color(element)
 	var focus: Vector2 = $Player.global_position + Vector2(0, -150)  # 이름 팝업 위치(기본=마법사 위)
 	match s.id:
@@ -707,10 +720,21 @@ func _skill_hit(e, dmg: float, element: String) -> void:
 			e.apply_burn(RelicLib.RELIC_BURN_DPS, RelicLib.RELIC_BURN_DUR)  # 점화의 룬
 		if p.relics.has("execute") and e.hp <= e.max_hp * RelicLib.EXECUTE_THRESHOLD:
 			e.take_damage(e.hp)  # 수확의 룬: 즉사
+	# 행동: 처치 폭발 — 이 명중으로 적이 죽으면 주변에 광역(직접 피해라 연쇄 폭주 없음)
+	if p.build.explode_power > 0.0 and is_instance_valid(e) and e.hp <= 0.0:
+		_explode(pos, d * p.build.explode_power, element)
 	var dn = DAMAGE_NUMBER.new()
 	dn.position = pos
 	$Fx.add_child(dn)
 	dn.setup(d, is_crit)
+
+## 처치 폭발: 중심 주변 적에게 직접 피해(+연출). _skill_hit를 안 거쳐 재귀 폭발 방지.
+func _explode(center: Vector2, dmg: float, element: String) -> void:
+	_skill_burst(center, Color(1.0, 0.6, 0.2))
+	_skill_ring(center, 72.0, Color(1.0, 0.55, 0.15))
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if is_instance_valid(e) and center.distance_to(e.global_position) <= 72.0:
+			e.take_damage(dmg * ElementLib.multiplier(element, e.element))
 
 ## 반경 내 적에게 스킬 피해(+선택적 화상) — 캐릭터 속성 상성 적용
 func _skill_aoe(center: Vector2, radius: float, dmg: float, burn: bool) -> void:

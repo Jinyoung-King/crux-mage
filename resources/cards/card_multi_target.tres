@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+card_name = "다발 시전"
+description = "표적형 스킬(마력탄·융단·체인)이 적 1명을 더 노린다"
+rarity = "common"
+extra_targets_bonus = 1

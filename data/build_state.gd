@@ -11,3 +11,6 @@ extends Resource
 @export var defense: float = 0.0  ## 받는 피해 감소(flat, 최소 1은 들어옴)
 @export var skill_power_mult: float = 1.0   ## 스킬 위력 배율 (스킬 강화 카드로 증가)
 @export var skill_radius_mult: float = 1.0  ## 스킬 범위 배율 (meteor/barrage)
+# 행동(behavior) — 카드로 켜는 플레이 변경 효과
+@export var explode_power: float = 0.0  ## >0이면 스킬로 적 처치 시 주변 폭발(명중 피해 × 이 값)
+@export var extra_targets: int = 0      ## 표적형 스킬(마력탄·융단·체인)이 추가로 노리는 적 수

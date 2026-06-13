@@ -187,6 +187,8 @@ func apply_card(card: CardData) -> void:
 	build.defense += card.defense_bonus
 	build.skill_power_mult += card.skill_power_bonus
 	build.skill_radius_mult += card.skill_radius_bonus
+	build.explode_power += card.explode_power_bonus  # 처치 폭발
+	build.extra_targets += card.extra_targets_bonus   # 다발(추가 표적)
 	if card.max_hp_bonus != 0.0:
 		max_hp = maxf(max_hp + card.max_hp_bonus, 10.0)  # 트레이드오프로도 최소 10은 보장
 		hp = minf(hp, max_hp)
