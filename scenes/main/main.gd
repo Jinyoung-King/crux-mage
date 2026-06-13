@@ -10,6 +10,8 @@ const SKILL_NAME := preload("res://scenes/fx/skill_name_popup.gd")  # 시전 스
 const GROUND_HAZARD := preload("res://scenes/fx/ground_hazard.gd")  # 잔류 장판
 const FONT := preload("res://assets/fonts/NotoSansKR.ttf")
 var _skill_rows: Array = []  # 스킬별 쿨타임 게이지 행 {fill, label}
+var _wiz_hold := false   # 마법사 롱탭(길게 누름) 진행 중
+var _wiz_hold_t := 0.0   # 누른 시간 누적
 const ENEMY_BOLT_SCENE := preload("res://scenes/projectile/enemy_bolt.tscn")
 const SPAWN_Y := -60.0  # 화면(720x1280) 위쪽 바깥
 const SPAWN_X_MIN := 60.0  # 스폰 가로 범위 (가장자리 여백 확보)
@@ -205,6 +207,12 @@ func _update_coin_label() -> void:
 	coin_label.text = "%d" % run_coins  # 앞의 동전 아이콘(CoinIcon)이 '코인'을 표시
 
 func _process(delta: float) -> void:
+	# 마법사 롱탭: 0.4초 이상 누르고 있으면 능력치 정보 창 (짧은 탭은 무시)
+	if _wiz_hold and not game_over and not get_tree().paused:
+		_wiz_hold_t += delta
+		if _wiz_hold_t >= 0.4:
+			_wiz_hold = false
+			_on_player_tapped()
 	# 화면 흔들림: 월드(Main)만 움직임 — HUD(CanvasLayer)는 영향 없음
 	if shake > 0.0:
 		shake = maxf(shake - 60.0 * delta, 0.0)
@@ -746,10 +754,14 @@ func _on_pause_pressed() -> void:
 	get_tree().paused = true
 	pause_screen.show()
 
-## 마법사 탭존(HUD 투명 Control) 입력 → 능력치 창. Control이라 클릭을 확실히 받음.
+## 마법사 탭존(HUD 투명 Control) 입력 → 누른 시간을 _process가 재서 롱탭(0.4초)일 때만 정보 창.
 func _on_wizard_zone_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		_on_player_tapped()
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		_wiz_hold = event.pressed  # 누름 시작/해제
+		_wiz_hold_t = 0.0
+	elif event is InputEventScreenTouch:
+		_wiz_hold = event.pressed  # 모바일 터치
+		_wiz_hold_t = 0.0
 
 ## 마법사 탭 → 현재 능력치 창(잠깐 멈춤). 게임오버·이미 멈춤이면 무시.
 func _on_player_tapped() -> void:
@@ -841,16 +853,17 @@ func _on_skill_cast(s: Dictionary) -> void:
 	var count: int = s.count + $Player.build.extra_targets  # 다발: 표적형 스킬 추가 표적
 	var col: Color = ElementLib.color(element)
 	var focus: Vector2 = $Player.global_position + Vector2(0, -150)  # 이름 팝업 위치(기본=마법사 위)
+	var rng: float = SkillLib.SKILL_RANGE.get(s.id, 99999.0)  # 스킬별 사거리
+	var pool := _enemies_in_range(rng)  # 사거리 내 적만 타겟
 	match s.id:
 		"bolts":
-			var enemies := get_tree().get_nodes_in_group("enemies")
 			var pp: Vector2 = $Player.global_position
-			enemies.sort_custom(func(a, b): return pp.distance_squared_to(a.global_position) < pp.distance_squared_to(b.global_position))
-			for e in enemies.slice(0, count):
+			pool.sort_custom(func(a, b): return pp.distance_squared_to(a.global_position) < pp.distance_squared_to(b.global_position))
+			for e in pool.slice(0, count):
 				if is_instance_valid(e):
 					$Player.fire_skill_bolt(e, ep)  # 보이는 마력탄이 날아가 명중(상성·데미지숫자 자체 처리)
 		"meteor":
-			var center := _densest_cluster(er)
+			var center := _densest_cluster(er, pool)
 			if center != Vector2.INF:
 				_skill_aoe(center, er, ep, true)
 				_skill_ring(center, er, col)  # 범위 링
@@ -859,7 +872,7 @@ func _on_skill_cast(s: Dictionary) -> void:
 					_ground_field(center, er, ep, element)  # 잔류 장판
 				focus = center
 		"barrage":
-			for pt in _random_enemy_points(count):
+			for pt in _random_enemy_points(count, pool):
 				_skill_aoe(pt, er, ep, false)
 				_skill_ring(pt, er, col)
 				_skill_burst(pt, col)
@@ -867,9 +880,9 @@ func _on_skill_cast(s: Dictionary) -> void:
 					_ground_field(pt, er, ep, element)
 				focus = pt
 		"chain":
-			_skill_chain(count, ep, element)
+			_skill_chain(count, ep, element, pool)
 		"freeze":
-			for e in get_tree().get_nodes_in_group("enemies"):
+			for e in pool:
 				if is_instance_valid(e):
 					e.apply_slow(0.3, 2.5)
 					_skill_hit(e, ep, element)
@@ -970,9 +983,18 @@ func _skill_burst(pos: Vector2, color: Color) -> void:
 	b.lifetime = 0.9     # 파편이 더 오래 흩날림 (길게)
 	$Fx.add_child(b)
 
-## 가장 밀집한(반경 내 이웃이 많은) 적 위치. 적 없으면 Vector2.INF.
-func _densest_cluster(radius: float) -> Vector2:
-	var enemies := get_tree().get_nodes_in_group("enemies")
+## 마법사로부터 rng 이내의 살아있는 적 (스킬 사거리 필터)
+func _enemies_in_range(rng: float) -> Array:
+	var pp: Vector2 = $Player.global_position
+	var out: Array = []
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if is_instance_valid(e) and pp.distance_to(e.global_position) <= rng:
+			out.append(e)
+	return out
+
+## candidates(사거리 내 적) 중 가장 밀집한 위치. 비면 Vector2.INF.
+func _densest_cluster(radius: float, candidates: Array) -> Vector2:
+	var enemies := candidates
 	if enemies.is_empty():
 		return Vector2.INF
 	var best: Vector2 = enemies[0].global_position
@@ -987,16 +1009,17 @@ func _densest_cluster(radius: float) -> Vector2:
 			best = e.global_position
 	return best
 
-func _random_enemy_points(count: int) -> Array:
-	var enemies := get_tree().get_nodes_in_group("enemies")
+func _random_enemy_points(count: int, pool: Array) -> Array:
+	var enemies := pool.duplicate()
 	enemies.shuffle()
 	var pts := []
 	for e in enemies.slice(0, count):
-		pts.append(e.global_position)
+		if is_instance_valid(e):
+			pts.append(e.global_position)
 	return pts
 
-func _skill_chain(count: int, dmg: float, element: String) -> void:
-	var enemies := get_tree().get_nodes_in_group("enemies")
+func _skill_chain(count: int, dmg: float, element: String, pool: Array) -> void:
+	var enemies := pool
 	if enemies.is_empty():
 		return
 	var pp: Vector2 = $Player.global_position

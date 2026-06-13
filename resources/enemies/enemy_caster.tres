@@ -14,4 +14,5 @@ sprite = ExtResource("2")
 effect_color = Color(0.86, 0.31, 0.78, 1)
 attack_interval = 3.0
 attack_damage = 7.0
+attack_range = 800.0
 element = "metal"

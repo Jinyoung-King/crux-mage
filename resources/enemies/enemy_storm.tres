@@ -18,6 +18,7 @@ attack_damage = 7.0
 attack_count = 9
 attack_spread_deg = 100.0
 attack_bolt_scale = 1.4
+attack_range = 850.0
 telegraph_time = 0.6
 zigzag_amplitude = 120.0
 zigzag_period = 2.6

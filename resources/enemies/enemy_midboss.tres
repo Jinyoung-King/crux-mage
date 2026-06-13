@@ -17,5 +17,6 @@ attack_interval = 3.5
 attack_damage = 7.0
 attack_count = 5
 attack_spread_deg = 55.0
+attack_range = 900.0
 telegraph_time = 0.6
 element = "earth"

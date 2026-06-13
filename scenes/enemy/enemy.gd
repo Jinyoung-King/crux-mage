@@ -55,6 +55,7 @@ var coin_value := 1
 var dmg_scale := 1.0  ## 무한 모드 피해 배율 (접촉·탄막·돌진에 적용)
 var element := ""  ## 오행 속성 (발사체 상성 판정용)
 var kind_key := ""  ## 적 종류 키(.tres 파일명) — 도감 처치 집계용
+var attack_range := 0.0  ## 원거리 사거리(기지까지 세로 거리). 0=무제한
 
 func _ready() -> void:
 	add_to_group("enemies")
@@ -89,6 +90,7 @@ func setup(data: EnemyData, hp_scale: float = 1.0, dscale: float = 1.0, elite: D
 	display_name = data.display_name
 	telegraph_time = data.telegraph_time
 	if data.attack_interval > 0.0:
+		attack_range = data.attack_range
 		var at := Timer.new()
 		at.wait_time = data.attack_interval
 		at.autostart = true
@@ -294,6 +296,8 @@ func _on_summon_timer(data: EnemyData) -> void:
 func _on_ranged_timer(data: EnemyData) -> void:
 	if hp <= 0.0 or _busy():
 		return  # 사망/예고·돌진 진행 중이면 이번 발사는 건너뜀
+	if not _in_attack_range():
+		return  # 화면 밖(위) 또는 사거리 밖이면 발사 안 함
 	if telegraph_time > 0.0:
 		_telegraph(_emit_barrage.bind(data))
 	else:
@@ -342,6 +346,14 @@ func _telegraph(then: Callable) -> void:
 ## 예고·돌진이 진행 중이면 다른 특수공격을 시작하지 않도록
 func _busy() -> bool:
 	return _telegraphing or charge_state != Charge.NONE
+
+## 원거리 발사 가능 여부: 화면 안에 충분히 들어왔고(상단 밖 제외) + 사거리(기지까지 세로) 이내
+func _in_attack_range() -> bool:
+	if global_position.y < 40.0:
+		return false  # 화면 밖(위) 또는 진입 직후엔 발사 안 함
+	if attack_range > 0.0 and (goal_y - global_position.y) > attack_range:
+		return false  # 사거리 밖(기지에서 너무 멀리 위)
+	return true
 
 ## 보호막 타이머: 예고 후 보호막 전개 (예고·돌진 중이거나 이미 보호막이 있으면 건너뜀)
 func _on_shield_timer() -> void:

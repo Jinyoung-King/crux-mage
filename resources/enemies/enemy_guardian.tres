@@ -21,6 +21,7 @@ attack_interval = 4.5
 attack_damage = 7.0
 attack_count = 5
 attack_spread_deg = 70.0
+attack_range = 950.0
 telegraph_time = 0.6
 shield_interval = 7.0
 shield_hp = 120.0

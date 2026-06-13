@@ -28,6 +28,7 @@ extends Resource
 @export var attack_count: int = 1  ## >1이면 플레이어 방향 부채꼴 탄막(중간보스·보스)
 @export var attack_spread_deg: float = 0.0  ## 부채 전체 각도(도) — attack_count>1일 때만 의미
 @export var attack_bolt_scale: float = 1.0  ## 마탄 시각 배율(보스 탄막은 더 굵게)
+@export var attack_range: float = 0.0  ## 원거리 사거리(기지까지 세로 거리). 0=무제한. 화면 밖(위)에선 항상 발사 안 함
 # 특수공격 예고: > 0이면 탄막/돌진 직전 telegraph_time초 동안 번쩍·움찔로 "온다" 신호
 @export var telegraph_time: float = 0.0
 # 돌진 패턴(보스): charge_interval > 0이면 주기적으로 예고 후 아래로 돌진했다 복귀
