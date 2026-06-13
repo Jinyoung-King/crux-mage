@@ -68,26 +68,28 @@ theme_override_fonts/font = ExtResource("2")
 theme_override_font_sizes/font_size = 30
 text = "시작"
 
-[node name="UpgradeButton" type="Button" parent="Center"]
-custom_minimum_size = Vector2(260, 56)
+[node name="SecondaryRow" type="HBoxContainer" parent="Center"]
 layout_mode = 2
 size_flags_horizontal = 4
+theme_override_constants/separation = 10
+
+[node name="UpgradeButton" type="Button" parent="Center/SecondaryRow"]
+custom_minimum_size = Vector2(112, 48)
+layout_mode = 2
 theme_override_fonts/font = ExtResource("2")
-theme_override_font_sizes/font_size = 26
+theme_override_font_sizes/font_size = 20
 text = "강화"
 
-[node name="RelicButton" type="Button" parent="Center"]
-custom_minimum_size = Vector2(260, 52)
+[node name="RelicButton" type="Button" parent="Center/SecondaryRow"]
+custom_minimum_size = Vector2(112, 48)
 layout_mode = 2
-size_flags_horizontal = 4
 theme_override_fonts/font = ExtResource("2")
-theme_override_font_sizes/font_size = 22
+theme_override_font_sizes/font_size = 20
 text = "유물"
 
-[node name="PatchButton" type="Button" parent="Center"]
-custom_minimum_size = Vector2(260, 46)
+[node name="PatchButton" type="Button" parent="Center/SecondaryRow"]
+custom_minimum_size = Vector2(112, 48)
 layout_mode = 2
-size_flags_horizontal = 4
 theme_override_fonts/font = ExtResource("2")
 theme_override_font_sizes/font_size = 20
 text = "패치노트"

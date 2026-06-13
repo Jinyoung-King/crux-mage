@@ -11,7 +11,7 @@ var wave_idx := 0
 @onready var grid: GridContainer = $Center/Grid
 @onready var play_button: Button = $Center/PlayButton
 @onready var best_label: Label = $Center/BestLabel
-@onready var upgrade_button: Button = $Center/UpgradeButton
+@onready var upgrade_button: Button = $Center/SecondaryRow/UpgradeButton
 @onready var start_wave_button: Button = $Center/StartWaveButton
 
 func _ready() -> void:
@@ -21,7 +21,7 @@ func _ready() -> void:
 		return
 	$VersionLabel.text = GameState.VERSION  # 빌드 버전 표기(단일 출처)
 	if GameState.best_wave > 0:
-		best_label.text = "최고 Wave %d · %d판 · 누적 %d코인" % [GameState.best_wave, GameState.total_runs, GameState.lifetime_coins]
+		best_label.text = "최고 Wave %d   ·   코인 %d" % [GameState.best_wave, GameState.coins]
 	else:
 		best_label.text = "첫 도전을 시작하세요"
 	for i in GameState.characters.size():
@@ -32,10 +32,9 @@ func _ready() -> void:
 	if not GameState.is_unlocked(GameState.characters[selected_index]):
 		selected_index = 0  # 해금된 캐릭터로 보정
 	play_button.pressed.connect(_on_play)
-	upgrade_button.pressed.connect(_on_upgrade)
-	upgrade_button.text = "강화 (코인 %d)" % GameState.coins
-	$Center/PatchButton.pressed.connect(_on_patch)
-	$Center/RelicButton.pressed.connect(_on_relics)
+	upgrade_button.pressed.connect(_on_upgrade)  # 코인 잔액은 상단 BestLabel에 표기
+	$Center/SecondaryRow/PatchButton.pressed.connect(_on_patch)
+	$Center/SecondaryRow/RelicButton.pressed.connect(_on_relics)
 	# 시작 웨이브 도약: 1, 그리고 best_wave 이하 5단위
 	wave_options = [1]
 	var w := 5
@@ -63,7 +62,7 @@ func _refresh_start_wave() -> void:
 func _make_card(c: CharacterData, idx: int) -> Button:
 	var unlocked := GameState.is_unlocked(c)
 	var btn := Button.new()
-	btn.custom_minimum_size = Vector2(300, 202)
+	btn.custom_minimum_size = Vector2(300, 150)
 	btn.disabled = not unlocked
 	btn.pressed.connect(_on_card_pressed.bind(idx))
 
@@ -88,15 +87,8 @@ func _make_card(c: CharacterData, idx: int) -> Button:
 	var info := c.description if unlocked else "Wave %d 도달 시 해금" % c.unlock_wave
 	box.add_child(_label(info, 15, Color(0.8, 0.8, 0.8) if unlocked else Color(0.55, 0.55, 0.55)))
 
-	if unlocked:
-		if c.element != "":  # 오행 속성 + 강한 대상 안내
-			box.add_child(_label("속성 %s · %s에 강함" % [ElementLib.display_name(c.element), ElementLib.strong_against(c.element)], 14, ElementLib.color(c.element)))
-		var stats := "공%d · 연사%.1f · 표적%d" % [int(c.base_damage), c.base_fire_rate, c.base_projectile_count]
-		box.add_child(_label(stats, 13, Color(0.7, 0.7, 0.75)))
-		var lv := GameState.char_level(c)
-		var cbw := GameState.char_best_wave(c)
-		if lv > 0 or cbw > 0:  # 이 캐릭터의 기록(최고 웨이브 · 숙련 Lv)
-			box.add_child(_label("최고 Wave %d · 숙련 Lv %d" % [cbw, lv], 13, Color(1.0, 0.85, 0.4)))
+	if unlocked and c.element != "":  # 간결화: 오행 속성·상성만 (틀린 스탯줄·기록줄 제거)
+		box.add_child(_label("%s · %s에 강함" % [ElementLib.display_name(c.element), ElementLib.strong_against(c.element)], 14, ElementLib.color(c.element)))
 
 	btn.add_child(box)
 	return btn
