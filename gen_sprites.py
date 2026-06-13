@@ -389,5 +389,119 @@ write_png("enemy_treasure.png", TREASURE, TREASURE_PAL)
 write_png("dark_bolt.png", DARK_BOLT, DARK_BOLT_PAL)
 write_png("bolt.png", BOLT, BOLT_PAL)
 write_png("spark.png", BOLT, SPARK_PAL)
+
+# === 추가 적 (v1.11): 중복 스프라이트 해소 — 잡몹은 신규 그리드, 보스류는 BOSS 그리드+속성색 ===
+RUSHER = [
+    "...AA...",
+    "..AOOA..",
+    ".AOOOOA.",
+    "AOOWWOOA",
+    ".AOOOOA.",
+    "..AOOA..",
+    "...AA...",
+]
+RUSHER_PAL = {"A": (200, 80, 30, 255), "O": (245, 135, 55, 255), "W": (255, 240, 200, 255)}
+
+SNIPER = [
+    "..GGGGGG..",
+    ".GGGGGGGG.",
+    "GGGSSSSGGG",
+    "GGSWSSWSGG",
+    "GGGGGGGGGG",
+    ".GGGGGGGG.",
+    ".GG.GG.GG.",
+]
+SNIPER_PAL = {"G": (90, 165, 90, 255), "S": (35, 65, 40, 255), "W": (235, 255, 220, 255)}
+
+KNIGHT = [
+    "...SSSSSS...",
+    ".SSSSSSSSSS.",
+    "SSSWWSSWWSSS",
+    "SSSSSSSSSSSS",
+    "SSCSSSSSSCSS",
+    "SSSSSSSSSSSS",
+    ".SSSSSSSSSS.",
+    "..SS....SS..",
+]
+KNIGHT_PAL = {"S": (170, 180, 200, 255), "W": (255, 255, 255, 255), "C": (90, 100, 120, 255)}
+
+CROSSBOW = [
+    "..MMMMMM..",
+    ".MMMMMMMM.",
+    "MMMWWWWMMM",
+    "MMMMMMMMMM",
+    "C.MMMMMM.C",
+    ".MMMMMMMM.",
+    "..M.MM.M..",
+]
+CROSSBOW_PAL = {"M": (120, 130, 145, 255), "W": (235, 240, 200, 255), "C": (180, 150, 90, 255)}
+
+EEL = [
+    "EEE.........",
+    ".EEEE.......",
+    "..EEEW......",
+    "...EEEE.....",
+    "....EEEE....",
+    ".....EEEE...",
+    "......EEEE..",
+    ".......EEE..",
+]
+EEL_PAL = {"E": (70, 150, 230, 255), "W": (255, 255, 255, 255)}
+
+JELLY = [
+    "..JJJJJJ..",
+    ".JJJJJJJJ.",
+    "JJJJJJJJJJ",
+    "JJWWJJWWJJ",
+    "JJJJJJJJJJ",
+    ".JJJJJJJJ.",
+    "J.J.J.J.J.",
+    ".J.J.J.J.J",
+]
+JELLY_PAL = {"J": (110, 200, 210, 255), "W": (255, 255, 255, 255)}
+
+GOLEM = [
+    "..KKKKKKKKKK..",
+    ".KKKKKKKKKKKK.",
+    "KKKKKKKKKKKKKK",
+    "KKKWWKKKKWWKKK",
+    "KKKKKKKKKKKKKK",
+    "KKKKKDDDDKKKKK",
+    "KKKKKKKKKKKKKK",
+    ".KKKKKKKKKKKK.",
+    "..KK..KK..KK..",
+]
+GOLEM_PAL = {"K": (160, 120, 70, 255), "W": (245, 240, 200, 255), "D": (100, 70, 40, 255)}
+
+SANDWORM = [
+    "NNNW........",
+    ".NNNN.......",
+    "..NNNN......",
+    "...NNNN.....",
+    "....NNNN....",
+    ".....NNNN...",
+    "......NNNN..",
+    ".......NNN..",
+]
+SANDWORM_PAL = {"N": (210, 180, 110, 255), "W": (80, 50, 30, 255)}
+
+# 보스류 — BOSS 그리드 재사용 + 속성 색 팔레트
+GUARDIAN_PAL = {"K": (30, 70, 80, 255), "P": (60, 130, 150, 255), "R": (220, 250, 255, 255), "H": (200, 225, 235, 255), "M": (20, 50, 60, 255), "W": (235, 250, 255, 255)}
+MIDBOSS_PAL = {"K": (70, 40, 55, 255), "P": (120, 70, 90, 255), "R": (255, 80, 80, 255), "H": (220, 200, 180, 255), "M": (45, 25, 35, 255), "W": (255, 250, 235, 255)}
+PLAGUE_PAL = {"K": (40, 70, 40, 255), "P": (80, 140, 70, 255), "R": (220, 255, 120, 255), "H": (210, 220, 180, 255), "M": (30, 50, 30, 255), "W": (235, 255, 225, 255)}
+EARTHLORD_PAL = {"K": (80, 55, 35, 255), "P": (135, 95, 55, 255), "R": (255, 150, 60, 255), "H": (225, 205, 170, 255), "M": (50, 35, 25, 255), "W": (255, 245, 225, 255)}
+
+write_png("enemy_rusher.png", RUSHER, RUSHER_PAL)
+write_png("enemy_sniper.png", SNIPER, SNIPER_PAL)
+write_png("enemy_knight.png", KNIGHT, KNIGHT_PAL)
+write_png("enemy_crossbow.png", CROSSBOW, CROSSBOW_PAL)
+write_png("enemy_eel.png", EEL, EEL_PAL)
+write_png("enemy_jelly.png", JELLY, JELLY_PAL)
+write_png("enemy_golem.png", GOLEM, GOLEM_PAL)
+write_png("enemy_sandworm.png", SANDWORM, SANDWORM_PAL)
+write_png("enemy_guardian.png", BOSS, GUARDIAN_PAL)
+write_png("enemy_midboss.png", BOSS, MIDBOSS_PAL)
+write_png("enemy_plague.png", BOSS, PLAGUE_PAL)
+write_png("enemy_earthlord.png", BOSS, EARTHLORD_PAL)
 write_png("cannonball.png", CANNONBALL, CANNONBALL_PAL)
 print("OK:", sorted(os.listdir(OUT)))
