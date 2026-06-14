@@ -13,6 +13,9 @@ var burn_time_left: float = 0.0
 var slow_factor: float = 1.0
 var slow_time_left: float = 0.0
 
+const OVERLOAD_CD_MS := 2000  ## 적별 과부하 재발화 쿨다운(ms) — 화상 만료↔재적용 반복 시 팝업·폭발 폭주(렉) 방지
+var _overload_ms: int = -100000  ## 마지막 과부하 발화 시각(벽시계 ms)
+
 ## 이번 프레임의 화상 피해를 반환하고 화상 타이머를 감소시킨다. 화상이 없으면 0.0.
 ## (기존 enemy._physics_process 화상 블록과 동일 순서·동일 수치)
 func tick_burn(delta: float) -> float:
@@ -34,7 +37,7 @@ func apply_burn(dps: float, dur: float) -> void:
 	burn_dps = maxf(burn_dps, dps)
 	burn_time_left = maxf(burn_time_left, dur)
 	if forms_combo:
-		reaction.emit("overload", "fire")
+		_try_overload("fire")
 
 ## 둔화 부여: 속도 배수 갱신, 지속시간 리프레시. 이미 화상 중이면 '과부하' 반응 방출(중첩 형성 순간 1회).
 func apply_slow(factor: float, dur: float) -> void:
@@ -42,7 +45,15 @@ func apply_slow(factor: float, dur: float) -> void:
 	slow_factor = factor
 	slow_time_left = maxf(slow_time_left, dur)
 	if forms_combo:
-		reaction.emit("overload", "water")
+		_try_overload("water")
+
+## 과부하 반응 방출 — 단, 적별 쿨다운 내면 무시(후반 화상 재적용 반복으로 인한 팝업·폭발 폭주=렉 방지)
+func _try_overload(src: String) -> void:
+	var now: int = Time.get_ticks_msec()
+	if now - _overload_ms < OVERLOAD_CD_MS:
+		return
+	_overload_ms = now
+	reaction.emit("overload", src)
 
 func is_burning() -> bool:
 	return burn_time_left > 0.0
