@@ -11,6 +11,7 @@ const SKILL_NAME := preload("res://scenes/fx/skill_name_popup.gd")
 const GROUND_HAZARD := preload("res://scenes/fx/ground_hazard.gd")
 const FALLING_SKILL := preload("res://scenes/fx/falling_skill.gd")
 const DEATH_BURST_SCENE := preload("res://scenes/fx/death_burst.tscn")
+const SCORCH := preload("res://scenes/fx/scorch_mark.gd")  # 메테오 착탄 그을음
 const REACTION_HP_PCT := 0.06  ## 격발 반응(증발·빙결파쇄)이 주는 추가 % 최대체력 피해 — 복리 체력 관통
 
 var player
@@ -60,6 +61,7 @@ func execute(s: Dictionary) -> void:
 					_skill_hit(e, ep, element)
 			host._skill_ring(Vector2(360, 420), 460.0, Color(0.5, 0.8, 1.0), "water")  # 화면 전체 서리 폭발(얼음 결정)
 			_skill_burst(Vector2(360, 420), Color(0.5, 0.8, 1.0))
+			_particle_fx(Vector2(360, 420), Color(0.6, 0.85, 1.0), 30, 0.7, 150.0, 340.0, 240.0, 2.0, 5.0)  # 얼음 파편 비산
 			focus = Vector2(360, 360)
 		"thorns":  # 가시밭: 가장 밀집한 곳에 초기 광역 피해 + 지속 가시 장판(속성색=초록)
 			var tc := _densest_cluster(er, pool)
@@ -160,6 +162,28 @@ func _skill_burst(pos: Vector2, color: Color) -> void:
 	b.lifetime = 0.9     # 파편이 더 오래 흩날림 (길게)
 	fx_root.add_child(b)
 
+## 속성별 파티클 버스트(얼음 파편·잔불·먼지) — death_burst(CPUParticles) 재사용, 런타임 튜닝.
+## gravity_y<0이면 위로 떠오름(먼지 기둥). 모든 속성 입자는 웹/모바일 안전(CPU).
+func _particle_fx(pos: Vector2, color: Color, amount: int, lifetime: float, vmin: float, vmax: float, gravity_y: float, smin: float, smax: float) -> void:
+	var p = DEATH_BURST_SCENE.instantiate()
+	p.position = pos
+	p.color = color
+	p.amount = amount
+	p.lifetime = lifetime
+	p.initial_velocity_min = vmin
+	p.initial_velocity_max = vmax
+	p.gravity = Vector2(0, gravity_y)
+	p.scale_amount_min = smin
+	p.scale_amount_max = smax
+	fx_root.add_child(p)
+
+## 메테오 착탄 그을음 자국
+func _scorch(pos: Vector2, radius: float) -> void:
+	var s = SCORCH.new()
+	s.position = pos
+	fx_root.add_child(s)
+	s.setup(radius)
+
 ## 하늘에서 떨어지는 광역 스킬(메테오·융단): 화면 위에서 낙하 비주얼 → 도달 지점에 폭발+피해.
 func _drop_aoe(center: Vector2, radius: float, ep: float, element: String, col: Color, burn: bool) -> void:
 	var m = FALLING_SKILL.new()
@@ -173,6 +197,11 @@ func _drop_aoe(center: Vector2, radius: float, ep: float, element: String, col: 
 			_skill_aoe(center, radius, ep, burn, element)  # 도달 시 폭발 피해(스킬 속성 상성)
 			host._skill_ring(center, radius, col, element)
 			_skill_burst(center, col)
+			if element == "fire":  # 유성: 그을음 크레이터 + 잔불
+				_scorch(center, radius)
+				_particle_fx(center, Color(1.0, 0.6, 0.2), 20, 0.8, 60.0, 200.0, 160.0, 2.0, 4.0)
+			elif element == "earth":  # 융단폭격: 먼지 기둥(위로 떠오름)
+				_particle_fx(center, Color(0.72, 0.6, 0.42), 18, 0.95, 25.0, 110.0, -50.0, 4.0, 8.0)
 			if player.build.ground_field:
 				_ground_field(center, radius, ep, element)
 			host._add_shake(4.0)
@@ -246,20 +275,38 @@ func _on_chain(from: Vector2, to: Vector2) -> void:
 	_draw_arc.call_deferred(from, to)
 
 func _draw_arc(from: Vector2, to: Vector2) -> void:
-	# 글로우(굵고 옅은) + 코어(가늘고 밝은) 2겹으로 더 굵고 천천히 사라지는 번개
-	var glow := Line2D.new()
-	glow.add_point(from); glow.add_point(to)
-	glow.width = 10.0
-	glow.default_color = Color(0.6, 0.45, 1.0, 0.5)
-	glow.begin_cap_mode = Line2D.LINE_CAP_ROUND
-	glow.end_cap_mode = Line2D.LINE_CAP_ROUND
-	fx_root.add_child(glow)
-	var core := Line2D.new()
-	core.add_point(from); core.add_point(to)
-	core.width = 3.5
-	core.default_color = Color(0.96, 0.92, 1.0, 0.98)
-	fx_root.add_child(core)
-	for ln in [glow, core]:
-		var tw = ln.create_tween()  # ln은 Array 요소(Variant)라 := 추론 불가
-		tw.tween_property(ln, "modulate:a", 0.0, 0.45)  # 0.18→0.45초 (더 길게 잔광)
-		tw.tween_callback(ln.queue_free)
+	# 지그재그 번개: 글로우(굵고 옅은) + 코어(가늘고 밝은) 2겹 + 곁가지 1 + 노드 섬광
+	var amp: float = minf(from.distance_to(to) * 0.14, 36.0)
+	var pts := _jagged(from, to, 6, amp)
+	_lightning_line(pts, 10.0, Color(0.6, 0.45, 1.0, 0.5))   # 글로우
+	_lightning_line(pts, 3.5, Color(0.96, 0.92, 1.0, 0.98))  # 코어
+	var mid: Vector2 = pts[pts.size() / 2]  # 중간에서 짧게 갈라지는 곁가지(가지치기)
+	var ang := (to - from).angle() + randf_range(-1.1, 1.1)
+	var tip := mid + Vector2(cos(ang), sin(ang)) * from.distance_to(to) * 0.3
+	_lightning_line(_jagged(mid, tip, 3, amp * 0.6), 2.2, Color(0.85, 0.8, 1.0, 0.85))
+	host._hit_spark(to, Color(0.85, 0.85, 1.0), 16.0)  # 노드 섬광
+
+## 두 점 사이를 지그재그로 잇는 점열(양 끝 고정, 중간은 수직으로 무작위 흔듦)
+func _jagged(from: Vector2, to: Vector2, segs: int, amp: float) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	var perp := (to - from).orthogonal().normalized()
+	for i in segs + 1:
+		var base: Vector2 = from.lerp(to, float(i) / float(segs))
+		if i > 0 and i < segs:
+			base += perp * randf_range(-amp, amp)
+		pts.append(base)
+	return pts
+
+## 번개 선 1겹: 점열로 Line2D 생성 후 잔광 페이드하며 자멸
+func _lightning_line(pts: PackedVector2Array, w: float, col: Color) -> void:
+	var ln := Line2D.new()
+	ln.points = pts
+	ln.width = w
+	ln.default_color = col
+	ln.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	ln.end_cap_mode = Line2D.LINE_CAP_ROUND
+	ln.joint_mode = Line2D.LINE_JOINT_ROUND
+	fx_root.add_child(ln)
+	var tw := ln.create_tween()
+	tw.tween_property(ln, "modulate:a", 0.0, 0.4)
+	tw.tween_callback(ln.queue_free)
