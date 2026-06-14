@@ -12,6 +12,7 @@ const EQUIP := [
 	{"id": "fire_rate",  "equip": "신속 부츠",   "kind": "boots",  "color": Color(0.96, 0.86, 0.42), "pos": Vector2(20, 214)},
 	{"id": "lifesteal",  "equip": "흡혈 반지",   "kind": "ring",   "color": Color(0.92, 0.42, 0.72), "pos": Vector2(192, 252)},
 	{"id": "extra_card", "equip": "예지 부적",   "kind": "amulet", "color": Color(0.66, 0.5, 0.96),  "pos": Vector2(364, 214)},
+	{"id": "defense",    "equip": "수호 모자",   "kind": "hat",    "color": Color(0.5, 0.72, 0.95),  "pos": Vector2(204, 6)},
 ]
 
 @onready var root: VBoxContainer = $Root

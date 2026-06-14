@@ -77,6 +77,7 @@ func apply_character(c: CharacterData) -> void:
 	build.damage = (c.base_damage + GameState.upgrade_value("damage", c) + GameState.kill_bonus_damage()) * mastery * GameState.trait_damage_mult()
 	build.fire_rate = c.base_fire_rate + GameState.upgrade_value("fire_rate", c) + GameState.trait_fire_rate_add()
 	build.projectile_count = c.base_projectile_count
+	build.defense = GameState.upgrade_value("defense", c)  # 방어력 강화(모자) — 받는 피해 감소(카드·방벽 룬은 이후 가산)
 	max_hp = (max_hp + GameState.upgrade_value("max_hp", c) + GameState.kill_bonus_hp()) * mastery * GameState.trait_hp_mult()  # 기본 100 + 강화 + 처치업적, 숙련·특성 배율
 	hp = max_hp
 	lifesteal = GameState.upgrade_value("lifesteal", c) + GameState.trait_lifesteal_add()
