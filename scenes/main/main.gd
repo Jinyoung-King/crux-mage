@@ -1159,7 +1159,7 @@ func _build_cards_ui() -> void:
 	center.add_theme_constant_override("separation", 12)
 	panel.add_child(center)
 	var title := Label.new()
-	title.text = "획득 카드"
+	title.text = "내 빌드"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_override("font", FONT)
 	title.add_theme_font_size_override("font_size", 36)
@@ -1194,6 +1194,14 @@ func _open_cards() -> void:
 		return
 	for ch in cards_list.get_children():
 		ch.queue_free()
+	# 보유 스킬 — 실효 수치(피해·쿨·사거리·대상). 스킬 수치는 여기 말고는 볼 곳이 없어 정리해 보여줌.
+	if not $Player.skills.is_empty():
+		cards_list.add_child(_section_header("보유 스킬"))
+		var elem: String = $Player.character.element
+		cards_list.add_child(_section_sub("%s 속성으로 적중 — 극하면 ×1.5 / 당하면 ×0.7" % ElementLib.display_name(elem), ElementLib.color(elem)))
+		for s in $Player.skills:
+			cards_list.add_child(_skill_stat_row(s))
+		cards_list.add_child(_section_header("획득 카드"))
 	var total := 0
 	for nm in _picked_order:
 		var cnt: int = _picked_count[nm]
@@ -1210,11 +1218,62 @@ func _open_cards() -> void:
 	cards_panel.show()
 	get_tree().paused = true
 
+## 섹션 헤더(금색) — '내 카드' 패널 안 구분용
+func _section_header(text: String) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.add_theme_font_override("font", FONT)
+	l.add_theme_font_size_override("font_size", 22)
+	l.add_theme_color_override("font_color", Color(1.0, 0.86, 0.4))
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE  # 스크롤 입력 방해 금지
+	return l
+
+## 섹션 부제(작은 안내 줄)
+func _section_sub(text: String, color: Color) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.add_theme_font_override("font", FONT)
+	l.add_theme_font_size_override("font_size", 15)
+	l.add_theme_color_override("font_color", color)
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.custom_minimum_size = Vector2(500, 0)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return l
+
+## 보유 스킬 한 줄: 이름[티어] + 실효 수치(피해·쿨·사거리·대상/범위)
+func _skill_stat_row(s: Dictionary) -> Label:
+	var pl = $Player
+	var dmg := int(round(pl.eff_power(s)))
+	var cd: float = pl.eff_cooldown(s)
+	var rng := int(SkillLib.SKILL_RANGE.get(s.id, 0))
+	var cnt := int(s.get("count", 0))
+	var rad := int(round(pl.eff_radius(s)))
+	var shape := ""
+	match s.id:
+		"bolts":   shape = "가까운 %d명" % cnt
+		"chain":   shape = "%d명 연쇄" % cnt
+		"barrage": shape = "%d곳·반경 %d" % [cnt, rad]
+		"meteor":  shape = "반경 %d 광역" % rad
+		"freeze":  shape = "전체 둔화"
+		"thorns":  shape = "반경 %d 장판" % rad
+		_:         shape = ("%d발" % cnt) if cnt > 0 else (("반경 %d" % rad) if rad > 0 else "광역")
+	var tier := int(s.get("tier", 1))
+	var name_txt: String = s.name + ("  [%d티어]" % tier if tier > 1 else "")
+	var l := Label.new()
+	l.text = "%s\n   피해 %d · 쿨 %.1f초 · 사거리 %d · %s" % [name_txt, dmg, cd, rng, shape]
+	l.add_theme_font_override("font", FONT)
+	l.add_theme_font_size_override("font_size", 17)
+	l.add_theme_color_override("font_color", Color(0.9, 0.92, 0.98))
+	l.custom_minimum_size = Vector2(500, 0)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return l
+
 ## 카드 한 줄: [희귀도 뱃지] 이름 ··· ×횟수 (희귀도 색)
 func _card_row(nm: String, cnt: int, rar: String) -> Control:
 	var row := HBoxContainer.new()
 	row.custom_minimum_size = Vector2(500, 0)
 	row.add_theme_constant_override("separation", 10)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE  # 스크롤 입력 방해 금지
 	var col: Color = RARITY_COLORS.get(rar, Color.WHITE)
 	var badge := Label.new()
 	badge.text = RARITY_BADGE.get(rar, "일반")
@@ -1223,6 +1282,7 @@ func _card_row(nm: String, cnt: int, rar: String) -> Control:
 	badge.add_theme_color_override("font_color", col)
 	badge.custom_minimum_size = Vector2(52, 0)
 	badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(badge)
 	var name_lbl := Label.new()
 	name_lbl.text = nm
@@ -1230,6 +1290,7 @@ func _card_row(nm: String, cnt: int, rar: String) -> Control:
 	name_lbl.add_theme_font_size_override("font_size", 22)
 	name_lbl.add_theme_color_override("font_color", col)
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(name_lbl)
 	if cnt > 1:
 		var cnt_lbl := Label.new()
@@ -1237,6 +1298,7 @@ func _card_row(nm: String, cnt: int, rar: String) -> Control:
 		cnt_lbl.add_theme_font_override("font", FONT)
 		cnt_lbl.add_theme_font_size_override("font_size", 22)
 		cnt_lbl.add_theme_color_override("font_color", Color(0.95, 0.95, 1.0))
+		cnt_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(cnt_lbl)
 	return row
 
