@@ -50,8 +50,11 @@ func _process(delta: float) -> void:
 		for s in skills:
 			s.cd_left -= delta
 			if s.cd_left <= 0.0:
-				_cast_skill(s)
-				s.cd_left = eff_cooldown(s)
+				if _has_target_in_range(s):
+					_cast_skill(s)
+					s.cd_left = eff_cooldown(s)
+				else:
+					s.cd_left = 0.0  # 사거리 내 적이 없으면 시전 보류(쿨 0 유지 → 적 등장 즉시 발동, 낭비 방지)
 
 @onready var attack_timer: Timer = $AttackTimer
 
@@ -109,6 +112,14 @@ func _evolve_skill(id: String) -> bool:
 			s.cooldown *= float(e.get("cd_mult", 1.0))
 			s.power *= float(e.get("power_mult", 1.0))
 			s.radius *= float(e.get("radius_mult", 1.0))
+			return true
+	return false
+
+## 스킬 사거리 내에 살아있는 적이 하나라도 있는지 (executor._enemies_in_range와 동일 기준)
+func _has_target_in_range(s: Dictionary) -> bool:
+	var rng: float = SkillLib.SKILL_RANGE.get(s.id, 99999.0)
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if is_instance_valid(e) and global_position.distance_to(e.global_position) <= rng:
 			return true
 	return false
 
