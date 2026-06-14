@@ -3,10 +3,11 @@ extends Node
 ## 씬을 새로 로드해도 유지되며, 최고 기록은 user://에 영속 저장된다.
 
 const SAVE_PATH := "user://save.cfg"
-const VERSION := "v1.25"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
+const VERSION := "v1.26"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
 
 # 패치노트 (최신이 위). 새 버전 추가 시 맨 앞에 한 항목 추가. 시작 화면 "패치노트" + 업데이트 시 자동 안내.
 const CHANGELOG := [
+	{"v": "v1.26", "notes": ["몹 도감 처치 업적을 '개별 집계'로 변경 — 기존엔 전체 누적 처치로 마일스톤을 셌지만, 이제 적 종류마다 따로 집계해 각 종류가 10·25·50·100·200·400·800마리 단계를 넘을 때마다 보너스 +1단계(전부 합산). 도감 카드에 종류별 단계(★)와 다음 목표가 표시됨 — 다양한 몹을 고루 잡을수록 유리"]},
 	{"v": "v1.25", "notes": ["끊김 제거 — 반응·큰 적 처치 때 들어가던 히트스톱(순간 정지)이 잦아 끊김으로 느껴져 제거(타격감은 화면 흔들림으로 유지). 스킬 쿨타임 표현을 게이지 → '스킬 아이콘 활성화' 방식으로 변경: 쿨 중엔 아이콘이 어둡고 라디얼로 차오르며, 준비되면 밝게 빛나며 활성화"]},
 	{"v": "v1.24", "notes": ["'유물' 명칭을 '룬'으로 통일(이미 이름은 ○○의 룬이었고 메뉴·화면 표기를 룬으로 변경). 룬마다 고유 글리프 아이콘 추가 — 12룬 각각 색·문양이 다른 룬 문양 아이콘으로 표시(보유=색상, 미보유=흐림)"]},
 	{"v": "v1.23", "notes": ["강화 탭 장비 아이콘을 도트 픽셀 형식으로 변경(지팡이·로브·부츠·반지·부적). 도감 스크롤 수정 — 도감 항목이 휠·터치 입력을 가로채 스크롤이 안 되던 문제 해결(이제 휠·드래그로 끝까지 스크롤)"]},
@@ -119,7 +120,7 @@ const ROLL_BASE := 100   ## 유물 뽑기 기본 비용(코인)
 const ROLL_GROWTH := 1.2  ## 뽑을 때마다 비용 배수(오버파워 방지 — 누적 뽑기수만큼 ×ROLL_GROWTH)
 
 # 처치 업적: 누적 처치가 마일스톤을 넘을 때마다 영구 고정 보너스(공격력·체력). 마일스톤은 높게(기하급수).
-const KILL_MILESTONES := [100, 300, 700, 1500, 3000, 6000, 12000, 25000, 50000]
+const KILL_MILESTONES := [10, 25, 50, 100, 200, 400, 800]  ## (종류별) 각 적 종류 처치 수가 이 값을 넘을 때마다 보너스 단계 +1
 const KILL_BONUS_DMG := 1.0   ## 마일스톤 1단계당 공격력 +flat
 const KILL_BONUS_HP := 10.0   ## 마일스톤 1단계당 체력 +flat
 
@@ -327,26 +328,29 @@ func total_kills() -> int:
 		t += int(v)
 	return t
 
-## 누적 처치가 넘은 마일스톤 개수(= 보너스 단계)
-func kill_tier(total := -1) -> int:
-	if total < 0:
-		total = total_kills()
+## (종류별) 한 적 종류의 처치 수가 넘은 마일스톤 개수(= 그 종류의 보너스 단계)
+func kill_tier_for(count: int) -> int:
 	var n := 0
 	for m in KILL_MILESTONES:
-		if total >= m:
+		if count >= m:
 			n += 1
 	return n
 
-## 다음 마일스톤 처치 수 (모두 달성 시 0)
-func next_kill_milestone(total := -1) -> int:
-	if total < 0:
-		total = total_kills()
+## 전체 보너스 단계 = 적 종류마다 개별로 계산한 단계의 합(개별 집계)
+func kill_tier() -> int:
+	var n := 0
+	for v in kills.values():
+		n += kill_tier_for(int(v))
+	return n
+
+## (종류별) 그 종류의 다음 마일스톤 처치 수 (모두 달성 시 0)
+func next_kill_milestone_for(count: int) -> int:
 	for m in KILL_MILESTONES:
-		if total < m:
+		if count < m:
 			return m
 	return 0
 
-## 처치 업적 누적 보너스 (영구 고정값 — apply_character에서 가산)
+## 처치 업적 누적 보너스 (영구 고정값 — apply_character에서 가산). 종류별 단계 합 × 단계당 보너스.
 func kill_bonus_damage() -> float:
 	return kill_tier() * KILL_BONUS_DMG
 

@@ -18,13 +18,7 @@ func _refresh_summary() -> void:
 	var total := GameState.total_kills()
 	var dmg := int(GameState.kill_bonus_damage())
 	var hp := int(GameState.kill_bonus_hp())
-	var nextm := GameState.next_kill_milestone(total)
-	var line2: String
-	if nextm > 0:
-		line2 = "다음 업적까지 %d 마리 (달성 시 공격력 +%d · 체력 +%d)" % [nextm - total, int(GameState.KILL_BONUS_DMG), int(GameState.KILL_BONUS_HP)]
-	else:
-		line2 = "모든 처치 업적 달성!"
-	summary.text = "총 처치 %d   ·   업적 보너스 공격력 +%d · 체력 +%d\n%s" % [total, dmg, hp, line2]
+	summary.text = "총 처치 %d   ·   업적 보너스 공격력 +%d · 체력 +%d\n몹 종류마다 개별 집계 — 종류별로 많이 잡을수록 단계가 오릅니다" % [total, dmg, hp]
 
 ## 적 1종 도감 카드 (처치 0이면 미발견 실루엣 + ???)
 func _make_entry(ed) -> Control:
@@ -66,7 +60,13 @@ func _make_entry(ed) -> Control:
 	info.add_child(_label(ed.display_name if seen else "???", 19, Color(1, 1, 1) if seen else Color(0.55, 0.55, 0.55)))
 	if seen and ed.element != "":
 		info.add_child(_label("%s 속성 · %s에 강함" % [ElementLib.display_name(ed.element), ElementLib.strong_against(ed.element)], 13, ElementLib.color(ed.element)))
-	info.add_child(_label("처치 %d" % n if seen else "미발견", 15, Color(0.86, 0.8, 0.6) if seen else Color(0.5, 0.5, 0.5)))
+	if seen:
+		var tier := GameState.kill_tier_for(n)
+		var nextm := GameState.next_kill_milestone_for(n)
+		var prog: String = ("다음 %d마리" % (nextm - n)) if nextm > 0 else "최대"
+		info.add_child(_label("처치 %d  ·  단계 ★%d (%s)" % [n, tier, prog], 15, Color(0.86, 0.8, 0.6)))
+	else:
+		info.add_child(_label("미발견", 15, Color(0.5, 0.5, 0.5)))
 	return panel
 
 func _label(text: String, size: int, color: Color) -> Label:
