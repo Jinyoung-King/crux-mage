@@ -980,7 +980,7 @@ func _build_summary() -> String:
 		var names := []
 		for id in p.relic_levels:
 			names.append("%s Lv%d" % [_relic_name(id), p.relic_levels[id]])
-		lines.append("유물: " + ", ".join(names))
+		lines.append("룬: " + ", ".join(names))
 	return "\n".join(lines)
 
 func _relic_name(id: String) -> String:
