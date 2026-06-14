@@ -9,27 +9,42 @@ const FONT := preload("res://assets/fonts/NotoSansKR.ttf")
 func _ready() -> void:
 	Music.play_menu()
 	back_button.pressed.connect(_on_back)
-	for entry in GameState.CHANGELOG:
-		list.add_child(_header(entry.v))
+	# 최신 5개 버전만 일반 표시, 그 이후는 '이전 버전(old)'으로 구분해 흐리게 아카이빙
+	for i in GameState.CHANGELOG.size():
+		var entry = GameState.CHANGELOG[i]
+		if i == 5:
+			list.add_child(_old_divider())
+		var old := i >= 5
+		list.add_child(_header(entry.v, old))
 		for note in entry.notes:
-			list.add_child(_note("· " + note))
+			list.add_child(_note("· " + note, old))
 		list.add_child(_spacer())
 	GameState.mark_version_seen()  # 자동 안내 1회용 기록
 
-func _header(v: String) -> Label:
+## 최신/이전 구분선 — 이 아래부터는 아카이빙된 옛 버전
+func _old_divider() -> Label:
+	var l := Label.new()
+	l.text = "──  이전 버전 (old)  ──"
+	l.add_theme_font_override("font", FONT)
+	l.add_theme_font_size_override("font_size", 18)
+	l.add_theme_color_override("font_color", Color(0.5, 0.52, 0.6))
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	return l
+
+func _header(v: String, old := false) -> Label:
 	var l := Label.new()
 	l.text = v
 	l.add_theme_font_override("font", FONT)
-	l.add_theme_font_size_override("font_size", 24)
-	l.add_theme_color_override("font_color", Color(1.0, 0.85, 0.4))
+	l.add_theme_font_size_override("font_size", 20 if old else 24)
+	l.add_theme_color_override("font_color", Color(0.62, 0.56, 0.42) if old else Color(1.0, 0.85, 0.4))
 	return l
 
-func _note(text: String) -> Label:
+func _note(text: String, old := false) -> Label:
 	var l := Label.new()
 	l.text = text
 	l.add_theme_font_override("font", FONT)
-	l.add_theme_font_size_override("font_size", 17)
-	l.add_theme_color_override("font_color", Color(0.85, 0.88, 0.95))
+	l.add_theme_font_size_override("font_size", 14 if old else 17)
+	l.add_theme_color_override("font_color", Color(0.55, 0.57, 0.63) if old else Color(0.85, 0.88, 0.95))
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	l.custom_minimum_size = Vector2(640, 0)
 	return l

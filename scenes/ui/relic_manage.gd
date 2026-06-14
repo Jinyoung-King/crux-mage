@@ -10,27 +10,40 @@ const RUNE_ICON := preload("res://scenes/ui/rune_icon.gd")
 @onready var roll_button: Button = $Center/SlotButton   # 재활용: 뽑기 버튼
 @onready var back_button: Button = $Center/BackButton
 
-var row_labels := {}  # id → Label
-var row_icons := {}   # id → RuneIcon
+var grid: GridContainer  # 룬 그리드(3열)
+var row_cells := {}      # id → {name, eff, icon}
 
 func _ready() -> void:
 	Music.play_menu()
 	$Center/Title.text = "룬 뽑기"
 	back_button.pressed.connect(_on_back)
 	roll_button.pressed.connect(_on_roll)
+	grid = GridContainer.new()
+	grid.columns = 3
+	grid.add_theme_constant_override("h_separation", 14)
+	grid.add_theme_constant_override("v_separation", 16)
+	grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	rows.add_child(grid)
 	for r in RelicLib.RELICS:
-		var row := HBoxContainer.new()
-		row.alignment = BoxContainer.ALIGNMENT_CENTER
-		row.add_theme_constant_override("separation", 12)
+		var cell := VBoxContainer.new()
+		cell.custom_minimum_size = Vector2(176, 0)
+		cell.alignment = BoxContainer.ALIGNMENT_CENTER
+		cell.add_theme_constant_override("separation", 2)
 		var icon = RUNE_ICON.new()
+		icon.custom_minimum_size = Vector2(48, 48)
+		icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		icon.setup(r.id, r.get("color", Color.WHITE), true)
-		row.add_child(icon)
-		var lbl := _label("", 18, Color(0.92, 0.94, 1.0))
-		lbl.custom_minimum_size = Vector2(500, 0)
-		row.add_child(lbl)
-		rows.add_child(row)
-		row_labels[r.id] = lbl
-		row_icons[r.id] = icon
+		cell.add_child(icon)
+		var name_lbl := _label("", 16, Color(0.92, 0.94, 1.0))
+		name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		cell.add_child(name_lbl)
+		var eff_lbl := _label("", 13, Color(0.7, 0.74, 0.85))
+		eff_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		eff_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		eff_lbl.custom_minimum_size = Vector2(168, 0)
+		cell.add_child(eff_lbl)
+		grid.add_child(cell)
+		row_cells[r.id] = {"name": name_lbl, "eff": eff_lbl, "icon": icon}
 	result_label.text = "코인으로 룬을 뽑아 모으세요 (중복은 강화)"
 	_refresh()
 
@@ -57,14 +70,18 @@ func _refresh() -> void:
 	roll_button.disabled = not GameState.can_roll_relic()
 	for r in RelicLib.RELICS:
 		var lv := GameState.relic_level(r.id)
-		var lbl: Label = row_labels[r.id]
-		row_icons[r.id].setup(r.id, r.get("color", Color.WHITE), lv <= 0)  # 미보유는 흐리게
+		var c = row_cells[r.id]
+		c["icon"].setup(r.id, r.get("color", Color.WHITE), lv <= 0)  # 미보유는 흐리게
 		if lv > 0:
-			lbl.text = "%s  Lv %d  ·  %s" % [r.name, lv, RelicLib.effect_text(r.id, lv)]
-			lbl.modulate = Color(1, 1, 1)
+			c["name"].text = "%s Lv%d" % [r.name, lv]
+			c["eff"].text = RelicLib.effect_text(r.id, lv)
+			c["name"].modulate = Color(1, 1, 1)
+			c["eff"].modulate = Color(1, 1, 1)
 		else:
-			lbl.text = "%s  (미보유)" % r.name
-			lbl.modulate = Color(0.5, 0.5, 0.55)
+			c["name"].text = r.name
+			c["eff"].text = "미보유"
+			c["name"].modulate = Color(0.5, 0.5, 0.55)
+			c["eff"].modulate = Color(0.5, 0.5, 0.55)
 
 func _on_back() -> void:
 	get_tree().change_scene_to_file("res://scenes/ui/start_screen.tscn")

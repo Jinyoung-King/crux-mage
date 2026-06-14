@@ -8,11 +8,16 @@ const FONT := preload("res://assets/fonts/NotoSansKR.ttf")
 
 func _ready() -> void:
 	Music.play_menu()
-	$Center/Title.text = "몹 도감"
+	$Center/Title.text = "도감"
 	$Center/BackButton.pressed.connect(_on_back)
 	_refresh_summary()
 	for ed in GameState.enemies:
 		grid.add_child(_make_entry(ed))
+	# 스킬 도감 섹션 (2열 그리드 → 헤더 + 빈 셀로 새 줄 시작)
+	grid.add_child(_section_header("★ 스킬 도감"))
+	grid.add_child(Control.new())
+	for id in SkillLib.DEFS:
+		grid.add_child(_make_skill_entry(id, SkillLib.DEFS[id]))
 
 ## 상단 요약: 총 처치 + 현재 업적 보너스 + 다음 마일스톤까지
 func _refresh_summary() -> void:
@@ -68,6 +73,53 @@ func _make_entry(ed) -> Control:
 		info.add_child(_label("처치 %d  ·  단계 ★%d (%s)" % [n, tier, prog], 15, Color(0.86, 0.8, 0.6)))
 	else:
 		info.add_child(_label("미발견", 15, Color(0.5, 0.5, 0.5)))
+	return panel
+
+## 스킬 도감 섹션 헤더(금색)
+func _section_header(text: String) -> Label:
+	var l := _label(text, 22, Color(1.0, 0.85, 0.4))
+	return l
+
+## 스킬 1종 도감 카드 — 속성색 프레임 + 이름·속성·기본 수치(스킬은 항상 공개)
+func _make_skill_entry(id: String, def: Dictionary) -> Control:
+	var elem: String = def.get("element", "")
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(330, 92)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.16, 0.15, 0.21, 0.92)
+	sb.set_corner_radius_all(8)
+	sb.set_content_margin_all(10)
+	sb.set_border_width_all(2)
+	sb.border_color = ElementLib.color(elem)
+	panel.add_theme_stylebox_override("panel", sb)
+	var box := HBoxContainer.new()
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_theme_constant_override("separation", 12)
+	panel.add_child(box)
+	var ic := ColorRect.new()  # 스킬은 스프라이트가 없어 속성색 사각으로 표시
+	ic.color = ElementLib.color(elem)
+	ic.custom_minimum_size = Vector2(48, 48)
+	ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(ic)
+	var info := VBoxContainer.new()
+	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info.alignment = BoxContainer.ALIGNMENT_CENTER
+	info.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(info)
+	info.add_child(_label(def.get("name", "스킬"), 19, Color(1, 1, 1)))
+	info.add_child(_label("%s 속성" % ElementLib.display_name(elem), 13, ElementLib.color(elem)))
+	var detail: String
+	if id == "barrier_droid":
+		detail = "지속형 · 비행체 %d기 · 적탄 소멸" % int(def.get("count", 2))
+	else:
+		detail = "피해 %d · 쿨 %.1f초" % [int(def.get("power", 0)), float(def.get("cooldown", 0.0))]
+		if int(def.get("count", 0)) > 0:
+			detail += " · %d발" % int(def.get("count", 0))
+		elif float(def.get("radius", 0.0)) > 0.0:
+			detail += " · 광역"
+	info.add_child(_label(detail, 15, Color(0.86, 0.8, 0.6)))
 	return panel
 
 func _label(text: String, size: int, color: Color) -> Label:
