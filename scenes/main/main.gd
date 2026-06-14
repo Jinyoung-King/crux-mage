@@ -76,6 +76,7 @@ var card_pool: Array = [
 	preload("res://resources/cards/card_skill_chain.tres"),
 	preload("res://resources/cards/card_skill_freeze.tres"),
 	preload("res://resources/cards/card_skill_barrage.tres"),
+	preload("res://resources/cards/card_skill_thorns.tres"),
 	preload("res://resources/cards/card_explode.tres"),
 	preload("res://resources/cards/card_explode_big.tres"),
 	preload("res://resources/cards/card_multi_target.tres"),

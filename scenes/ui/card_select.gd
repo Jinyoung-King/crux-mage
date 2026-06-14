@@ -231,6 +231,7 @@ func _skill_detail(id: String) -> String:
 		"barrage": lines.append("%d곳에 반경 %d의 폭격이 떨어집니다." % [cnt, rad])
 		"meteor": lines.append("가장 밀집한 곳에 반경 %d 광역 피해." % rad)
 		"freeze": lines.append("화면의 모든 적을 둔화시킵니다.")
+		"thorns": lines.append("가장 밀집한 곳에 반경 %d 가시 장판(지속 피해)." % rad)
 	lines.append("같은 스킬을 모으면 진화 분기를 선택합니다.")
 	return "\n".join(lines)
 

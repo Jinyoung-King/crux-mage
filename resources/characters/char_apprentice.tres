@@ -1,8 +1,8 @@
 [gd_resource type="Resource" script_class="CharacterData" load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://data/character_data.gd" id="1"]
-[ext_resource type="Texture2D" path="res://assets/sprites/wizard.png" id="2"]
-[ext_resource type="Texture2D" path="res://assets/sprites/bolt.png" id="3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/mage_wood.png" id="2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/bolt_wood.png" id="3"]
 [ext_resource type="AudioStream" path="res://assets/audio/shoot.wav" id="4"]
 
 [resource]
@@ -16,7 +16,7 @@ base_damage = 10.0
 base_fire_rate = 2.0
 base_projectile_count = 1
 unlock_wave = 0
-accent_color = Color(0.3, 0.5, 1, 1)
+accent_color = Color(0.45, 0.82, 0.45, 1)
 passive_wave_heal = 8.0
 element = "wood"
 skill_id = "bolts"

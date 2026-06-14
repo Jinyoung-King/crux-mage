@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+card_name = "가시밭 습득"
+description = "가시밭 — 밀집 지점에 가시 장판(지속 피해). 없으면 습득, 있으면 진화"
+rarity = "rare"
+grant_skill_id = "thorns"

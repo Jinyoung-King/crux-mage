@@ -368,6 +368,7 @@ CANNONBALL_PAL = {
 
 os.makedirs(OUT, exist_ok=True)
 write_png("wizard.png", WIZARD, _wizard_pal((40, 70, 160), (60, 100, 200), (35, 60, 130), (255, 230, 120)))
+write_png("mage_wood.png", WIZARD, _wizard_pal((40, 115, 70), (75, 180, 95), (32, 90, 52), (190, 255, 150)))  # 목=초록 견습
 write_png("mage_fire.png", WIZARD, _wizard_pal((150, 40, 40), (205, 75, 60), (115, 30, 35), (255, 180, 80)))
 write_png("mage_storm.png", WIZARD, _wizard_pal((40, 115, 70), (70, 175, 95), (35, 95, 55), (190, 255, 150)))
 write_png("mage_frost.png", WIZARD, _wizard_pal((50, 110, 150), (85, 175, 205), (40, 90, 130), (190, 240, 255)))
@@ -388,6 +389,7 @@ write_png("enemy_caster.png", CASTER, CASTER_PAL)
 write_png("enemy_treasure.png", TREASURE, TREASURE_PAL)
 write_png("dark_bolt.png", DARK_BOLT, DARK_BOLT_PAL)
 write_png("bolt.png", BOLT, BOLT_PAL)
+write_png("bolt_wood.png", BOLT, {"Y": (120, 205, 90, 255), "W": (230, 255, 215, 255)})  # 초록 마력탄(목)
 write_png("spark.png", BOLT, SPARK_PAL)
 
 # === 추가 적 (v1.11): 중복 스프라이트 해소 — 잡몹은 신규 그리드, 보스류는 BOSS 그리드+속성색 ===

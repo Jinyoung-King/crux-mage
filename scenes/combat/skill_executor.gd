@@ -60,6 +60,14 @@ func execute(s: Dictionary) -> void:
 			host._skill_ring(Vector2(360, 420), 460.0, Color(0.5, 0.8, 1.0))  # 화면 전체 서리 링
 			_skill_burst(Vector2(360, 420), Color(0.5, 0.8, 1.0))
 			focus = Vector2(360, 360)
+		"thorns":  # 가시밭: 가장 밀집한 곳에 초기 광역 피해 + 지속 가시 장판(속성색=초록)
+			var tc := _densest_cluster(er, pool)
+			if tc != Vector2.INF:
+				_skill_aoe(tc, er, ep, false)
+				_ground_field(tc, er, ep, element)
+				host._skill_ring(tc, er, col)
+				_skill_burst(tc, col)
+				focus = tc
 	_skill_name_popup(focus, s.name, col)  # 시전 스킬 이름 표시
 	host._add_shake(4.0)
 

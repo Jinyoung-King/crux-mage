@@ -10,6 +10,7 @@ const DEFS := {
 	"barrage": {"name": "융단폭격", "cooldown": 9.5, "power": 13.0, "radius": 65.0, "count": 3, "element": "earth"},
 	"chain":   {"name": "전격", "cooldown": 8.0, "power": 13.0, "radius": 0.0, "count": 4, "element": "metal"},
 	"freeze":  {"name": "서리바람", "cooldown": 12.0, "power": 9.0, "radius": 0.0, "count": 0, "element": "water"},
+	"thorns":  {"name": "가시밭", "cooldown": 9.0, "power": 9.0, "radius": 110.0, "count": 0, "element": "wood"},
 }
 
 ## 스킬 시전 사거리(마법사로부터). 이 거리 안의 적만 타겟 — 스킬별 차등(기지 y≈1150 기준).
@@ -20,6 +21,7 @@ const SKILL_RANGE := {
 	"meteor": 1100.0,
 	"barrage": 1100.0,
 	"freeze": 850.0,
+	"thorns": 900.0,
 }
 
 ## 진화 트리 — 같은 스킬을 다시 획득하면 상위 티어로(현재 스탯에 배율/가산 적용 → 고유·획득 모두 진화).
@@ -80,5 +82,10 @@ const EVOLVE_BRANCHES := {
 		{"kind": "power",    "name": "눈보라",    "desc": "위력 +40%", "power_mult": 1.4},
 		{"kind": "element",  "name": "동상 서리",  "desc": "둔화 부여 + 위력 +15%", "grant": "slow", "power_mult": 1.15},
 		{"kind": "behavior", "name": "빙폭 서리",  "desc": "처치 시 폭발(처치 폭발 부여) · 위력 +15%", "behavior": "explode", "amount": 0.3, "power_mult": 1.15},
+	],
+	"thorns": [
+		{"kind": "power",    "name": "가시 숲",      "desc": "범위 +25% · 위력 +35%", "radius_mult": 1.25, "power_mult": 1.35},
+		{"kind": "element",  "name": "옭아매는 덩굴", "desc": "명중 시 둔화 부여 · 위력 +10%", "grant": "slow", "power_mult": 1.1},
+		{"kind": "behavior", "name": "독가시",        "desc": "처치 시 폭발(처치 폭발 부여) · 위력 +15%", "behavior": "explode", "amount": 0.3, "power_mult": 1.15},
 	],
 }
