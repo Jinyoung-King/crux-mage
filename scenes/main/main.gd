@@ -441,7 +441,11 @@ func _stage_spawn_list(index: int) -> Array:
 	if pool.is_empty():
 		pool = [GameState.enemies[0]]
 	var within := index % WAVES_PER_STAGE          # 스테이지 내 웨이브(0~9)
-	var total := 6 + within + mini(_endless_level(index), COUNT_SCALE_CAP) * 2  # 수 증가 상한(과밀 방지)
+	var total: int
+	if index < 2:
+		total = 3 + index  # 신규 진입 완화: 한 판의 첫 두 웨이브는 Wave1=3·Wave2=4로 줄여 조작·메커니즘 학습 여유
+	else:
+		total = 6 + within + mini(_endless_level(index), COUNT_SCALE_CAP) * 2  # 수 증가 상한(과밀 방지)
 	var list: Array = []
 	for i in total:
 		list.append(pool[i % pool.size()])

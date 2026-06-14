@@ -3,10 +3,11 @@ extends Node
 ## 씬을 새로 로드해도 유지되며, 최고 기록은 user://에 영속 저장된다.
 
 const SAVE_PATH := "user://save.cfg"
-const VERSION := "v1.32"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
+const VERSION := "v1.33"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
 
 # 패치노트 (최신이 위). 새 버전 추가 시 맨 앞에 한 항목 추가. 시작 화면 "패치노트" + 업데이트 시 자동 안내.
 const CHANGELOG := [
+	{"v": "v1.33", "notes": ["신규 진입 완화 + 테스트 지원 — ① 첫 판 진입 장벽을 낮춤: Wave 1의 적을 6→3마리, Wave 2를 7→4마리로 줄여 조작·메커니즘을 익힐 여유를 줌(Wave 3부터는 기존 곡선 유지). ② 테스트 기간 보너스: 모든 플레이어에게 코인 50만을 1회 지급(접속 시 자동, 세이브당 한 번)"]},
 	{"v": "v1.32", "notes": ["속성색을 오방색(五方色)으로 정비 — 금=백(하양)·수=흑(짙은 남)으로 변경해 5속성 대비를 또렷하게. 시작 화면에 '오행 상성표 ⓘ' 추가: 목→토→수→화→금 상극 순환과 강타(×1.5)/약화(×0.7)를 색으로 안내. 전투 중 스킬 쿨타임 아이콘을 길게 누르면 그 스킬의 사거리를 마법사 중심 원으로 표시(속성색)"]},
 	{"v": "v1.31", "notes": ["나무(목) 속성 강화 — ① 견습 마법사를 초록색 디자인으로 변경(스프라이트·강조색) ② 목 스킬 마력탄도 초록 발사체로 ③ 새 목 스킬 '가시밭' 추가: 가장 밀집한 곳에 초기 광역 피해 + 지속 가시 장판(진화 분기 3종 — 가시 숲/옭아매는 덩굴/독가시)"]},
 	{"v": "v1.30", "notes": ["특성 시스템 추가 — 전 캐릭터 공용 영구 성장. '특성 포인트'는 캐릭터 숙련 레벨업마다 1점씩 쌓이며(모든 캐릭터 누적 숙련 합), 시작 화면 '특성'에서 6종을 올린다: 위력(공격력%)·활력(체력%)·재화(코인%)·신속(시작 연사)·절약(룬 뽑기 비용↓)·흡정(흡혈). 모든 캐릭터에 적용"]},
@@ -174,6 +175,8 @@ var muted := false  ## 음소거 — 영속
 var auto_card := false  ## 카드 드래프트 10초 후 자동선택 토글 — 영속
 var show_damage_numbers := true  ## 데미지 숫자 표시 토글 — 영속
 var coins := 0  ## 영구 재화 (런 종료 시 누적, 캐릭터 공용 지갑)
+const TEST_COIN_GRANT := 500000  ## 테스트 기간 1회 지급 코인(50만) — 세이브당 한 번만
+var test_coin_granted := false   ## 위 지급을 이미 받았는지(중복 지급 방지 플래그)
 var upgrades := {}  ## 영구 강화 레벨 — 캐릭터별 {char_key: {id: level}}
 var char_xp := {}  ## 캐릭터별 누적 경험치 {char_key: xp} → 숙련도 레벨(자동 패시브)
 var trait_levels := {}  ## 특성 레벨 {id: level} — 전 캐릭터 공용 영구 성장. 특성 포인트=누적 숙련 레벨−사용분
@@ -472,7 +475,14 @@ func _load() -> void:
 		kills = cf.get_value("record", "kills", {})
 		total_runs = cf.get_value("record", "total_runs", 0)
 		lifetime_coins = cf.get_value("record", "lifetime_coins", 0)
+		test_coin_granted = cf.get_value("meta", "test_coin_granted", false)
 		_migrate_upgrades()  # 구형(글로벌) 강화 → 코인 환불 후 캐릭터별로 전환
+	# 테스트 기간 1회 지급(세이브 유무와 무관 — 신규/기존 모두 한 번): 50만 코인
+	if not test_coin_granted:
+		test_coin_granted = true
+		coins += TEST_COIN_GRANT
+		lifetime_coins += TEST_COIN_GRANT
+		_save()  # 플래그 즉시 영속화 → 다음 부팅부터 재지급 안 됨
 
 func _save() -> void:
 	var cf := ConfigFile.new()
@@ -492,6 +502,7 @@ func _save() -> void:
 	cf.set_value("record", "kills", kills)
 	cf.set_value("record", "total_runs", total_runs)
 	cf.set_value("record", "lifetime_coins", lifetime_coins)
+	cf.set_value("meta", "test_coin_granted", test_coin_granted)
 	cf.save(SAVE_PATH)
 
 ## 현재 버전의 패치노트를 본 것으로 기록(자동 안내 1회용)
