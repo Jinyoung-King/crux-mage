@@ -217,7 +217,7 @@ func _style_card(btn: Button, card) -> void:
 	icon.set_kind(_card_icon_kind(card))
 	box.add_child(icon)
 	if skill_framed:  # 스킬 카드: 속성 배지 + 속성 색 이름. 보유 중이면 진화 진행도(N/3) 표기
-		var title: String = SkillLib.DEFS.get(card.grant_skill_id, {}).get("name", card.card_name)
+		var title: String = _skill_card_title(card)  # 보유 중이면 현재 진화명(예: '연발 마력탄')
 		var tag: String = "★ 스킬"
 		if _skill_owned_evolvable(card.grant_skill_id):
 			tag = "★ 진화 %d/%d" % [_skill_stacks(card.grant_skill_id), player.EVOLVE_COST]
@@ -242,6 +242,16 @@ func _label(text: String, size: int, color: Color) -> Label:
 	l.add_theme_font_size_override("font_size", size)
 	l.add_theme_color_override("font_color", color)
 	return l
+
+## 스킬 카드 제목 — 보유 중이면 현재 진화명(예: '연발 마력탄'), 아니면 기본명.
+## (같은 계열 카드를 또 먹으면 그 스킬을 강화·진화시키므로, 기본명 대신 현재 이름을 보여 혼란 방지)
+func _skill_card_title(card: CardData) -> String:
+	var id: String = card.grant_skill_id
+	if player != null:
+		for s in player.skills:
+			if s.id == id:
+				return s.name
+	return SkillLib.DEFS.get(id, {}).get("name", card.card_name)
 
 ## 그 스킬을 보유 중이고 더 진화 가능한지(진화 진행도 표기 대상)
 func _skill_owned_evolvable(id: String) -> bool:
