@@ -51,3 +51,34 @@ const EVOLVE := {
 		{"name": "행성 붕괴", "count": 3, "radius_mult": 1.4, "power_mult": 1.9},
 	],
 }
+
+## 진화 분기 — 같은 스킬을 EVOLVE_COST(3)장 모으면 이 3개 분기 중 하나를 골라 진화한다.
+## kind: power(강화) / element(속성결합 — 화상·둔화 부여, 다른 카드 효과와 조합) / behavior(행동결합 — 관통·장판·표적·폭발).
+## 같은 분기를 여러 번 골라도 됨(누적). EVOLVE 배열 크기(=3)가 최대 진화 횟수 상한을 정한다.
+const EVOLVE_BRANCHES := {
+	"bolts": [
+		{"kind": "power",    "name": "연발 마력탄", "desc": "발사 수 +1 · 위력 +30%", "count_add": 1, "power_mult": 1.3},
+		{"kind": "element",  "name": "화염 마력탄", "desc": "명중 시 화상 부여(증발·기폭 연계) · 위력 +10%", "grant": "burn", "power_mult": 1.1},
+		{"kind": "behavior", "name": "관통 마력탄", "desc": "적을 1회 더 관통 · 위력 +10%", "behavior": "pierce", "amount": 1, "power_mult": 1.1},
+	],
+	"meteor": [
+		{"kind": "power",    "name": "쌍둥이 메테오", "desc": "위력 +40% · 반경 +20%", "power_mult": 1.4, "radius_mult": 1.2},
+		{"kind": "element",  "name": "용암 메테오",   "desc": "명중 시 화상 부여 · 위력 +15%", "grant": "burn", "power_mult": 1.15},
+		{"kind": "behavior", "name": "분화구 메테오", "desc": "명중 지점에 잔류 장판 · 위력 +15%", "behavior": "ground_field", "power_mult": 1.15},
+	],
+	"barrage": [
+		{"kind": "power",    "name": "집중포화",   "desc": "폭격 수 +1 · 위력 +30%", "count_add": 1, "power_mult": 1.3},
+		{"kind": "behavior", "name": "초토화 포격", "desc": "명중 지점에 잔류 장판 · 위력 +15%", "behavior": "ground_field", "power_mult": 1.15},
+		{"kind": "behavior", "name": "확산 포격",   "desc": "표적 수 +1(다발 강화) · 위력 +15%", "behavior": "extra_targets", "amount": 1, "power_mult": 1.15},
+	],
+	"chain": [
+		{"kind": "power",    "name": "폭풍 번개", "desc": "연쇄 수 +1 · 위력 +30%", "count_add": 1, "power_mult": 1.3},
+		{"kind": "element",  "name": "한파 번개", "desc": "명중 시 둔화 부여(빙결파쇄 연계) · 위력 +10%", "grant": "slow", "power_mult": 1.1},
+		{"kind": "behavior", "name": "확산 번개", "desc": "표적 수 +1 · 위력 +15%", "behavior": "extra_targets", "amount": 1, "power_mult": 1.15},
+	],
+	"freeze": [
+		{"kind": "power",    "name": "눈보라",    "desc": "위력 +40%", "power_mult": 1.4},
+		{"kind": "element",  "name": "동상 서리",  "desc": "둔화 부여 + 위력 +15%", "grant": "slow", "power_mult": 1.15},
+		{"kind": "behavior", "name": "빙폭 서리",  "desc": "처치 시 폭발(처치 폭발 부여) · 위력 +15%", "behavior": "explode", "amount": 0.3, "power_mult": 1.15},
+	],
+}

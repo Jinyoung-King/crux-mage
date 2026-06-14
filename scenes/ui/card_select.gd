@@ -72,12 +72,14 @@ func _on_auto_pressed() -> void:
 	_start_auto()
 
 ## cards(CardData 배열, 최대 3장)를 꾸며서 표시 + 리롤 1회 초기화
-func open(cards: Array, costs: Array = [], coins: int = 0) -> void:
+func open(cards: Array, costs: Array = [], coins: int = 0, title: String = "카드를 선택하세요", allow_reroll: bool = true) -> void:
 	picking = false
 	shop_costs = costs
 	shop_coins = coins
+	$Center/Title.text = title
+	reroll_button.visible = allow_reroll  # 진화 분기 드래프트는 리롤 없음
 	reroll_button.disabled = false
-	if costs.is_empty():  # 일반 드래프트
+	if costs.is_empty():  # 일반 드래프트 / 진화 분기
 		can_reroll = true
 		reroll_button.text = "다시 뽑기 (1회)"
 	else:  # 상점: 리롤 버튼 → 건너뛰기
@@ -169,10 +171,11 @@ func _style_card(btn: Button, card) -> void:
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	icon.set_kind(_card_icon_kind(card))
 	box.add_child(icon)
-	if skill_framed:  # 스킬 카드: 속성 배지 + 속성 색 이름(보유 중이면 다음 진화명)
-		var evo := _next_evolve_name(card.grant_skill_id)
-		var title: String = evo if evo != "" else SkillLib.DEFS.get(card.grant_skill_id, {}).get("name", card.card_name)
-		var tag: String = "★ 진화" if evo != "" else "★ 스킬"
+	if skill_framed:  # 스킬 카드: 속성 배지 + 속성 색 이름. 보유 중이면 진화 진행도(N/3) 표기
+		var title: String = SkillLib.DEFS.get(card.grant_skill_id, {}).get("name", card.card_name)
+		var tag: String = "★ 스킬"
+		if _skill_owned_evolvable(card.grant_skill_id):
+			tag = "★ 진화 %d/%d" % [_skill_stacks(card.grant_skill_id), player.EVOLVE_COST]
 		box.add_child(_label("%s · %s속성" % [tag, ElementLib.display_name(elem)], 15, ElementLib.color(elem)))
 		box.add_child(_label(title, 23, ElementLib.color(elem)))
 	else:
@@ -195,17 +198,18 @@ func _label(text: String, size: int, color: Color) -> Label:
 	l.add_theme_color_override("font_color", color)
 	return l
 
-## 그 스킬을 이미 보유 중이면 다음 진화 단계 이름을 반환(미보유·최고 티어면 ""). 카드 이름·설명에 사용.
-func _next_evolve_name(id: String) -> String:
-	if player == null or id == "":
-		return ""
+## 그 스킬을 보유 중이고 더 진화 가능한지(진화 진행도 표기 대상)
+func _skill_owned_evolvable(id: String) -> bool:
+	return player != null and id != "" and player.can_evolve(id)
+
+## 그 스킬의 현재 진화 스택 수(없으면 0)
+func _skill_stacks(id: String) -> int:
+	if player == null:
+		return 0
 	for s in player.skills:
 		if s.id == id:
-			var evos: Array = SkillLib.EVOLVE.get(id, [])
-			if s.tier - 1 < evos.size():
-				return evos[s.tier - 1].name  # 다시 얻으면 진화할 이름
-			return ""  # 최고 티어 — 새 인스턴스 누적
-	return ""  # 미보유
+			return int(s.get("stacks", 0))
+	return 0
 
 ## 스킬 획득 카드: SkillLib.DEFS 수치로 자세한 다줄 설명(데미지·쿨타임·특성·진화 안내)
 func _skill_detail(id: String) -> String:
@@ -213,8 +217,10 @@ func _skill_detail(id: String) -> String:
 	if d.is_empty():
 		return ""
 	var lines: PackedStringArray = []
-	var evo := _next_evolve_name(id)
-	lines.append(("%s(으)로 진화합니다." % evo) if evo != "" else ("%s 스킬을 획득합니다." % d.get("name", "스킬")))
+	if _skill_owned_evolvable(id):
+		lines.append("진화 진행 %d/%d — 모으면 진화 분기를 선택합니다." % [_skill_stacks(id), player.EVOLVE_COST])
+	else:
+		lines.append("%s 스킬을 획득합니다." % d.get("name", "스킬"))
 	lines.append("적에게 데미지 %d의 피해를 줍니다." % int(d.get("power", 0)))
 	lines.append("%s초의 쿨타임마다 발동됩니다." % _fmt_cd(d.get("cooldown", 0.0)))
 	var cnt := int(d.get("count", 0))
@@ -225,7 +231,7 @@ func _skill_detail(id: String) -> String:
 		"barrage": lines.append("%d곳에 반경 %d의 폭격이 떨어집니다." % [cnt, rad])
 		"meteor": lines.append("가장 밀집한 곳에 반경 %d 광역 피해." % rad)
 		"freeze": lines.append("화면의 모든 적을 둔화시킵니다.")
-	lines.append("이번에 얻으면 더 강력해집니다." if evo != "" else "이미 보유 시 더 강력하게 진화합니다.")
+	lines.append("같은 스킬을 모으면 진화 분기를 선택합니다.")
 	return "\n".join(lines)
 
 ## 쿨타임 표기: 정수면 정수로, 소수면 한 자리(4.5초 등)

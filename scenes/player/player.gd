@@ -10,6 +10,7 @@ signal took_damage(amount: float)  ## 받는 피해 (빨간 데미지 숫자 표
 const PROJECTILE_SCENE := preload("res://scenes/projectile/projectile.tscn")
 const FOCUS_SPREAD := PI / 90.0  ## 표적보다 발사 수가 많을 때 같은 표적에 겹쳐 쏘는 발사의 부채 각(≈2°)
 const MAX_SKILL_SLOTS := 4  ## 스킬 슬롯 제한(캐릭터 고유 1 포함) — 다 쓰기 방지, 슬롯 차면 진화 유도
+const EVOLVE_COST := 3  ## 같은 스킬 카드를 이만큼 모으면 1단계 진화(분기 선택)
 
 @export var max_hp: float = 100.0
 
@@ -96,7 +97,7 @@ func effective_damage() -> float:
 
 ## 스킬 인스턴스 생성 (시작 시 쿨타임만큼 충전 필요)
 func _make_skill(id: String, nm: String, cd: float, pwr: float, rad: float, cnt: int) -> Dictionary:
-	var s := {"id": id, "name": nm, "cooldown": cd, "power": pwr, "radius": rad, "count": cnt, "cd_left": 0.0, "tier": 1}
+	var s := {"id": id, "name": nm, "cooldown": cd, "power": pwr, "radius": rad, "count": cnt, "cd_left": 0.0, "tier": 1, "stacks": 0}
 	s.cd_left = eff_cooldown(s)
 	return s
 
@@ -122,6 +123,38 @@ func can_evolve(id: String) -> bool:
 		if s.id == id and s.tier - 1 < evos.size():
 			return true
 	return false
+
+## 같은 스킬 카드 1장 적립(진화 진행). 매 픽 소폭 강화로 죽은 픽 방지. 임계(EVOLVE_COST) 도달 시 true(=진화 준비).
+func add_skill_stack(id: String) -> bool:
+	for s in skills:
+		if s.id == id:
+			s.power *= 1.08  # 누적 중에도 조금씩 강해짐
+			s["stacks"] = int(s.get("stacks", 0)) + 1
+			return s["stacks"] >= EVOLVE_COST and can_evolve(id)
+	return false
+
+## 고른 진화 분기를 적용 — 단계↑·스택 리셋·분기 효과(강화/속성결합/행동결합). 빌드 플래그 변경 시 모디파이어 재구성.
+func evolve_branch(id: String, branch: Dictionary) -> void:
+	for s in skills:
+		if s.id == id:
+			s.tier += 1
+			s["stacks"] = 0
+			s.name = branch.get("name", s.name)
+			s.power *= float(branch.get("power_mult", 1.0))
+			s.count += int(branch.get("count_add", 0))
+			s.radius *= float(branch.get("radius_mult", 1.0))
+			match branch.get("kind", ""):
+				"element":
+					if branch.get("grant", "") == "burn": build.apply_burn = true
+					elif branch.get("grant", "") == "slow": build.apply_slow = true
+				"behavior":
+					match branch.get("behavior", ""):
+						"pierce": build.pierce += int(branch.get("amount", 1))
+						"ground_field": build.ground_field = true
+						"extra_targets": build.extra_targets += int(branch.get("amount", 1))
+						"explode": build.explode_power += float(branch.get("amount", 0.3))
+			rebuild_hit_modifiers()
+			return
 
 ## 스킬 사거리 내에 살아있는 적이 하나라도 있는지 (executor._enemies_in_range와 동일 기준)
 func _has_target_in_range(s: Dictionary) -> bool:

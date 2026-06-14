@@ -115,6 +115,11 @@ var _shop_active := false  # 상점 드래프트 진행 중
 var _shop_cards: Array = []
 var _shop_cost: Array = []
 var start_drafts_left := 0  # 웨이브 전 시작 드래프트 남은 횟수 (1 + 추가 시작 카드 레벨)
+# 진화 분기 드래프트 상태
+var _evo_id := ""              # 진화 분기 선택 중인 스킬 id ("" = 아님)
+var _evo_branches: Array = []  # 현재 분기 정의 목록
+var _evo_cards: Array = []     # 분기 표시용 CardData(선택 매핑)
+var _evo_cont: Callable        # 분기 선택 후 이어갈 흐름(다음 웨이브/드래프트)
 var auto_pick := false  # 테스트 편의: 웹에서 ?auto=1로 열면 카드 자동선택(숨김 개발 옵션)
 var _draft_rare := false  # 현재 드래프트가 희귀 확정(보스)인지 — 리롤 시 동일 조건으로 재추첨
 var game_over := false
@@ -761,6 +766,8 @@ func _open_shop() -> void:
 
 ## 리롤(드래프트당 1회): 같은 조건으로 새 카드를 뽑아 교체. 상점에선 '건너뛰기'.
 func _on_reroll_requested() -> void:
+	if _evo_id != "":
+		return  # 진화 분기 선택 중에는 리롤 없음(분기 3종 고정)
 	if _shop_active:
 		_shop_active = false
 		_start_wave(wave_index + 1)
@@ -768,27 +775,83 @@ func _on_reroll_requested() -> void:
 	card_select.refill(_draw_cards(CHOICES_PER_CLEAR, _draft_rare))
 
 func _on_card_chosen(card: CardData) -> void:
+	# 진화 분기 선택 중이면: 고른 분기를 적용하고 보류했던 흐름 이어감
+	if _evo_id != "":
+		$SfxCardPick.play()
+		_apply_evo_branch(card)
+		return
 	if _shop_active:  # 상점 구매: 코인 차감 후 적용, 다음 웨이브로
 		$SfxCardPick.play()
 		var idx: int = _shop_cards.find(card)
 		if idx >= 0:
 			run_coins = maxi(run_coins - _shop_cost[idx], 0)
 			_update_coin_label()
+		_shop_active = false
+		if _consume_skill_pick(card, _start_next_wave):  # 스킬 진화 스택/분기면 흐름 위임
+			return
 		$Player.apply_card(card)
 		_record_card(card)
-		_shop_active = false
 		_start_wave(wave_index + 1)
 		return
 	$SfxCardPick.play()
+	if _consume_skill_pick(card, _after_pick):  # 스킬 진화 스택/분기면 흐름 위임
+		return
 	$Player.apply_card(card)
 	_record_card(card)
-	# 시작 드래프트(웨이브 시작 전)가 남아 있으면 다음 드래프트, 아니면 다음 웨이브
+	_after_pick()
+
+## 다음 웨이브로(상점/분기 이후 이어가기용)
+func _start_next_wave() -> void:
+	_start_wave(wave_index + 1)
+
+## 일반 픽 후 진행: 시작 드래프트가 남았으면 다음 드래프트, 아니면 다음 웨이브
+func _after_pick() -> void:
 	if start_drafts_left > 0:
 		start_drafts_left -= 1
 		if start_drafts_left > 0:
 			_open_draft()
 			return
 	_start_wave(wave_index + 1)
+
+## 스킬 카드 픽 가로채기: 보유 중 진화 가능 스킬이면 스택 적립(임계 도달 시 분기 드래프트). 처리했으면 true.
+func _consume_skill_pick(card: CardData, cont: Callable) -> bool:
+	var id: String = card.grant_skill_id
+	if id == "" or not $Player.can_evolve(id):
+		return false  # 비스킬·미보유·최고단계 스킬은 일반 처리(새 스킬 획득은 apply_card가)
+	_record_card(card)  # 스택 픽도 '내 카드'에 집계
+	if $Player.add_skill_stack(id):  # 임계 도달 → 진화 분기 선택
+		_open_evo_draft(id, cont)
+	else:
+		cont.call()  # 아직 누적 중 → 다음 진행
+	return true
+
+## 진화 분기 드래프트: 해당 스킬의 3개 분기를 카드로 띄워 선택받는다(끝나면 cont 실행)
+func _open_evo_draft(id: String, cont: Callable) -> void:
+	_evo_id = id
+	_evo_cont = cont
+	_evo_branches = SkillLib.EVOLVE_BRANCHES.get(id, [])
+	_evo_cards = []
+	for b in _evo_branches:
+		var c := CardData.new()
+		c.card_name = b.get("name", "진화")
+		c.description = b.get("desc", "")
+		c.rarity = "epic"  # 진화 분기는 영웅 프레임으로 강조
+		_evo_cards.append(c)
+	$Player.skills_paused = true
+	card_select.open(_evo_cards, [], 0, "✦ 진화 분기 선택 ✦", false)
+	if auto_pick and not _evo_cards.is_empty():
+		get_tree().create_timer(0.25).timeout.connect(card_select.pick_random)
+
+## 고른 분기 적용 후 보류했던 흐름(cont) 실행
+func _apply_evo_branch(card: CardData) -> void:
+	var idx: int = _evo_cards.find(card)
+	if idx >= 0 and idx < _evo_branches.size():
+		$Player.evolve_branch(_evo_id, _evo_branches[idx])
+	var cont: Callable = _evo_cont
+	_evo_id = ""
+	_evo_branches = []
+	_evo_cards = []
+	cont.call()
 
 func _on_player_hp_changed(hp: float, max_hp: float) -> void:
 	hp_label.text = "%s / %s" % [NumFmt.compact(int(hp)), NumFmt.compact(int(max_hp))]  # 앞의 방패 아이콘(HpIcon)이 '기지 내구도'를 표시
