@@ -2,6 +2,8 @@ extends Control
 ## 패치노트 화면: GameState.CHANGELOG를 버전별로 나열. 열람 시 현재 버전을 본 것으로 기록.
 
 const FONT := preload("res://assets/fonts/NotoSansKR.ttf")
+const NAV_BAR := preload("res://scenes/ui/nav_bar.gd")  # 하단 탭 네비게이션(유지)
+const RECENT := 3  # 최근 N개만 펼쳐 표시, 이전은 버튼으로 토글
 
 @onready var list: VBoxContainer = $Center/Scroll/List
 @onready var back_button: Button = $Center/BackButton
@@ -9,27 +11,39 @@ const FONT := preload("res://assets/fonts/NotoSansKR.ttf")
 func _ready() -> void:
 	Music.play_menu()
 	back_button.pressed.connect(_on_back)
-	# 최신 5개 버전만 일반 표시, 그 이후는 '이전 버전(old)'으로 구분해 흐리게 아카이빙
-	for i in GameState.CHANGELOG.size():
-		var entry = GameState.CHANGELOG[i]
-		if i == 5:
-			list.add_child(_old_divider())
-		var old := i >= 5
-		list.add_child(_header(entry.v, old))
-		for note in entry.notes:
-			list.add_child(_note("· " + note, old))
-		list.add_child(_spacer())
+	var total := GameState.CHANGELOG.size()
+	# 최근 3개는 바로 펼쳐 표시
+	for i in mini(RECENT, total):
+		_add_entry(list, GameState.CHANGELOG[i], false)
+	# 그 이전은 '이전 패치' 버튼으로 접어두고, 누르면 펼침
+	if total > RECENT:
+		var older := VBoxContainer.new()
+		older.visible = false
+		older.add_theme_constant_override("separation", 6)
+		var toggle := Button.new()
+		toggle.add_theme_font_override("font", FONT)
+		toggle.add_theme_font_size_override("font_size", 20)
+		toggle.custom_minimum_size = Vector2(360, 48)
+		toggle.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		toggle.text = "이전 패치 보기 (%d개) ▾" % (total - RECENT)
+		toggle.pressed.connect(func() -> void:
+			older.visible = not older.visible
+			toggle.text = "이전 패치 숨기기 ▴" if older.visible else "이전 패치 보기 (%d개) ▾" % (total - RECENT))
+		list.add_child(toggle)
+		list.add_child(older)
+		for i in range(RECENT, total):
+			_add_entry(older, GameState.CHANGELOG[i], true)
 	GameState.mark_version_seen()  # 자동 안내 1회용 기록
+	var nav := NAV_BAR.new()  # 하단 탭 네비게이션 유지
+	add_child(nav)
+	nav.setup("patch")
 
-## 최신/이전 구분선 — 이 아래부터는 아카이빙된 옛 버전
-func _old_divider() -> Label:
-	var l := Label.new()
-	l.text = "──  이전 버전 (old)  ──"
-	l.add_theme_font_override("font", FONT)
-	l.add_theme_font_size_override("font_size", 18)
-	l.add_theme_color_override("font_color", Color(0.5, 0.52, 0.6))
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	return l
+## 한 버전 항목(헤더 + 노트들 + 간격)을 parent에 추가
+func _add_entry(parent: VBoxContainer, entry, old: bool) -> void:
+	parent.add_child(_header(entry.v, old))
+	for note in entry.notes:
+		parent.add_child(_note("· " + note, old))
+	parent.add_child(_spacer())
 
 func _header(v: String, old := false) -> Label:
 	var l := Label.new()

@@ -21,11 +21,11 @@ var glyph_id: String = ""
 var col: Color = Color.WHITE
 var dim: bool = false
 
-func setup(id: String, color: Color, dimmed: bool = false) -> void:
+func setup(id: String, color: Color, dimmed: bool = false, px: float = 46.0) -> void:
 	glyph_id = id
 	col = color
 	dim = dimmed
-	custom_minimum_size = Vector2(46, 46)
+	custom_minimum_size = Vector2(px, px)
 	queue_redraw()
 
 func _draw() -> void:
@@ -40,4 +40,4 @@ func _draw() -> void:
 		for i in range(0, st.size(), 2):
 			pts.append(Vector2(st[i] * sz.x, st[i + 1] * sz.y))
 		if pts.size() >= 2:
-			draw_polyline(pts, c, 2.5, true)
+			draw_polyline(pts, c, maxf(2.5, sz.x * 0.06), true)  # 획 두께를 아이콘 크기에 비례

@@ -3,6 +3,8 @@ extends Control
 
 const FONT := preload("res://assets/fonts/NotoSansKR.ttf")
 const RUNE_ICON := preload("res://scenes/ui/rune_icon.gd")
+const NAV_BAR := preload("res://scenes/ui/nav_bar.gd")  # 하단 탭 네비게이션(유지)
+const ICON_PX := 64.0  # 룬 아이콘 크기(확대)
 
 @onready var coin_label: Label = $Center/CoinLabel
 @onready var result_label: Label = $Center/SlotLabel   # 재활용: 뽑기 결과/안내(금색)
@@ -30,9 +32,8 @@ func _ready() -> void:
 		cell.alignment = BoxContainer.ALIGNMENT_CENTER
 		cell.add_theme_constant_override("separation", 2)
 		var icon = RUNE_ICON.new()
-		icon.custom_minimum_size = Vector2(48, 48)
 		icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-		icon.setup(r.id, r.get("color", Color.WHITE), true)
+		icon.setup(r.id, r.get("color", Color.WHITE), true, ICON_PX)
 		cell.add_child(icon)
 		var name_lbl := _label("", 16, Color(0.92, 0.94, 1.0))
 		name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -46,6 +47,9 @@ func _ready() -> void:
 		row_cells[r.id] = {"name": name_lbl, "eff": eff_lbl, "icon": icon}
 	result_label.text = "코인으로 룬을 뽑아 모으세요 (중복은 강화)"
 	_refresh()
+	var nav := NAV_BAR.new()  # 하단 탭 네비게이션 유지
+	add_child(nav)
+	nav.setup("relic")
 
 func _label(text: String, size: int, color: Color) -> Label:
 	var l := Label.new()
@@ -58,7 +62,7 @@ func _label(text: String, size: int, color: Color) -> Label:
 func _on_roll() -> void:
 	var res := GameState.roll_relic()
 	if res.is_empty():
-		result_label.text = "코인이 부족합니다 (%d 필요)" % GameState.current_roll_cost()
+		result_label.text = "코인이 부족합니다 (%s 필요)" % NumFmt.compact(GameState.current_roll_cost())
 		return
 	var nm: String = RelicLib.relic_def(res.id).name
 	result_label.text = ("%s 획득! (Lv %d)" % [nm, res.level]) if res.is_new else ("%s 강화! (Lv %d)" % [nm, res.level])
@@ -66,12 +70,12 @@ func _on_roll() -> void:
 
 func _refresh() -> void:
 	coin_label.text = "보유 코인 %s" % NumFmt.compact(GameState.coins)
-	roll_button.text = "룬 뽑기 (%d코인)" % GameState.current_roll_cost()
+	roll_button.text = "룬 뽑기 (%s코인)" % NumFmt.compact(GameState.current_roll_cost())
 	roll_button.disabled = not GameState.can_roll_relic()
 	for r in RelicLib.RELICS:
 		var lv := GameState.relic_level(r.id)
 		var c = row_cells[r.id]
-		c["icon"].setup(r.id, r.get("color", Color.WHITE), lv <= 0)  # 미보유는 흐리게
+		c["icon"].setup(r.id, r.get("color", Color.WHITE), lv <= 0, ICON_PX)  # 미보유는 흐리게
 		if lv > 0:
 			c["name"].text = "%s Lv%d" % [r.name, lv]
 			c["eff"].text = RelicLib.effect_text(r.id, lv)
