@@ -662,8 +662,11 @@ func _has_slow_source() -> bool:
 
 ## 현재 빌드에서 의미 있는 카드인지 — 죽은 픽(조건 미충족 시너지 등)을 드래프트에서 제외
 func _is_card_useful(card: CardData) -> bool:
-	if card.grant_skill_id != "" and not _has_skill(card.grant_skill_id) and $Player.skills.size() >= $Player.MAX_SKILL_SLOTS:
-		return false  # 스킬 슬롯이 꽉 차면 미보유 스킬 카드는 제외(보유 스킬 진화 카드만 노출)
+	if card.grant_skill_id != "":
+		if $Player.skills.size() >= $Player.MAX_SKILL_SLOTS:
+			return false  # 슬롯이 가득 차면 스킬 카드 전부 제외
+		if _has_skill(card.grant_skill_id) and not $Player.can_evolve(card.grant_skill_id):
+			return false  # 이미 보유 + 최고 단계(더 진화 불가) → 중복(낭비) 제외. 진화 가능하면 노출 유지
 	if (card.skill_radius_bonus > 0.0 or card.grant_ground_field) and not _has_radius_skill():
 		return false  # 범위 스킬(메테오/융단폭격)이 없으면 범위 강화·장판 무의미
 	if card.extra_targets_bonus > 0 and not _has_count_skill():

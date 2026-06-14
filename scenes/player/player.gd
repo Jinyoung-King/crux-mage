@@ -115,6 +115,14 @@ func _evolve_skill(id: String) -> bool:
 			return true
 	return false
 
+## 이 스킬을 보유 중이고 아직 더 진화할 수 있는지(최고 단계 미도달). 드래프트 노출 판정용.
+func can_evolve(id: String) -> bool:
+	var evos: Array = SkillLib.EVOLVE.get(id, [])
+	for s in skills:
+		if s.id == id and s.tier - 1 < evos.size():
+			return true
+	return false
+
 ## 스킬 사거리 내에 살아있는 적이 하나라도 있는지 (executor._enemies_in_range와 동일 기준)
 func _has_target_in_range(s: Dictionary) -> bool:
 	var rng: float = SkillLib.SKILL_RANGE.get(s.id, 99999.0)
