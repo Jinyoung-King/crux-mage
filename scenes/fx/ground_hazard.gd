@@ -38,7 +38,7 @@ func _draw() -> void:
 	draw_circle(Vector2.ZERO, radius, Color(color.r, color.g, color.b, 0.20))
 	draw_circle(Vector2.ZERO, radius * 0.6, Color(color.r, color.g, color.b, 0.16))
 	# 속성별 픽셀 장식(가시·불씨·돌). 장판은 wood(가시밭)/fire(분화구 메테오)/earth(초토화 포격)만 생성됨.
-	var n := int(clampf(radius / 11.0, 8, 16))  # 반경에 비례한 장식 개수
+	var n := int(clampf(radius / 14.0, 6, 12))  # 반경에 비례한 장식 개수(가시가 커져 약간 줄임)
 	var sc := clampf(radius / 90.0, 0.8, 1.6)   # 픽셀 한 칸 크기 배율
 	for p in _scatter(n):
 		match element:
@@ -58,7 +58,7 @@ func _scatter(n: int) -> Array:
 
 ## 픽셀 나무 가시 1개 — p에서 위로 솟은 삼각 스파이크(아래 굵고 위로 좁아짐)
 func _pixel_thorn(p: Vector2, sc: float) -> void:
-	var u := maxf(2.0, 2.0 * sc)  # 픽셀 한 칸
+	var u := maxf(4.0, 4.0 * sc)  # 픽셀 한 칸(가시 크게 — 가독성↑)
 	var body := Color(0.46, 0.30, 0.15)  # 나무 갈색
 	var tip := Color(0.66, 0.50, 0.28)   # 끝 하이라이트
 	for r in 4:

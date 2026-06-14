@@ -13,7 +13,6 @@ const FALLING_SKILL := preload("res://scenes/fx/falling_skill.gd")
 const DEATH_BURST_SCENE := preload("res://scenes/fx/death_burst.tscn")
 const SCORCH := preload("res://scenes/fx/scorch_mark.gd")  # 메테오 착탄 그을음
 const THORN_ERUPT := preload("res://scenes/fx/thorn_erupt.gd")  # 가시밭 가시 솟구침
-const BARRAGE_MAX_BOMBS := 10  # 융단폭격 폭탄 수 상한 — 다발 누적으로 폭탄·파편이 폭증해 후반 렉 방지
 const REACTION_HP_PCT := 0.06  ## 격발 반응(증발·빙결파쇄)이 주는 추가 % 최대체력 피해 — 복리 체력 관통
 
 var player
@@ -50,15 +49,12 @@ func execute(s: Dictionary) -> void:
 			if center != Vector2.INF:
 				_drop_aoe(center, er, ep, element, col, true)  # 하늘에서 낙하 후 폭발
 				focus = center
-		"barrage":
-			var bombs := mini(count, BARRAGE_MAX_BOMBS)  # 폭탄 수 상한(후반 렉 방지)
-			var pts := _random_enemy_points(bombs, pool)
-			var burst_amt := maxi(10, 56 / maxi(pts.size(), 1))  # 파편 예산을 폭탄 수로 분배(총량 일정)
-			for pt in pts:
-				_drop_aoe(pt, er, ep, element, col, false, burst_amt, false)  # 폭탄마다 가벼운 FX·흔들림 X
-				focus = pt
-			if not pts.is_empty():
-				host._add_shake(4.0)  # 캐스트당 1회(폭탄마다 X → 흔들림 과다·부하 방지)
+		"barrage":  # 거대한 돌 하나가 가장 밀집한 곳에 낙하(단일 강타). 다발(count)은 폭발 반경으로 환산.
+			var center := _densest_cluster(er, pool)
+			if center != Vector2.INF:
+				var giant_r: float = minf(er * (1.4 + 0.1 * float(maxi(count - 3, 0))), player.MAX_SKILL_RADIUS)
+				_drop_aoe(center, giant_r, ep * 2.0, element, col, false, 80, true, true)  # 거대 낙하체·풀FX·흔들림
+				focus = center
 		"chain":
 			_skill_chain(count, ep, element, pool)
 		"freeze":
@@ -66,9 +62,9 @@ func execute(s: Dictionary) -> void:
 				if is_instance_valid(e):
 					e.apply_slow(0.3, 2.5)
 					_skill_hit(e, ep, element)
-			host._skill_ring(Vector2(360, 420), 460.0, Color(0.5, 0.8, 1.0), "water")  # 화면 전체 서리 폭발(얼음 결정)
+			host._skill_ring(Vector2(360, 420), 460.0, Color(0.5, 0.8, 1.0), "water")  # 화면 전체 서리 폭발
 			_skill_burst(Vector2(360, 420), Color(0.5, 0.8, 1.0))
-			_particle_fx(Vector2(360, 420), Color(0.6, 0.85, 1.0), 30, 0.7, 150.0, 340.0, 240.0, 2.0, 5.0)  # 얼음 파편 비산
+			_snowfall()  # 화면 가득 떨어지는 눈송이
 			focus = Vector2(360, 360)
 		"thorns":  # 가시밭: 가장 밀집한 곳에 초기 광역 피해 + 지속 가시 장판(속성색=초록)
 			var tc := _densest_cluster(er, pool)
@@ -189,6 +185,24 @@ func _particle_fx(pos: Vector2, color: Color, amount: int, lifetime: float, vmin
 	p.scale_amount_max = smax
 	fx_root.add_child(p)
 
+## 서리바람: 화면 상단 가로 전체에서 떨어지는 많은 눈송이(흰 입자, 천천히 낙하).
+func _snowfall() -> void:
+	var p = DEATH_BURST_SCENE.instantiate()
+	p.position = Vector2(360, -10)  # 화면 위 가운데
+	p.amount = 90
+	p.lifetime = 1.8
+	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	p.emission_rect_extents = Vector2(380, 8)  # 가로 전체에 흩뿌림
+	p.direction = Vector2(0, 1)
+	p.spread = 18.0
+	p.gravity = Vector2(0, 95.0)  # 천천히 낙하
+	p.initial_velocity_min = 40.0
+	p.initial_velocity_max = 110.0
+	p.scale_amount_min = 1.5
+	p.scale_amount_max = 3.5
+	p.color = Color(0.92, 0.96, 1.0)
+	fx_root.add_child(p)
+
 ## 메테오 착탄 그을음 자국
 func _scorch(pos: Vector2, radius: float) -> void:
 	var s = SCORCH.new()
@@ -205,10 +219,12 @@ func _thorn_erupt(pos: Vector2, radius: float) -> void:
 
 ## 하늘에서 떨어지는 광역 스킬(메테오·융단): 화면 위에서 낙하 비주얼 → 도달 지점에 폭발+피해.
 ## burst_amt=폭발 파편 수(다발일 때 작게), do_shake=폭탄별 화면 흔들림(다발은 호출측이 1회만).
-func _drop_aoe(center: Vector2, radius: float, ep: float, element: String, col: Color, burn: bool, burst_amt: int = 64, do_shake: bool = true) -> void:
+## giant=true면 낙하체를 크게(거대한 돌 — 융단폭격 단일 강타용).
+func _drop_aoe(center: Vector2, radius: float, ep: float, element: String, col: Color, burn: bool, burst_amt: int = 64, do_shake: bool = true, giant: bool = false) -> void:
 	var m = FALLING_SKILL.new()
 	m.position = center + Vector2(randf_range(-30.0, 30.0), -720.0)  # 화면 위에서 시작
-	m.setup(col, clampf(radius * 0.35, 16.0, 50.0), element)  # 속성별 낙하 비주얼(불=운석/흙=바위)
+	var fall_px: float = clampf(radius * 0.5, 60.0, 110.0) if giant else clampf(radius * 0.35, 16.0, 50.0)
+	m.setup(col, fall_px, element)  # 속성별 낙하 비주얼(불=운석/흙=바위, giant=거대)
 	fx_root.add_child(m)
 	var t := m.create_tween()
 	t.tween_property(m, "position", center, 0.38).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)  # 가속 낙하

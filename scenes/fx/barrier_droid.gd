@@ -8,8 +8,7 @@ extends Node2D
 ##  - 적 지속 피해는 TICK_INTERVAL 주기로만 enemies 그룹을 순회(매 프레임 아님)해 O(N) 탐색 빈도를 낮춘다.
 ##  - 드론 위치는 공전각 _angle 하나로 파생(노드 N개를 따로 두지 않음) — 할당/노드 비용 0.
 
-const DEATH_BURST := preload("res://scenes/fx/death_burst.tscn")  ## 적탄 차단 스파크
-const HIT_SPARK := preload("res://scenes/fx/hit_spark.gd")  ## 차단 순간 별 섬광
+const BLOCK_POP := preload("res://scenes/fx/block_pop.gd")  ## 적탄 차단 보호막 링(직관적 표시)
 const CLEAR_RADIUS := 28.0   ## 드론이 적탄을 소멸시키는 근접 반경(px)
 const TICK_INTERVAL := 0.4   ## 적 지속 피해 주기(s)
 const TICK_RADIUS := 48.0    ## 드론 주변 피해 반경(px)
@@ -68,18 +67,11 @@ func _clear_enemy_bolts() -> void:
 				b.queue_free()
 				break
 
-## 적탄을 막은 위치에 방어 스파크(밝은 청 입자 + 별 섬광 — 또렷한 차단 느낌)
+## 적탄을 막은 위치에 청색 보호막 링(직관적 차단 표시 — '막혔다'가 한눈에)
 func _block_fx(pos: Vector2) -> void:
-	var burst = DEATH_BURST.instantiate()
-	burst.color = Color(0.6, 0.9, 1.0)
-	burst.amount = 10      # 가볍게(자주 발생 → 부하 최소)
-	burst.lifetime = 0.3
-	get_tree().current_scene.add_child(burst)
-	burst.global_position = pos
-	var sp = HIT_SPARK.new()  # 차단 순간 별 섬광
-	get_tree().current_scene.add_child(sp)
-	sp.global_position = pos
-	sp.setup(Color(0.7, 0.95, 1.0), 14.0)
+	var pop = BLOCK_POP.new()
+	get_tree().current_scene.add_child(pop)
+	pop.global_position = pos
 
 ## 드론 반경 안의 적에게 주기당 피해(상성 적용). build.damage 비례라 후반에도 유효.
 func _damage_enemies() -> void:

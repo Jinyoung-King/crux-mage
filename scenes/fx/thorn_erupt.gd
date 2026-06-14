@@ -18,7 +18,7 @@ func _ready() -> void:
 	tw.tween_callback(queue_free)
 
 func _draw() -> void:
-	var n := 14
+	var n := 11  # 가시가 커져 개수 약간 줄임
 	for i in n:
 		var a := TAU * float(i) / float(n) + (0.0 if i % 2 == 0 else 0.22)
 		var rr := _r * (0.42 + 0.5 * float((i * 7) % 5) / 5.0)  # 의사난수 흩뿌림(결정적)
@@ -26,7 +26,7 @@ func _draw() -> void:
 
 ## 큰 픽셀 나무 가시 1개(아래 굵고 위로 좁게 + 끝 하이라이트)
 func _thorn(p: Vector2) -> void:
-	var u := 4.0
+	var u := 7.0  # 가시 크게 — 솟구침이 잘 보이게
 	for r in 4:
 		var w := float(4 - r) * u
 		var c := Color(0.66, 0.50, 0.28) if r == 3 else Color(0.46, 0.30, 0.15)
