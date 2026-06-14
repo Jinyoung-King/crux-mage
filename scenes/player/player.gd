@@ -243,8 +243,12 @@ func eff_power(s: Dictionary) -> float:
 		p = s.power * (build.damage / character.base_damage) * build.skill_power_mult
 	return p * fire_overflow_mult(s)
 
+## 범위 상한 — 범위 카드·진화로 광역이 화면 전체를 도배하면 렉↑·밀집타겟팅 무의미·재미↓.
+## 이 선까지만 커지게 제한(반경 0인 스킬=마력탄·전격·서리는 영향 없음).
+const MAX_SKILL_RADIUS := 260.0
+
 func eff_radius(s: Dictionary) -> float:
-	return s.radius * build.skill_radius_mult
+	return minf(s.radius * build.skill_radius_mult, MAX_SKILL_RADIUS)
 
 ## 주 스킬(슬롯0) 충전 진행도 0~1 (HUD 게이지용)
 func skill_ratio() -> float:

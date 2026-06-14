@@ -12,6 +12,7 @@ const GROUND_HAZARD := preload("res://scenes/fx/ground_hazard.gd")
 const FALLING_SKILL := preload("res://scenes/fx/falling_skill.gd")
 const DEATH_BURST_SCENE := preload("res://scenes/fx/death_burst.tscn")
 const SCORCH := preload("res://scenes/fx/scorch_mark.gd")  # 메테오 착탄 그을음
+const THORN_ERUPT := preload("res://scenes/fx/thorn_erupt.gd")  # 가시밭 가시 솟구침
 const REACTION_HP_PCT := 0.06  ## 격발 반응(증발·빙결파쇄)이 주는 추가 % 최대체력 피해 — 복리 체력 관통
 
 var player
@@ -70,6 +71,7 @@ func execute(s: Dictionary) -> void:
 				_ground_field(tc, er, ep, element)
 				host._skill_ring(tc, er, col, element)
 				_skill_burst(tc, col)
+				_thorn_erupt(tc, er)  # 가시 솟구침 연출
 				focus = tc
 	_skill_name_popup(focus, s.name, col)  # 시전 스킬 이름 표시
 	host._add_shake(4.0)
@@ -183,6 +185,13 @@ func _scorch(pos: Vector2, radius: float) -> void:
 	s.position = pos
 	fx_root.add_child(s)
 	s.setup(radius)
+
+## 가시밭 가시 솟구침 연출
+func _thorn_erupt(pos: Vector2, radius: float) -> void:
+	var t = THORN_ERUPT.new()
+	t.position = pos
+	fx_root.add_child(t)
+	t.setup(radius)
 
 ## 하늘에서 떨어지는 광역 스킬(메테오·융단): 화면 위에서 낙하 비주얼 → 도달 지점에 폭발+피해.
 func _drop_aoe(center: Vector2, radius: float, ep: float, element: String, col: Color, burn: bool) -> void:

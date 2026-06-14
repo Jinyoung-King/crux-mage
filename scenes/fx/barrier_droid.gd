@@ -9,6 +9,7 @@ extends Node2D
 ##  - 드론 위치는 공전각 _angle 하나로 파생(노드 N개를 따로 두지 않음) — 할당/노드 비용 0.
 
 const DEATH_BURST := preload("res://scenes/fx/death_burst.tscn")  ## 적탄 차단 스파크
+const HIT_SPARK := preload("res://scenes/fx/hit_spark.gd")  ## 차단 순간 별 섬광
 const CLEAR_RADIUS := 28.0   ## 드론이 적탄을 소멸시키는 근접 반경(px)
 const TICK_INTERVAL := 0.4   ## 적 지속 피해 주기(s)
 const TICK_RADIUS := 48.0    ## 드론 주변 피해 반경(px)
@@ -22,6 +23,7 @@ var _power: float = 10.0
 var _col: Color = Color(0.7, 0.85, 1.0)
 var _angle: float = 0.0
 var _tick_t: float = 0.0
+var _t: float = 0.0  ## 글로우 펄스용 누적 시간
 
 func _ready() -> void:
 	z_index = 6  # 적·발사체 위에 그려지도록
@@ -47,6 +49,7 @@ func _process(delta: float) -> void:
 	if not is_instance_valid(_player) or _player.hp <= 0.0:
 		return
 	_angle = fposmod(_angle + _ang_speed * delta, TAU)
+	_t += delta
 	queue_redraw()
 	_clear_enemy_bolts()       # 탄막 통제(매 프레임)
 	_tick_t -= delta
@@ -65,7 +68,7 @@ func _clear_enemy_bolts() -> void:
 				b.queue_free()
 				break
 
-## 적탄을 막은 위치에 가벼운 방어 스파크(밝은 청 — 차단 느낌)
+## 적탄을 막은 위치에 방어 스파크(밝은 청 입자 + 별 섬광 — 또렷한 차단 느낌)
 func _block_fx(pos: Vector2) -> void:
 	var burst = DEATH_BURST.instantiate()
 	burst.color = Color(0.6, 0.9, 1.0)
@@ -73,6 +76,10 @@ func _block_fx(pos: Vector2) -> void:
 	burst.lifetime = 0.3
 	get_tree().current_scene.add_child(burst)
 	burst.global_position = pos
+	var sp = HIT_SPARK.new()  # 차단 순간 별 섬광
+	get_tree().current_scene.add_child(sp)
+	sp.global_position = pos
+	sp.setup(Color(0.7, 0.95, 1.0), 14.0)
 
 ## 드론 반경 안의 적에게 주기당 피해(상성 적용). build.damage 비례라 후반에도 유효.
 func _damage_enemies() -> void:
@@ -89,8 +96,16 @@ func _damage_enemies() -> void:
 				break
 
 func _draw() -> void:
+	draw_arc(Vector2.ZERO, _radius, 0.0, TAU, 48, Color(_col.r, _col.g, _col.b, 0.12), 1.5, true)  # 공전 궤도(은은)
+	var pulse := 0.75 + 0.25 * sin(_t * 6.0)  # 글로우 맥동
 	for i in _count:
+		# 잔상: 뒤쪽 궤도 위치에 옅게 3겹(모션 블러)
+		for g in range(3, 0, -1):
+			var ga: float = _angle - _ang_speed * 0.035 * float(g) + TAU * float(i) / float(_count)
+			var goff := Vector2(cos(ga), sin(ga)) * _radius
+			draw_circle(goff, 6.0, Color(_col.r, _col.g, _col.b, 0.09 * float(g)))
 		var off := _drone_offset(i)
+		draw_circle(off, 14.0, Color(_col.r, _col.g, _col.b, 0.18 * pulse))  # 글로우(맥동)
 		draw_circle(off, 7.0, _col)
-		draw_circle(off, 3.5, Color(1, 1, 1, 0.85))
-		draw_arc(off, 11.0, 0.0, TAU, 18, Color(_col.r, _col.g, _col.b, 0.45), 2.0, true)
+		draw_circle(off, 3.5, Color(1, 1, 1, 0.9))
+		draw_arc(off, 11.0, 0.0, TAU, 18, Color(_col.r, _col.g, _col.b, 0.5), 2.0, true)
