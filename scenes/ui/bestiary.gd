@@ -10,7 +10,7 @@ const NAV_BAR := preload("res://scenes/ui/nav_bar.gd")  # 하단 탭 네비게�
 func _ready() -> void:
 	Music.play_menu()
 	$Center/Title.text = "도감"
-	$Center/BackButton.pressed.connect(_on_back)
+	$Center/BackButton.hide()  # 뒤로 제거 — 하단 nav '홈'으로 복귀
 	_refresh_summary()
 	for ed in GameState.enemies:
 		grid.add_child(_make_entry(ed))

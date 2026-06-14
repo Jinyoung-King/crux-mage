@@ -10,7 +10,7 @@ const RECENT := 3  # 최근 N개만 펼쳐 표시, 이전은 버튼으로 토글
 
 func _ready() -> void:
 	Music.play_menu()
-	back_button.pressed.connect(_on_back)
+	back_button.hide()  # 닫기 제거 — 하단 nav '홈'으로 복귀
 	var total := GameState.CHANGELOG.size()
 	# 최근 3개는 바로 펼쳐 표시
 	for i in mini(RECENT, total):

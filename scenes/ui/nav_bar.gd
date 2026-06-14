@@ -5,12 +5,14 @@ extends PanelContainer
 const FONT := preload("res://assets/fonts/NotoSansKR.ttf")
 
 # 탭: id / 라벨 / 씬 경로 / 해금 임계 wave(0=항상 노출). 시작 화면 TAB_UNLOCKS와 동일 기준.
+# '홈'은 시작 화면 복귀(각 탭의 뒤로 버튼을 대체). current로 지정되지 않으므로 항상 활성.
 const TABS := [
-	{"id": "upgrade",  "label": "강화",     "scene": "res://scenes/ui/meta_upgrade.tscn", "wave": 0},
-	{"id": "trait",    "label": "특성",     "scene": "res://scenes/ui/traits.tscn",        "wave": 5},
-	{"id": "relic",    "label": "룬",       "scene": "res://scenes/ui/relic_manage.tscn",  "wave": 8},
-	{"id": "bestiary", "label": "도감",     "scene": "res://scenes/ui/bestiary.tscn",      "wave": 3},
-	{"id": "patch",    "label": "패치노트", "scene": "res://scenes/ui/patch_notes.tscn",   "wave": 0},
+	{"id": "home",     "label": "홈",   "scene": "res://scenes/ui/start_screen.tscn",  "wave": 0},
+	{"id": "upgrade",  "label": "강화", "scene": "res://scenes/ui/meta_upgrade.tscn", "wave": 0},
+	{"id": "trait",    "label": "특성", "scene": "res://scenes/ui/traits.tscn",        "wave": 5},
+	{"id": "relic",    "label": "룬",   "scene": "res://scenes/ui/relic_manage.tscn",  "wave": 8},
+	{"id": "bestiary", "label": "도감", "scene": "res://scenes/ui/bestiary.tscn",      "wave": 3},
+	{"id": "patch",    "label": "패치", "scene": "res://scenes/ui/patch_notes.tscn",   "wave": 0},
 ]
 
 ## current_id = 지금 보고 있는 탭(비활성·강조). 미해금 탭은 숨김(시작 화면과 동일 기준).

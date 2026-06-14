@@ -18,7 +18,7 @@ var row_cells := {}      # id → {name, eff, icon}
 func _ready() -> void:
 	Music.play_menu()
 	$Center/Title.text = "룬 뽑기"
-	back_button.pressed.connect(_on_back)
+	back_button.hide()  # 뒤로 제거 — 하단 nav '홈'으로 복귀
 	roll_button.pressed.connect(_on_roll)
 	grid = GridContainer.new()
 	grid.columns = 3

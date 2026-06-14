@@ -129,17 +129,9 @@ func _build_ui() -> void:
 	panel.add_child(pv)
 	root.add_child(panel)
 
-	# 코인 + 뒤로
+	# 코인 (뒤로 버튼 제거 — 하단 nav의 '홈'으로 복귀)
 	coin_label = _label("", 22, Color(0.98, 0.85, 0.4), true)
 	root.add_child(coin_label)
-	var back := Button.new()
-	back.custom_minimum_size = Vector2(220, 52)
-	back.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	back.add_theme_font_override("font", FONT)
-	back.add_theme_font_size_override("font_size", 22)
-	back.text = "뒤로"
-	back.pressed.connect(_on_back)
-	root.add_child(back)
 
 func _label(text: String, size: int, color: Color, center: bool = false) -> Label:
 	var l := Label.new()

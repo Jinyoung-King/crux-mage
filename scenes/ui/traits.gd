@@ -14,7 +14,7 @@ var row_buttons := {}  # id → 구매 Button
 func _ready() -> void:
 	Music.play_menu()
 	$Center/Title.text = "특성"
-	back_button.pressed.connect(_on_back)
+	back_button.hide()  # 뒤로 제거 — 하단 nav '홈'으로 복귀
 	var grid := GridContainer.new()  # 특성 카드 2열 그리드
 	grid.columns = 2
 	grid.add_theme_constant_override("h_separation", 14)
