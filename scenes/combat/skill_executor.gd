@@ -96,11 +96,9 @@ func _apply_element_reactions(e, element: String) -> void:
 		e.consume_burn()
 		_reaction_popup(e.global_position, "증발!", Color(0.5, 0.85, 1.0))
 		_explode(e.global_position, _hit_ctx.dealt, element)
-		GameFeel.hit_stop(0.07, 0.9)
 	elif (element == "metal" or element == "earth") and e.is_slowed():  # 빙결파쇄: 금/토로 둔화 적 → 추가타
 		e.take_damage(_hit_ctx.dealt * 0.6)
 		_reaction_popup(e.global_position, "빙결파쇄!", ElementLib.color(element))
-		GameFeel.hit_stop(0.06, 0.8)
 
 ## 과부하(Overload): 화상+둔화 중첩이 형성될 때 StatusEffects.reaction(Observer) → 이 핸들러.
 ## 상태 부여 도중(재진입) 방출되므로 효과는 call_deferred로 다음 프레임에 안전 처리.
@@ -116,7 +114,6 @@ func _overload(enemy) -> void:
 	_explode(pos, player.build.damage * 2.0, enemy.element)  # 빌드 공격력 기반 광역
 	if is_instance_valid(enemy) and enemy.hp > 0.0 and not enemy.is_huge:
 		enemy.position.y -= 60.0  # 넉백(거대 면역)
-	GameFeel.hit_stop(0.09, 1.0)
 
 ## 반응 이름 팝업 (스킬 이름 팝업 FX 재사용)
 func _reaction_popup(pos: Vector2, text: String, color: Color) -> void:

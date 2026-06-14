@@ -7,7 +7,8 @@ const DEATH_REMAINS := preload("res://scenes/fx/death_remains.gd")
 const DAMAGE_NUMBER := preload("res://scenes/fx/damage_number.gd")
 const SKILL_RING := preload("res://scenes/fx/skill_ring.gd")  # 광역 스킬 범위 링 (적 사망 연출 등 공용)
 const FONT := preload("res://assets/fonts/NotoSansKR.ttf")
-var _skill_rows: Array = []  # 스킬별 쿨타임 게이지 행 {fill, label}
+const SKILL_ICON := preload("res://scenes/ui/skill_icon.gd")  # 스킬 쿨타임 아이콘
+var _skill_icons: Array = []  # 스킬별 쿨타임 아이콘(쿨 중 어둡고, 준비되면 활성화)
 var skill_executor: SkillExecutor  # 전투 연산·FX 실행기 (DI로 player·$Fx·self 주입)
 var _wiz_hold := false   # 마법사 롱탭(길게 누름) 진행 중
 var _wiz_hold_t := 0.0   # 누른 시간 누적
@@ -254,54 +255,24 @@ func _process(delta: float) -> void:
 		position = Vector2(randf_range(-shake, shake), randf_range(-shake, shake))
 	elif position != Vector2.ZERO:
 		position = Vector2.ZERO
-	# 스킬별 쿨타임 게이지 — 각 스킬이 독립 쿨타임으로 차오르는 걸 따로 표시
+	# 스킬별 쿨타임 아이콘 — 각 스킬이 독립 쿨타임으로 차오르고, 준비되면 아이콘이 활성화(밝게)
 	var pl = $Player
-	if pl.skills.size() != _skill_rows.size():
-		_rebuild_skill_rows(pl.skills)
+	if pl.skills.size() != _skill_icons.size():
+		_rebuild_skill_icons(pl.skills)
 	for i in pl.skills.size():
 		var s: Dictionary = pl.skills[i]
-		var r: float = pl.cd_ratio(s)
-		var row: Dictionary = _skill_rows[i]
-		row.label.text = s.name + ("  준비!" if r >= 1.0 else "")
-		row.fill.anchor_right = r
-		row.fill.color = Color(1, 0.88, 0.4, 0.9) if r >= 1.0 else Color(0.55, 0.78, 1, 0.85)
+		var elem: String = SkillLib.DEFS.get(s.id, {}).get("element", "")
+		_skill_icons[i].update_cd(s.name, ElementLib.color(elem), pl.cd_ratio(s), delta)
 
-## 보유 스킬 수가 바뀌면 스킬별 쿨타임 게이지 행을 다시 만든다
-func _rebuild_skill_rows(skills: Array) -> void:
+## 보유 스킬 수가 바뀌면 스킬 아이콘을 다시 만든다(이름·색·쿨은 매 프레임 update_cd로 갱신 → 진화 반영)
+func _rebuild_skill_icons(skills: Array) -> void:
 	for c in $HUD/SkillUI.get_children():
 		c.queue_free()
-	_skill_rows.clear()
+	_skill_icons.clear()
 	for s in skills:
-		_skill_rows.append(_make_skill_row())
-
-## 미니 쿨타임 게이지 행(어두운 바 + 채움 + 이름) 생성 → {fill, label}
-func _make_skill_row() -> Dictionary:
-	var row := Control.new()
-	row.custom_minimum_size = Vector2(260, 18)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var bg := ColorRect.new()
-	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	bg.color = Color(0, 0, 0, 0.5)
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(bg)
-	var fill := ColorRect.new()
-	fill.anchor_left = 0.0
-	fill.anchor_top = 0.0
-	fill.anchor_right = 0.0
-	fill.anchor_bottom = 1.0
-	fill.color = Color(0.55, 0.78, 1, 0.85)
-	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	bg.add_child(fill)
-	var label := Label.new()
-	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_font_override("font", FONT)
-	label.add_theme_font_size_override("font_size", 13)
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(label)
-	$HUD/SkillUI.add_child(row)
-	return {"fill": fill, "label": label}
+		var ic = SKILL_ICON.new()
+		$HUD/SkillUI.add_child(ic)
+		_skill_icons.append(ic)
 
 func _add_shake(amount: float) -> void:
 	shake = minf(shake + amount, 14.0)
@@ -561,7 +532,6 @@ func _on_enemy_died(pos: Vector2, color: Color, size: float, tex: Texture2D, coi
 	remains.setup(tex, size)
 	if size >= 42.0:
 		_add_shake(size / 8.0)  # 큰 적이 죽을수록 화면이 더 울리도록 (보스 9)
-		GameFeel.hit_stop(0.07, clampf(size / 90.0, 0.4, 1.0))  # 큰 적·보스 처치 역경직(클수록 강하게)
 	var gain := coins  # 처치 코인 (엘리트 보너스 포함, 도달한 적은 _unregister만)
 	if $Player.relic_levels.has("greed"):
 		gain = int(round(gain * RelicLib.greed_mult($Player.relic_levels["greed"])))  # 황금의 룬(레벨별)
