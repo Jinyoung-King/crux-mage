@@ -645,6 +645,17 @@ func _has_radius_skill() -> bool:
 			return true
 	return false
 
+## 보유한 모든 범위 스킬이 이미 범위 상한(MAX_SKILL_RADIUS)에 도달했나 — 그러면 범위 카드는 무의미.
+func _radius_all_capped() -> bool:
+	var mult: float = $Player.build.skill_radius_mult
+	var found := false
+	for s in $Player.skills:
+		if s.radius > 0.0:
+			found = true
+			if s.radius * mult < $Player.MAX_SKILL_RADIUS:
+				return false  # 아직 상한 미달 범위 스킬 존재 → 범위 카드 유효
+	return found  # 범위 스킬이 있고 전부 상한이면 true(=범위 강화 무의미)
+
 ## 보유 스킬 중 표적형(마력탄·융단·체인 — count 사용) 스킬이 있나
 func _has_count_skill() -> bool:
 	for s in $Player.skills:
@@ -696,6 +707,8 @@ func _is_card_useful(card: CardData) -> bool:
 			return false  # 슬롯 여유라도 이미 최고 단계인 보유 스킬은 중복(낭비) 제외
 	if (card.skill_radius_bonus > 0.0 or card.grant_ground_field) and not _has_radius_skill():
 		return false  # 범위 스킬(메테오/융단폭격)이 없으면 범위 강화·장판 무의미
+	if card.skill_radius_bonus > 0.0 and _radius_all_capped():
+		return false  # 모든 범위 스킬이 이미 범위 상한 도달 → 범위 강화 무의미(중복=낭비)
 	if card.extra_targets_bonus > 0 and not _has_count_skill():
 		return false  # 표적형 스킬이 없으면 다발 무의미
 	if card.pierce_bonus > 0 and not _has_bolts_skill():
