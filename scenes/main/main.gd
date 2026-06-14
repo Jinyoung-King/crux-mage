@@ -156,6 +156,7 @@ func _ready() -> void:
 	spawn_timer.timeout.connect(_spawn_enemy)
 	card_select.card_chosen.connect(_on_card_chosen)
 	card_select.reroll_requested.connect(_on_reroll_requested)
+	card_select.view_cards_requested.connect(_open_cards)  # 선택창에서 획득 카드 보기
 	card_select.player = $Player  # 보유 스킬 진화명을 카드에 표시하기 위해 주입
 	restart_button.pressed.connect(_on_restart_pressed)
 	char_select_button.pressed.connect(_on_char_select_pressed)
@@ -1010,7 +1011,7 @@ func _build_cards_ui() -> void:
 
 ## 획득 카드 패널 열기 (현재까지 고른 카드 리스트 갱신 후 표시·일시정지)
 func _open_cards() -> void:
-	if card_select.visible:  # 카드 선택(드래프트) 중에는 막음
+	if cards_panel.visible:  # 이미 열려 있으면 무시(중복 방지) — 드래프트 중에도 열람 허용
 		return
 	for ch in cards_list.get_children():
 		ch.queue_free()

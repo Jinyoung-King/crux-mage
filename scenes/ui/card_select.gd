@@ -4,6 +4,7 @@ extends Control
 
 signal card_chosen(card)
 signal reroll_requested  ## 드래프트당 무료 1회 — main이 새 카드를 뽑아 refill
+signal view_cards_requested  ## '내 카드 보기' — main이 획득 카드 패널을 연다
 
 const FONT := preload("res://assets/fonts/NotoSansKR.ttf")
 const CARD_ICON := preload("res://scenes/fx/card_icon.gd")
@@ -18,6 +19,7 @@ const AUTO_SECS := 10.0  ## 자동선택까지 대기 시간
 @onready var buttons: Array = [$Center/Cards/Card1, $Center/Cards/Card2, $Center/Cards/Card3]
 @onready var reroll_button: Button = $Center/RerollButton
 @onready var auto_button: Button = $Center/AutoButton
+@onready var view_cards_button: Button = $Center/ViewCardsButton
 
 var shown_cards: Array = []
 var can_reroll := false
@@ -34,6 +36,7 @@ func _ready() -> void:
 		buttons[i].mouse_exited.connect(_on_card_hover.bind(i, false))
 	reroll_button.pressed.connect(_on_reroll_pressed)
 	auto_button.pressed.connect(_on_auto_pressed)
+	view_cards_button.pressed.connect(func(): view_cards_requested.emit())
 
 ## 호버 시 카드가 살짝 떠오름
 func _on_card_hover(i: int, on: bool) -> void:
