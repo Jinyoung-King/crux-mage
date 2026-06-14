@@ -176,6 +176,7 @@ func _ready() -> void:
 	spawn_timer.timeout.connect(_spawn_enemy)
 	card_select.card_chosen.connect(_on_card_chosen)
 	card_select.reroll_requested.connect(_on_reroll_requested)
+	card_select.reroll_card_requested.connect(_on_reroll_card)  # 카드별 새로고침
 	card_select.view_cards_requested.connect(_open_cards)  # 선택창에서 획득 카드 보기
 	card_select.player = $Player  # 보유 스킬 진화명을 카드에 표시하기 위해 주입
 	restart_button.pressed.connect(_on_restart_pressed)
@@ -721,10 +722,14 @@ func _grants_new_flag(card: CardData) -> bool:
 	return false
 
 ## 풀에서 희귀도 가중치로 count장 중복 없이 뽑기. rare_only면 희귀 카드만.
-func _draw_cards(count: int, rare_only: bool = false) -> Array:
+func _draw_cards(count: int, rare_only: bool = false, exclude: Array = []) -> Array:
 	var pool := card_pool.filter(_is_card_useful)
 	if rare_only:
 		pool = pool.filter(func(c): return c.rarity in ["rare", "epic", "legendary"])  # 보스 보상: 희귀+ 확정
+	if not exclude.is_empty():
+		var trimmed := pool.filter(func(c): return not exclude.has(c))
+		if not trimmed.is_empty():
+			pool = trimmed  # 현재 표시 중인 카드 제외(중복 회피). 비면 제외 무시(풀 고갈 방지)
 	var picked: Array = []
 	while picked.size() < count and not pool.is_empty():
 		var total := 0.0
@@ -771,15 +776,19 @@ func _open_shop() -> void:
 	_shop_active = true
 	card_select.open(_shop_cards, _shop_cost, run_coins)
 
-## 리롤(드래프트당 1회): 같은 조건으로 새 카드를 뽑아 교체. 상점에선 '건너뛰기'.
+## 상점 '건너뛰기' — 구매 없이 다음 웨이브로
 func _on_reroll_requested() -> void:
-	if _evo_id != "":
-		return  # 진화 분기 선택 중에는 리롤 없음(분기 3종 고정)
 	if _shop_active:
 		_shop_active = false
 		_start_wave(wave_index + 1)
-		return
-	card_select.refill(_draw_cards(CHOICES_PER_CLEAR, _draft_rare))
+
+## 카드별 새로고침: 그 자리만 새 카드 1장으로 교체(현재 3장과 중복 회피)
+func _on_reroll_card(index: int) -> void:
+	if _evo_id != "" or _shop_active:
+		return  # 진화 분기·상점에선 카드별 새로고침 없음
+	var fresh := _draw_cards(1, _draft_rare, card_select.shown_cards)
+	if not fresh.is_empty():
+		card_select.replace_card(index, fresh[0])
 
 func _on_card_chosen(card: CardData) -> void:
 	# 진화 분기 선택 중이면: 고른 분기를 적용하고 보류했던 흐름 이어감
