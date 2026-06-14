@@ -1130,9 +1130,30 @@ func _on_wizard_zone_input(event: InputEvent) -> void:
 func _on_player_tapped() -> void:
 	if game_over or get_tree().paused:
 		return
-	var p = $Player
-	$HUD/StatsPanel/Center/StatsLabel.text = "기지 내구도 %s / %s\n\n%s" % [NumFmt.compact(int(p.hp)), NumFmt.compact(int(p.max_hp)), _build_summary()]
+	$HUD/StatsPanel/Center/StatsLabel.text = _stats_bbcode()  # 룬 제외 + 쿨 최소치 색 강조(RichTextLabel BBCode)
 	$HUD/StatsPanel.show()
+
+## 능력치 창 본문(BBCode) — 룬은 제외(룬 화면에서 관리), 쿨 최소치 도달 스킬은 쿨 값을 다른 색으로.
+func _stats_bbcode() -> String:
+	var p = $Player
+	var b = p.build
+	var lines := []
+	lines.append("기지 내구도 %s / %s" % [NumFmt.compact(int(p.hp)), NumFmt.compact(int(p.max_hp))])
+	lines.append("")
+	lines.append("공격력 %d   ·   방어 %d" % [roundi(b.damage), int(b.defense)])
+	for s in p.skills:
+		if s.id == "barrier_droid":  # 지속형 — 쿨 없음
+			lines.append("스킬 %s · 지속형 · 비행체 %d기" % [s.name, int(s.get("count", 2))])
+			continue
+		var cd: float = p.eff_cooldown(s)
+		var floor_cd: float = maxf(2.0, s.cooldown * 0.6)
+		var cd_str: String = "%.1f초" % cd
+		if cd <= floor_cd + 0.01:  # 쿨 최소치 도달 → 더는 안 줄어듦을 다른 색(+최소)으로 표시
+			cd_str = "[color=#5fd0ff]%.1f초 (최소)[/color]" % cd
+		lines.append("스킬 %s · 쿨 %s · 피해 %d" % [s.name, cd_str, roundi(p.eff_power(s))])
+	if p.lifesteal > 0.0:
+		lines.append("흡혈 %d%%" % roundi(p.lifesteal * 100.0))
+	return "[center]" + "\n".join(lines) + "[/center]"
 	get_tree().paused = true
 
 func _close_stats() -> void:

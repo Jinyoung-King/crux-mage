@@ -398,12 +398,15 @@ theme_override_font_sizes/font_size = 38
 horizontal_alignment = 1
 text = "능력치"
 
-[node name="StatsLabel" type="Label" parent="HUD/StatsPanel/Center"]
+[node name="StatsLabel" type="RichTextLabel" parent="HUD/StatsPanel/Center"]
 modulate = Color(0.86, 0.9, 1, 1)
 layout_mode = 2
-theme_override_fonts/font = ExtResource("4")
-theme_override_font_sizes/font_size = 22
-horizontal_alignment = 1
+custom_minimum_size = Vector2(520, 0)
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
+theme_override_fonts/normal_font = ExtResource("4")
+theme_override_font_sizes/normal_font_size = 22
 
 [node name="CloseButton" type="Button" parent="HUD/StatsPanel/Center"]
 custom_minimum_size = Vector2(220, 56)
