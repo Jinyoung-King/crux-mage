@@ -80,7 +80,7 @@ func _damage_enemies() -> void:
 	if per_tick <= 0.0:
 		return
 	var elem: String = _player.character.element if _player.character else ""
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in EnemyCache.all():
 		if not is_instance_valid(e) or e.hp <= 0.0:
 			continue
 		for i in _count:

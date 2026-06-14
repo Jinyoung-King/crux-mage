@@ -22,6 +22,7 @@ window/stretch/aspect="keep"
 GameState="*res://data/game_state.gd"
 GameFeel="*res://scenes/fx/game_feel.gd"
 Music="*res://scenes/fx/music.gd"
+EnemyCache="*res://scenes/combat/enemy_cache.gd"
 
 [rendering]
 

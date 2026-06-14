@@ -5,7 +5,7 @@ extends Node
 ##
 ## 공유 자원은 host(main)에 위임: _skill_ring(적 사망 연출 등 공용)·_damage_number(플레이어 피격에도 사용)·
 ## _add_shake(카메라)·game_over(씬 상태). 이로써 전투 로직은 이 노드가, 씬 레벨 책임은 main이 갖는다.
-## 성능: get_nodes_in_group("enemies")는 폭발·광역마다 O(N) 노드 탐색 → 추후 프레임 캐싱 여지(현재는 동작 보존).
+## 성능: 적 목록은 EnemyCache.all()(물리 프레임당 1회 스냅샷)로 조회 — 폭발·광역마다 O(N) 그룹 탐색을 반복하지 않음.
 
 const SKILL_NAME := preload("res://scenes/fx/skill_name_popup.gd")
 const GROUND_HAZARD := preload("res://scenes/fx/ground_hazard.gd")
@@ -140,13 +140,13 @@ func _reaction_popup(pos: Vector2, text: String, color: Color) -> void:
 func _explode(center: Vector2, dmg: float, element: String) -> void:
 	_skill_burst(center, Color(1.0, 0.6, 0.2))
 	host._skill_ring(center, 72.0, Color(1.0, 0.55, 0.15))
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in EnemyCache.all():
 		if is_instance_valid(e) and center.distance_to(e.global_position) <= 72.0:
 			e.take_damage(dmg * ElementLib.multiplier(element, e.element) * randf_range(0.95, 1.05))
 
 ## 반경 내 적에게 스킬 피해(+선택적 화상) — 스킬 자체 속성 상성 적용
 func _skill_aoe(center: Vector2, radius: float, dmg: float, burn: bool, element: String) -> void:
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in EnemyCache.all():
 		if is_instance_valid(e) and center.distance_to(e.global_position) <= radius:
 			_skill_hit(e, dmg, element)
 			if burn:
@@ -196,7 +196,7 @@ func _skill_name_popup(pos: Vector2, txt: String, color: Color) -> void:
 func _enemies_in_range(rng: float) -> Array:
 	var pp: Vector2 = player.global_position
 	var out: Array = []
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in EnemyCache.all():
 		if is_instance_valid(e) and pp.distance_to(e.global_position) <= rng:
 			out.append(e)
 	return out

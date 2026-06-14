@@ -70,7 +70,7 @@ func _on_area_entered(area) -> void:
 ## take_damage는 일반 명중과 같은 경로(사망 시 died→main FX)라 물리 콜백에서 안전.
 func _chain_from(hit, dmg: float) -> void:
 	var origin: Vector2 = hit.global_position
-	var others := get_tree().get_nodes_in_group("enemies").filter(func(e): return e != hit and is_instance_valid(e))
+	var others := EnemyCache.all().filter(func(e): return e != hit and is_instance_valid(e))  # filter가 새 배열 생성 → 정렬 안전
 	others.sort_custom(func(a, b): return origin.distance_squared_to(a.global_position) < origin.distance_squared_to(b.global_position))
 	var n := 0
 	for e in others:
@@ -88,7 +88,7 @@ func _chain_from(hit, dmg: float) -> void:
 
 ## 포격 광역: 명중 지점 반경 내 다른 적들에게 비례 피해 + 데미지 숫자 (비물리라 충돌 콜백 안전)
 func _splash_from(hit, dmg: float, center: Vector2) -> void:
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in EnemyCache.all():
 		if e == hit or not is_instance_valid(e):
 			continue
 		if center.distance_to(e.global_position) <= splash_radius:

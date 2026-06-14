@@ -29,7 +29,7 @@ func _process(delta: float) -> void:
 	if _tick >= 0.3:  # 0.3초마다 틱 피해
 		_tick -= 0.3
 		var hit := dps * 0.3
-		for e in get_tree().get_nodes_in_group("enemies"):
+		for e in EnemyCache.all():
 			if is_instance_valid(e) and global_position.distance_to(e.global_position) <= radius:
 				e.take_damage(hit * ElementLib.multiplier(element, e.element))
 

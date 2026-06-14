@@ -190,7 +190,7 @@ func _sync_barrier_droid() -> void:
 ## 스킬 사거리 내에 살아있는 적이 하나라도 있는지 (executor._enemies_in_range와 동일 기준)
 func _has_target_in_range(s: Dictionary) -> bool:
 	var rng: float = SkillLib.SKILL_RANGE.get(s.id, 99999.0)
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in EnemyCache.all():
 		if is_instance_valid(e) and global_position.distance_to(e.global_position) <= rng:
 			return true
 	return false
@@ -328,7 +328,7 @@ func _skill_pose() -> void:
 
 ## 가까운 순으로 최대 count명의 적을 반환
 func _nearest_enemies(count: int) -> Array:
-	var enemies := get_tree().get_nodes_in_group("enemies")
+	var enemies := EnemyCache.all().duplicate()  # 정렬하므로 공유 스냅샷 복제(원본 변형 금지)
 	enemies.sort_custom(func(a, b): return global_position.distance_squared_to(a.global_position) < global_position.distance_squared_to(b.global_position))
 	return enemies.slice(0, count)
 
