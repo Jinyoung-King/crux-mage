@@ -734,15 +734,49 @@ func _draw_cards(count: int, rare_only: bool = false, exclude: Array = []) -> Ar
 	while picked.size() < count and not pool.is_empty():
 		var total := 0.0
 		for c in pool:
-			total += RARITY_WEIGHT.get(c.rarity, 3.0)
+			total += _card_weight(c)
 		var r := randf() * total
 		for c in pool:
-			r -= RARITY_WEIGHT.get(c.rarity, 3.0)
+			r -= _card_weight(c)
 			if r <= 0.0:
 				picked.append(c)
 				pool.erase(c)
 				break
 	return picked
+
+## 드로우 가중치 = 희귀도 가중치 × 빌드 시너지 (빌드에 맞는 카드를 더 자주 제시)
+func _card_weight(card: CardData) -> float:
+	return RARITY_WEIGHT.get(card.rarity, 3.0) * _card_synergy(card)
+
+## 빌드 시너지 배율(>=1.0). 기본 1.0, 보유 빌드와 맞물리는 카드를 선호.
+## (쓸모없는 카드는 _is_card_useful이 이미 제외하므로 여기선 '얼마나 잘 맞는가'만 가산)
+func _card_synergy(card: CardData) -> float:
+	var pl = $Player
+	var m := 1.0
+	var skills_n: int = pl.skills.size()
+	# 원소 반응 페이오프 — 부여원(화상·둔화)이 켜져 있으면 강하게 선호('온라인'된 시너지)
+	if card.detonate_burn_bonus > 0.0 and pl.build.apply_burn:
+		m *= 2.2
+	if card.frostbite_bonus > 0.0 and pl.build.apply_slow:
+		m *= 2.2
+	# 스킬 스케일 카드 — 보유 스킬이 많을수록 가치↑ (해당 스킬 보유는 _is_card_useful이 보장)
+	if card.skill_power_bonus > 0.0:
+		m *= 1.0 + 0.25 * skills_n
+	if card.skill_radius_bonus > 0.0:
+		m *= 1.5
+	if card.extra_targets_bonus > 0:
+		m *= 1.5
+	if card.pierce_bonus > 0:
+		m *= 1.4
+	if card.explode_power_bonus > 0.0:
+		m *= 1.3
+	# 스킬 카드 — 진화 임박이면 마무리 유도, 키트가 얇으면 새 스킬 권장
+	if card.grant_skill_id != "":
+		if _has_skill(card.grant_skill_id) and pl.can_evolve(card.grant_skill_id):
+			m *= 1.7
+		elif skills_n < 3:
+			m *= 1.4
+	return m
 
 ## 카드 드래프트 표시(희귀 확정 여부 rare). 테스트 자동선택(auto_pick) 시 잠깐 뒤 무작위 1장.
 func _open_draft(rare: bool = false) -> void:
