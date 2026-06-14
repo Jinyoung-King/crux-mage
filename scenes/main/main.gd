@@ -11,6 +11,9 @@ const SKILL_ICON := preload("res://scenes/ui/skill_icon.gd")  # 스킬 쿨타임
 const RANGE_RING := preload("res://scenes/fx/range_ring.gd")  # 스킬 사거리 표시 링(아이콘 누름)
 var _skill_icons: Array = []  # 스킬별 쿨타임 아이콘(쿨 중 어둡고, 준비되면 활성화)
 var _range_ring: Node2D  # 사거리 링(마법사 자식, 평소 숨김)
+var base_hp_bar: ProgressBar  # 성벽(기지) 내구도 바 — 스킬 아이콘 하단, 바 안에 숫자
+var base_hp_label: Label      # 위 바 안의 현재/최대 수치
+var _base_hp_fill: StyleBoxFlat  # 바 채움 스타일(저체력 시 빨강)
 var skill_executor: SkillExecutor  # 전투 연산·FX 실행기 (DI로 player·$Fx·self 주입)
 var _wiz_hold := false   # 마법사 롱탭(길게 누름) 진행 중
 var _wiz_hold_t := 0.0   # 누른 시간 누적
@@ -194,6 +197,7 @@ func _ready() -> void:
 	_update_mute_label()
 	_update_damage_label()
 	_build_cards_ui()  # '내 카드' 버튼 + 획득 카드 리스트 패널
+	_build_base_hp_bar()  # 성벽 내구도 바(스킬 아이콘 하단)
 	_build_result_ui()  # 사망·클리어 결과 요약 패널
 	_on_player_hp_changed($Player.hp, $Player.max_hp)  # HP 초기 표시
 	_update_best_label()
@@ -904,6 +908,14 @@ func _apply_evo_branch(card: CardData) -> void:
 
 func _on_player_hp_changed(hp: float, max_hp: float) -> void:
 	hp_label.text = "%s / %s" % [NumFmt.compact(int(hp)), NumFmt.compact(int(max_hp))]  # 앞의 방패 아이콘(HpIcon)이 '기지 내구도'를 표시
+	if base_hp_bar == null:
+		return  # 바 생성 전 이른 호출 방어(초기 표시는 _ready 끝에서 다시 들어옴)
+	# 성벽 내구도 바(스킬 아이콘 하단) — 바 안에 숫자, 저체력 시 빨강
+	base_hp_bar.max_value = max_hp
+	base_hp_bar.value = hp
+	base_hp_label.text = "%s / %s" % [NumFmt.compact(int(hp)), NumFmt.compact(int(max_hp))]
+	var ratio: float = hp / max_hp if max_hp > 0.0 else 0.0
+	_base_hp_fill.bg_color = Color(0.85, 0.3, 0.3) if ratio < 0.3 else Color(0.35, 0.75, 0.45)
 
 ## 스테이지 모드 클리어 — 마지막(보스) 웨이브 격파. 승리 화면(코인·숙련 정산).
 func _stage_cleared() -> void:
@@ -1153,6 +1165,40 @@ func _record_card(card) -> void:
 	_picked_count[nm] = int(_picked_count.get(nm, 0)) + 1
 
 ## '내 카드' 버튼 + 스크롤 패널을 코드로 구성 (HUD에 추가)
+## 성벽(기지) 내구도 바 — 스킬 아이콘 바로 아래, 바 안 중앙에 현재/최대 숫자
+func _build_base_hp_bar() -> void:
+	base_hp_bar = ProgressBar.new()
+	base_hp_bar.anchor_left = 0.5
+	base_hp_bar.anchor_right = 0.5
+	base_hp_bar.anchor_top = 1.0
+	base_hp_bar.anchor_bottom = 1.0
+	base_hp_bar.offset_left = -170.0
+	base_hp_bar.offset_right = 170.0
+	base_hp_bar.offset_top = -56.0   # 스킬 아이콘(하단 -60)보다 아래, 성벽 위치
+	base_hp_bar.offset_bottom = -26.0
+	base_hp_bar.show_percentage = false
+	base_hp_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var bg := StyleBoxFlat.new()
+	bg.bg_color = Color(0.05, 0.05, 0.08, 0.7)
+	bg.set_corner_radius_all(7)
+	bg.set_border_width_all(1)
+	bg.border_color = Color(0.35, 0.4, 0.5)
+	base_hp_bar.add_theme_stylebox_override("background", bg)
+	_base_hp_fill = StyleBoxFlat.new()
+	_base_hp_fill.bg_color = Color(0.35, 0.75, 0.45)  # 체력 초록(저체력 시 빨강으로)
+	_base_hp_fill.set_corner_radius_all(7)
+	base_hp_bar.add_theme_stylebox_override("fill", _base_hp_fill)
+	$HUD.add_child(base_hp_bar)
+	base_hp_label = Label.new()
+	base_hp_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	base_hp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	base_hp_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	base_hp_label.add_theme_font_override("font", FONT)
+	base_hp_label.add_theme_font_size_override("font_size", 17)
+	base_hp_label.add_theme_color_override("font_color", Color(1, 1, 1))
+	base_hp_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	base_hp_bar.add_child(base_hp_label)
+
 func _build_cards_ui() -> void:
 	cards_button = Button.new()
 	cards_button.text = "내 카드"
