@@ -4,15 +4,17 @@ extends Control
 
 const FONT := preload("res://assets/fonts/NotoSansKR.ttf")
 const EQUIP_SLOT := preload("res://scenes/ui/equip_slot.gd")
+const NAV_BAR := preload("res://scenes/ui/nav_bar.gd")  # 하단 탭 네비게이션(유지)
 
-# 장비 ↔ 강화 id 매핑 (표시 이름·도형·색·페이퍼돌 위치). 위치는 doll(480×360) 기준.
+# 장비 ↔ 강화 id 매핑 (표시 이름·도형·색·페이퍼돌 위치). 위치는 doll(480×360, 슬롯 96×96) 기준.
+# 대칭 배치: 모자=상단중앙 / 지팡이·로브=상단 좌우 / 부츠·부적=하단 좌우 / 반지=하단 중앙.
 const EQUIP := [
-	{"id": "damage",     "equip": "마력 지팡이", "kind": "staff",  "color": Color(0.96, 0.42, 0.36), "pos": Vector2(36, 14)},
-	{"id": "max_hp",     "equip": "수호 로브",   "kind": "robe",   "color": Color(0.4, 0.82, 0.72),  "pos": Vector2(348, 14)},
-	{"id": "fire_rate",  "equip": "신속 부츠",   "kind": "boots",  "color": Color(0.96, 0.86, 0.42), "pos": Vector2(20, 214)},
-	{"id": "lifesteal",  "equip": "흡혈 반지",   "kind": "ring",   "color": Color(0.92, 0.42, 0.72), "pos": Vector2(192, 252)},
-	{"id": "extra_card", "equip": "예지 부적",   "kind": "amulet", "color": Color(0.66, 0.5, 0.96),  "pos": Vector2(364, 214)},
-	{"id": "defense",    "equip": "수호 모자",   "kind": "hat",    "color": Color(0.5, 0.72, 0.95),  "pos": Vector2(204, 6)},
+	{"id": "defense",    "equip": "수호 모자",   "kind": "hat",    "color": Color(0.5, 0.72, 0.95),  "pos": Vector2(192, 4)},
+	{"id": "damage",     "equip": "마력 지팡이", "kind": "staff",  "color": Color(0.96, 0.42, 0.36), "pos": Vector2(12, 72)},
+	{"id": "max_hp",     "equip": "수호 로브",   "kind": "robe",   "color": Color(0.4, 0.82, 0.72),  "pos": Vector2(372, 72)},
+	{"id": "fire_rate",  "equip": "신속 부츠",   "kind": "boots",  "color": Color(0.96, 0.86, 0.42), "pos": Vector2(12, 204)},
+	{"id": "extra_card", "equip": "예지 부적",   "kind": "amulet", "color": Color(0.66, 0.5, 0.96),  "pos": Vector2(372, 204)},
+	{"id": "lifesteal",  "equip": "흡혈 반지",   "kind": "ring",   "color": Color(0.92, 0.42, 0.72), "pos": Vector2(192, 256)},
 ]
 
 @onready var root: VBoxContainer = $Root
@@ -44,6 +46,9 @@ func _ready() -> void:
 	GameState.selected = unlocked_chars[char_pos]
 	_build_ui()
 	_refresh()
+	var nav := NAV_BAR.new()  # 하단 탭 네비게이션 유지(다른 메타 탭으로 바로 이동)
+	add_child(nav)
+	nav.setup("upgrade")
 
 func _build_ui() -> void:
 	root.add_theme_constant_override("separation", 12)
