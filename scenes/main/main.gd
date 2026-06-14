@@ -27,6 +27,8 @@ const RARITY_BADGE := {"legendary": "전설", "epic": "영웅", "rare": "희귀"
 const ENDLESS_HP_GROWTH := 0.15  # 무한 모드 단계당 적 체력 증가율
 const ENDLESS_DMG_GROWTH := 0.10  # 무한 모드 단계당 적 피해 증가율(체력보다 완만, 흡혈 무한지속 방지)
 const ENDLESS_DMG_CAP := 12.0  # 적 피해 배율 상한 — 체력은 무한 증가하되 '한 방 즉사'는 방지(체력안배 가능)
+const MAX_ALIVE := 50  # 동시 생존 적 수 상한 — 가득이면 스폰 보류(후반 고웨이브 렉 방지, 난이도는 체력·피해로 유지)
+const COUNT_SCALE_CAP := 30  # 적 '수' 증가에 쓰는 무한 단계 상한(체력·피해 스케일은 무제한 — 수만 제한해 과밀 방지)
 const ELEMENT_ORDER := ["wood", "fire", "earth", "metal", "water"]  # 속성 스테이지 순환 순서(목→화→토→금→수)
 const WAVES_PER_STAGE := 10  # (무한모드) 스테이지당 웨이브 수(보스로 끝). 스테이지마다 속성이 바뀜
 const STAGE_WAVES := 12  # (스테이지 모드) 클리어까지 웨이브 수 — 마지막 웨이브가 보스
@@ -409,7 +411,7 @@ func _build_spawn_list(index: int) -> Array:
 		base = midboss_wave.build_spawn_list()
 	else:  # bonus
 		base = bonus_wave.build_spawn_list()  # 무한 단계만큼 보물도 증원 → 후반일수록 코인 多
-	var extra := int(base.size() * 0.25 * _endless_level(index))
+	var extra := int(base.size() * 0.25 * mini(_endless_level(index), COUNT_SCALE_CAP))  # 수 증가 상한(과밀 방지)
 	for i in extra:
 		base.append(base[randi() % base.size()])  # 기존 구성 비율대로 증원
 	base.shuffle()
@@ -422,7 +424,7 @@ func _stage_spawn_list(index: int) -> Array:
 	if pool.is_empty():
 		pool = [GameState.enemies[0]]
 	var within := index % WAVES_PER_STAGE          # 스테이지 내 웨이브(0~9)
-	var total := 6 + within + _endless_level(index) * 2
+	var total := 6 + within + mini(_endless_level(index), COUNT_SCALE_CAP) * 2  # 수 증가 상한(과밀 방지)
 	var list: Array = []
 	for i in total:
 		list.append(pool[i % pool.size()])
@@ -445,6 +447,8 @@ func _wave_interval(index: int) -> float:
 	return maxf(base_interval * pow(0.95, _endless_level(index)), 0.25)
 
 func _spawn_enemy() -> void:
+	if alive >= MAX_ALIVE:
+		return  # 동시 적 수 상한 — 이번 틱 스폰 보류(타이머는 계속 → 적이 줄면 재개). 후반 과밀·렉 방지
 	_spawn_one(spawn_list[spawned], Vector2(randf_range(SPAWN_X_MIN, SPAWN_X_MAX), SPAWN_Y))
 	spawned += 1
 	if spawned >= spawn_list.size():
@@ -1247,6 +1251,8 @@ func _on_player_fired(projectile) -> void:
 func _damage_number(pos: Vector2, amount: float, is_crit := false, player := false, strong := false) -> void:
 	if not GameState.show_damage_numbers:
 		return
+	if $Fx.get_child_count() > 110 and not is_crit and not player:
+		return  # FX 과부하(대량 처치 등) 시 일반 데미지 숫자 생략 — 치명/피격 숫자는 유지(렉 스파이크 완화)
 	var dn = DAMAGE_NUMBER.new()
 	dn.position = pos
 	$Fx.add_child(dn)
