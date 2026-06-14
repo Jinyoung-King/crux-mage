@@ -29,13 +29,39 @@ var splash_radius := 90.0
 var element := ""  ## 오행 속성 (적 속성과 상성 판정 — ElementLib)
 var pierce := 0  ## 관통: 이 수만큼 적을 추가로 꿰뚫고 비행 (소진 시 소멸)
 
+const TRAIL_LEN := 8  ## 꼬리 잔광 점 개수
+var _trail: Line2D  ## 비행 잔광(속성색, 머리쪽 진하고 굵게 → 끝 투명·가늘게)
+
 func _ready() -> void:
 	rotation = direction.angle()
 	area_entered.connect(_on_area_entered)
 	$VisibleOnScreenNotifier2D.screen_exited.connect(queue_free)
+	_make_trail()
+
+## 발사체 꼬리 잔광 Line2D 생성(top_level=전역좌표라 발사체 회전과 무관하게 자취가 남음)
+func _make_trail() -> void:
+	_trail = Line2D.new()
+	_trail.top_level = true
+	_trail.width = 6.0
+	_trail.z_index = -1  # 발사체 스프라이트 아래
+	var col := ElementLib.color(element) if element != "" else Color(1.0, 0.95, 0.7)
+	var grad := Gradient.new()
+	grad.set_color(0, Color(col.r, col.g, col.b, 0.0))  # 꼬리 끝 투명
+	grad.set_color(1, Color(col.r, col.g, col.b, 0.55))  # 머리 쪽 진함
+	_trail.gradient = grad
+	var wc := Curve.new()
+	wc.add_point(Vector2(0, 0.1))  # 끝 가늘게
+	wc.add_point(Vector2(1, 1.0))  # 머리 굵게
+	_trail.width_curve = wc
+	_trail.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	_trail.end_cap_mode = Line2D.LINE_CAP_ROUND
+	add_child(_trail)
 
 func _physics_process(delta: float) -> void:
 	position += direction * speed * delta
+	_trail.add_point(global_position)
+	if _trail.get_point_count() > TRAIL_LEN:
+		_trail.remove_point(0)
 
 func _on_area_entered(area) -> void:
 	if not area.is_in_group("enemies"):

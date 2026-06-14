@@ -6,6 +6,7 @@ const DEATH_BURST_SCENE := preload("res://scenes/fx/death_burst.tscn")
 const DEATH_REMAINS := preload("res://scenes/fx/death_remains.gd")
 const DAMAGE_NUMBER := preload("res://scenes/fx/damage_number.gd")
 const SKILL_RING := preload("res://scenes/fx/skill_ring.gd")  # 광역 스킬 범위 링 (적 사망 연출 등 공용)
+const HIT_SPARK := preload("res://scenes/fx/hit_spark.gd")  # 명중·착탄 별 섬광
 const FONT := preload("res://assets/fonts/NotoSansKR.ttf")
 const SKILL_ICON := preload("res://scenes/ui/skill_icon.gd")  # 스킬 쿨타임 아이콘
 const RANGE_RING := preload("res://scenes/fx/range_ring.gd")  # 스킬 사거리 표시 링(아이콘 누름)
@@ -1485,6 +1486,8 @@ func _damage_number(pos: Vector2, amount: float, is_crit := false, player := fal
 ## 직격 피해 위치에 플로팅 데미지 숫자
 func _on_projectile_damaged(amount: float, is_crit: bool, pos: Vector2, is_strong := false) -> void:
 	_damage_number(pos, amount, is_crit, false, is_strong)
+	var sc: Color = Color(1.0, 0.6, 0.3) if is_crit else Color(1.0, 0.95, 0.7)  # 치명타는 주황 큰 스파크
+	_hit_spark(pos, sc, 22.0 if is_crit else 15.0)
 
 ## 플레이어가 받는 피해 — 머리 위에 빨간 숫자
 func _on_player_took_damage(amount: float) -> void:
@@ -1496,3 +1499,11 @@ func _skill_ring(pos: Vector2, radius: float, color: Color, element := "") -> vo
 	r.position = pos
 	$Fx.add_child(r)
 	r.setup(radius, color, element)
+	_hit_spark(pos, Color(1, 1, 1), minf(radius * 0.5, 60.0))  # 착탄 중심 흰 섬광(가독성 위해 크기 상한)
+
+## 명중·착탄 별 섬광 FX
+func _hit_spark(pos: Vector2, color: Color, size := 16.0) -> void:
+	var s = HIT_SPARK.new()
+	s.position = pos
+	$Fx.add_child(s)
+	s.setup(color, size)
