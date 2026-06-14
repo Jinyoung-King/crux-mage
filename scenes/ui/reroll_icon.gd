@@ -11,12 +11,13 @@ func _ready() -> void:
 func _draw() -> void:
 	var c := size / 2.0
 	var rr := minf(size.x, size.y)
-	var hot := get_global_rect().has_point(get_global_mouse_position())
+	var off := disabled
+	var hot := (not off) and get_global_rect().has_point(get_global_mouse_position())
 	# 칩 배경(원형)
-	draw_circle(c, rr * 0.46, Color(0.12, 0.12, 0.17, 0.92))
-	draw_arc(c, rr * 0.46, 0.0, TAU, 32, Color(1, 1, 1, 0.35 if hot else 0.22), 1.5, true)
-	# 새로고침 화살표(가운데가 트인 원형 호 + 화살촉)
-	var col := Color(1, 1, 1, 1) if hot else Color(0.9, 0.92, 1.0)
+	draw_circle(c, rr * 0.46, Color(0.1, 0.1, 0.14, 0.32 if off else 0.92))
+	draw_arc(c, rr * 0.46, 0.0, TAU, 32, Color(1, 1, 1, 0.07 if off else (0.35 if hot else 0.22)), 1.5, true)
+	# 새로고침 화살표(가운데가 트인 원형 호 + 화살촉). 비활성(이미 새로고침)은 흐릿하게.
+	var col := Color(0.55, 0.55, 0.6, 0.4) if off else (Color(1, 1, 1, 1) if hot else Color(0.9, 0.92, 1.0))
 	var r := rr * 0.26
 	var a1 := deg_to_rad(380.0)
 	draw_arc(c, r, deg_to_rad(125.0), a1, 28, col, 2.4, true)

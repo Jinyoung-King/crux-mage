@@ -5,8 +5,7 @@
 [resource]
 script = ExtResource("1")
 card_name = "폭주"
-description = "연사 +1.5 · 스킬 위력 +40%. 대신 방어 -2로 받는 피해 증가 (전설 리스크)."
+description = "연사 +1.5 · 스킬 위력 +30% — 압도적 시전 속도, 연사 빌드의 정점 (전설)."
 rarity = "legendary"
 fire_rate_bonus = 1.5
-skill_power_bonus = 0.4
-defense_bonus = -2.0
+skill_power_bonus = 0.3
