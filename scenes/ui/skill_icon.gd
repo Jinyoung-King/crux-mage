@@ -4,16 +4,36 @@ extends Control
 
 const FONT := preload("res://assets/fonts/NotoSansKR.ttf")
 
+signal hold(active: bool)  ## 누르고 있는 동안 true, 떼면 false (main이 사거리 링 표시)
+
 var col: Color = Color.WHITE
 var sname: String = ""
 var ratio: float = 0.0  # 0~1 (1=준비완료)
 var _t: float = 0.0
+var _held: bool = false
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(58, 58)
 	size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mouse_filter = Control.MOUSE_FILTER_STOP  # 눌러서 사거리 보기 — 입력 받음
+	mouse_exited.connect(_release)  # 누른 채 벗어나면 해제
+
+## 누름 시작/해제 감지 → hold 시그널. 마우스·터치 모두 지원.
+func _gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		_set_held(event.pressed)
+	elif event is InputEventScreenTouch:
+		_set_held(event.pressed)
+
+func _release() -> void:
+	_set_held(false)
+
+func _set_held(v: bool) -> void:
+	if v == _held:
+		return
+	_held = v
+	hold.emit(v)
 
 func update_cd(skill_name: String, color: Color, r: float, dt: float) -> void:
 	sname = skill_name

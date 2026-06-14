@@ -18,6 +18,7 @@ var elem_lbl: Label
 var desc_lbl: Label
 var prev_btn: Button
 var next_btn: Button
+var counter_panel: Control   # 오행 상성 도움말 오버레이
 
 @onready var bg: Node2D = $BgLayer/Background
 @onready var char_view: VBoxContainer = $Center/CharView
@@ -83,6 +84,7 @@ func _ready() -> void:
 	play_button.add_theme_stylebox_override("pressed", _play_style)
 	_build_stage_buttons()
 	_apply_char()  # 텍스처·이름·속성색·배경·오라 적용
+	_build_counter_help()  # 상성 오버레이(최상단으로 마지막에 추가)
 
 ## 캐릭터 뷰(◀ [오라+마법사] ▶ + 이름·속성·설명) 구성
 func _build_char_view() -> void:
@@ -117,6 +119,84 @@ func _build_char_view() -> void:
 	char_view.add_child(elem_lbl)
 	desc_lbl = _label("", 17, Color(0.82, 0.82, 0.88))
 	char_view.add_child(desc_lbl)
+	var info_btn := Button.new()
+	info_btn.text = "오행 상성표 ⓘ"
+	info_btn.flat = true
+	info_btn.add_theme_font_override("font", FONT)
+	info_btn.add_theme_font_size_override("font_size", 16)
+	info_btn.add_theme_color_override("font_color", Color(0.72, 0.78, 0.9))
+	info_btn.pressed.connect(_show_counter_help)
+	char_view.add_child(info_btn)
+
+## 오행 상성 도움말 오버레이(오방색). 상성표 버튼 → 표시, 딤/닫기 → 숨김.
+func _build_counter_help() -> void:
+	counter_panel = Control.new()
+	counter_panel.visible = false
+	counter_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(counter_panel)
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.72)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.gui_input.connect(_on_counter_dim)
+	counter_panel.add_child(dim)
+	var panel := PanelContainer.new()
+	panel.anchor_left = 0.5
+	panel.anchor_top = 0.5
+	panel.anchor_right = 0.5
+	panel.anchor_bottom = 0.5
+	panel.offset_left = -290.0
+	panel.offset_right = 290.0
+	panel.offset_top = -290.0
+	panel.offset_bottom = 290.0
+	var st := StyleBoxFlat.new()
+	st.bg_color = Color(0.13, 0.12, 0.18, 0.98)
+	st.set_corner_radius_all(14)
+	st.set_content_margin_all(22)
+	st.set_border_width_all(2)
+	st.border_color = Color(0.42, 0.42, 0.52)
+	panel.add_theme_stylebox_override("panel", st)
+	counter_panel.add_child(panel)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 10)
+	v.alignment = BoxContainer.ALIGNMENT_CENTER
+	panel.add_child(v)
+	v.add_child(_label("오행 상성 (오방색)", 30, Color(0.95, 0.96, 1.0)))
+	v.add_child(_label("내 속성이 상대를 극하면 데미지 ×1.5,\n반대로 당하면 ×0.7", 16, Color(0.82, 0.85, 0.92)))
+	var spacer := Control.new(); spacer.custom_minimum_size = Vector2(0, 6); v.add_child(spacer)
+	# 상극 순환: 목→토→수→화→금→(목)
+	var cycle := ["wood", "earth", "water", "fire", "metal"]
+	for i in cycle.size():
+		v.add_child(_counter_row(cycle[i], cycle[(i + 1) % cycle.size()]))
+	var spacer2 := Control.new(); spacer2.custom_minimum_size = Vector2(0, 8); v.add_child(spacer2)
+	var close := Button.new()
+	close.text = "닫기"
+	close.custom_minimum_size = Vector2(200, 50)
+	close.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	close.add_theme_font_override("font", FONT)
+	close.add_theme_font_size_override("font_size", 22)
+	close.pressed.connect(_hide_counter_help)
+	v.add_child(close)
+
+## 상성 한 줄: [속성색 이름] → [속성색 이름]  강함
+func _counter_row(a: String, b: String) -> Control:
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 10)
+	row.add_child(_label("%s 속성" % ElementLib.display_name(a), 22, ElementLib.color(a)))
+	row.add_child(_label("→", 20, Color(0.7, 0.7, 0.78)))
+	row.add_child(_label("%s 속성" % ElementLib.display_name(b), 22, ElementLib.color(b)))
+	row.add_child(_label("에 강함", 16, Color(0.75, 0.78, 0.85)))
+	return row
+
+func _show_counter_help() -> void:
+	counter_panel.show()
+
+func _hide_counter_help() -> void:
+	counter_panel.hide()
+
+func _on_counter_dim(event: InputEvent) -> void:
+	if (event is InputEventMouseButton and event.pressed) or (event is InputEventScreenTouch and event.pressed):
+		_hide_counter_help()
 
 ## 오행 속성별 오라 변 수(0=원). fire=3·water=0·wood=5·metal=4·earth=6
 func _sides(elem: String) -> int:

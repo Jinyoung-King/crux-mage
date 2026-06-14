@@ -8,7 +8,9 @@ const DAMAGE_NUMBER := preload("res://scenes/fx/damage_number.gd")
 const SKILL_RING := preload("res://scenes/fx/skill_ring.gd")  # 광역 스킬 범위 링 (적 사망 연출 등 공용)
 const FONT := preload("res://assets/fonts/NotoSansKR.ttf")
 const SKILL_ICON := preload("res://scenes/ui/skill_icon.gd")  # 스킬 쿨타임 아이콘
+const RANGE_RING := preload("res://scenes/fx/range_ring.gd")  # 스킬 사거리 표시 링(아이콘 누름)
 var _skill_icons: Array = []  # 스킬별 쿨타임 아이콘(쿨 중 어둡고, 준비되면 활성화)
+var _range_ring: Node2D  # 사거리 링(마법사 자식, 평소 숨김)
 var skill_executor: SkillExecutor  # 전투 연산·FX 실행기 (DI로 player·$Fx·self 주입)
 var _wiz_hold := false   # 마법사 롱탭(길게 누름) 진행 중
 var _wiz_hold_t := 0.0   # 누른 시간 누적
@@ -154,6 +156,9 @@ func _ready() -> void:
 	Music.play_battle()
 	var ch: CharacterData = GameState.selected
 	$Player.apply_character(ch)
+	_range_ring = RANGE_RING.new()
+	_range_ring.visible = false
+	$Player.add_child(_range_ring)  # 마법사 중심 사거리 링(아이콘 누를 때만 표시)
 	for id in GameState.relic_levels:  # 모은 유물 전부 적용(런 시작, 레벨=강화)
 		$Player.grant_relic(id, GameState.relic_levels[id])
 	$SfxShoot.stream = ch.shoot_sound  # 캐릭터 전용 발사음
@@ -279,10 +284,21 @@ func _rebuild_skill_icons(skills: Array) -> void:
 	for c in $HUD/SkillUI.get_children():
 		c.queue_free()
 	_skill_icons.clear()
-	for s in skills:
+	for i in skills.size():
 		var ic = SKILL_ICON.new()
 		$HUD/SkillUI.add_child(ic)
+		ic.hold.connect(_on_skill_hold.bind(i))  # 누르면 해당 스킬 사거리 표시
 		_skill_icons.append(ic)
+
+## 스킬 아이콘을 누르고 있는 동안 그 스킬의 사거리 링을 마법사 중심으로 표시.
+func _on_skill_hold(active: bool, idx: int) -> void:
+	if not active or idx >= $Player.skills.size():
+		_range_ring.hide_ring()
+		return
+	var s: Dictionary = $Player.skills[idx]
+	var rng: float = SkillLib.SKILL_RANGE.get(s.id, 99999.0)
+	var elem: String = SkillLib.DEFS.get(s.id, {}).get("element", "")
+	_range_ring.show_range(rng, ElementLib.color(elem))
 
 func _add_shake(amount: float) -> void:
 	shake = minf(shake + amount, 14.0)
