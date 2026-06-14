@@ -884,6 +884,7 @@ func _on_player_died() -> void:
 	pause_button.hide()  # 사망 후엔 일시정지 불가(결과 요약 UI 사용)
 	var prev_best: int = GameState.best_wave
 	GameState.record_wave(wave_index + 1)  # 최고 기록 갱신·저장 (신규 해금 가능)
+	var unlocked_tabs: Array = GameState.newly_unlocked_tabs(prev_best)  # 이번 런으로 새로 열린 메타 탭
 	GameState.add_coins(run_coins)  # 이번 런 코인 정산·저장
 	GameState.note_run(GameState.selected, wave_index + 1)  # 플레이 수·캐릭터별 최고 웨이브 기록
 	var lvl_before: int = GameState.char_level(GameState.selected)
@@ -897,7 +898,7 @@ func _on_player_died() -> void:
 	position = Vector2.ZERO
 	flash_overlay.color.a = 0.25
 	get_tree().paused = true
-	_show_result(false, wave_index + 1, leveled, (wave_index + 1) > prev_best)
+	_show_result(false, wave_index + 1, leveled, (wave_index + 1) > prev_best, unlocked_tabs)
 
 ## 결과 요약 패널 구성(코드) — 사망·클리어 시 표시. 자체 [다시하기][캐릭터 선택] 버튼 포함.
 func _build_result_ui() -> void:
@@ -968,7 +969,7 @@ func _result_button(text: String) -> Button:
 	return b
 
 ## 결과 요약 표시: 도달·처치·카드·빌드(스킬·룬)·기록 리캡
-func _show_result(is_clear: bool, reached: int, leveled_name: String, new_best: bool) -> void:
+func _show_result(is_clear: bool, reached: int, leveled_name: String, new_best: bool, unlocked_tabs: Array = []) -> void:
 	if is_clear:
 		result_title.text = "%s 스테이지 클리어!" % ElementLib.display_name(GameState.stage_element)
 		result_title.add_theme_color_override("font_color", ElementLib.color(GameState.stage_element))
@@ -996,6 +997,8 @@ func _show_result(is_clear: bool, reached: int, leveled_name: String, new_best: 
 		lines.append("룬  " + ", ".join(rnames))
 	if new_best:
 		lines.append("★ 최고 기록 Wave %d!" % reached)
+	for tname in unlocked_tabs:
+		lines.append("★ %s 해금!" % tname)  # 이번 런으로 새로 열린 메타 탭
 	# 목표(도전 과제) 정산 — 이번 런으로 달성된 목표에 코인 지급, 요약에 표시 + 다음 목표 안내
 	var goals_done: Array = GameState.claim_goals(total_cards)
 	for g in goals_done:

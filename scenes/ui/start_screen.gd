@@ -59,6 +59,7 @@ func _ready() -> void:
 	$NavBar/Row/RelicButton.pressed.connect(_on_relics)
 	$NavBar/Row/BestiaryButton.pressed.connect(_on_bestiary)
 	$NavBar/Row/TraitButton.pressed.connect(_on_traits)
+	_apply_tab_unlocks()  # 메타 탭 점진 공개 — best_wave 단계로 도감·특성·룬 노출(신규 압도 방지)
 	# 시작 웨이브 다이얼: 1 ~ 최고 기록(1단위). 기록이 2 미만이면 숨김.
 	if GameState.best_wave < 2:
 		start_wave_box.hide()
@@ -129,6 +130,13 @@ func _build_char_view() -> void:
 	info_btn.add_theme_color_override("font_color", Color(0.72, 0.78, 0.9))
 	info_btn.pressed.connect(_show_counter_help)
 	char_view.add_child(info_btn)
+
+## 메타 탭 점진 공개 — best_wave가 임계 이상인 탭만 노출. 강화·패치노트는 항상.
+## 해금 '알림' 토스트는 런 종료 요약에서 처리(실제로 넘긴 런에만) → 여기선 표시 여부만.
+func _apply_tab_unlocks() -> void:
+	for t in GameState.TAB_UNLOCKS:
+		var btn: Button = $NavBar/Row.get_node(t.node)
+		btn.visible = GameState.best_wave >= int(t.wave)
 
 ## ▶ 다음 목표 라벨 — $Center에서 플레이 버튼 바로 앞에 배치('한 판 더'의 동기)
 func _build_goal_label() -> void:

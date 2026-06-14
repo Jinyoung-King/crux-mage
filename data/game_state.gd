@@ -3,10 +3,11 @@ extends Node
 ## 씬을 새로 로드해도 유지되며, 최고 기록은 user://에 영속 저장된다.
 
 const SAVE_PATH := "user://save.cfg"
-const VERSION := "v1.34"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
+const VERSION := "v1.35"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
 
 # 패치노트 (최신이 위). 새 버전 추가 시 맨 앞에 한 항목 추가. 시작 화면 "패치노트" + 업데이트 시 자동 안내.
 const CHANGELOG := [
+	{"v": "v1.35", "notes": ["신규 진입 완화 2탄 — 메타 시스템 점진 공개. 처음엔 시작 화면에 '강화·패치노트'만 보이고, 진행하면서 도감(Wave 3)→특성(Wave 5)→룬(Wave 8)이 차례로 열립니다. 신규 유저가 한꺼번에 압도되지 않고 게임을 단계적으로 익히도록. 해당 웨이브를 처음 넘긴 런의 결과 요약에 '★ ○○ 해금!' 안내. 기존 유저는 이미 전부 열려 있어 변화 없음"]},
 	{"v": "v1.34", "notes": ["목표(도전 과제) 시스템 추가 — '한 판 더'의 이유를 주는 점진적 목표 트랙. 항상 현재 목표 1개만 또렷하게 제시하고(시작 화면 '▶ 다음 목표'), 달성하면 코인 보상 + 다음 목표가 열림. 런 종료 요약에 '★ 목표 달성!' 표시. Wave 도달·누적 처치·한 판 카드 수 등 11개 목표(새 재화 없이 코인 보상). 기존 진행도는 다음 런 종료 시 한꺼번에 소급 정산"]},
 	{"v": "v1.33", "notes": ["신규 진입 완화 + 테스트 지원 — ① 첫 판 진입 장벽을 낮춤: Wave 1의 적을 6→3마리, Wave 2를 7→4마리로 줄여 조작·메커니즘을 익힐 여유를 줌(Wave 3부터는 기존 곡선 유지). ② 테스트 기간 보너스: 모든 플레이어에게 코인 50만을 1회 지급(접속 시 자동, 세이브당 한 번)"]},
 	{"v": "v1.32", "notes": ["속성색을 오방색(五方色)으로 정비 — 금=백(하양)·수=흑(짙은 남)으로 변경해 5속성 대비를 또렷하게. 시작 화면에 '오행 상성표 ⓘ' 추가: 목→토→수→화→금 상극 순환과 강타(×1.5)/약화(×0.7)를 색으로 안내. 전투 중 스킬 쿨타임 아이콘을 길게 누르면 그 스킬의 사거리를 마법사 중심 원으로 표시(속성색)"]},
@@ -146,6 +147,14 @@ const GOALS := [
 	{"id": "w20",   "desc": "Wave 20 보스 처치",     "kind": "wave",  "target": 20,   "coins": 10000},
 	{"id": "k1000", "desc": "적 1000마리 처치",       "kind": "kills", "target": 1000, "coins": 8000},
 	{"id": "w30",   "desc": "Wave 30 도달",         "kind": "wave",  "target": 30,   "coins": 20000},
+]
+
+# NavBar 탭 점진 공개 — best_wave가 이 값 이상이면 그 탭이 열림(신규 압도 방지). 강화·패치노트는 항상 노출.
+# 신규는 [시작]+강화만 보이다 진행하며 도감→특성→룬 순으로 드러남. 기존 유저(고 best_wave)는 처음부터 전부 열림.
+const TAB_UNLOCKS := [
+	{"node": "BestiaryButton", "name": "도감", "wave": 3},
+	{"node": "TraitButton",    "name": "특성", "wave": 5},
+	{"node": "RelicButton",    "name": "룬",   "wave": 8},
 ]
 
 # 컬렉션 로스터 (unlock_wave 오름차순)
@@ -390,6 +399,14 @@ func current_goal() -> Dictionary:
 		if not completed_goals.has(g.id):
 			return g
 	return {}
+
+## 이번 런으로 새로 넘긴 NavBar 해금 탭 이름들(prev_best < 임계 ≤ 현재 best_wave). 런 요약 '해금!' 안내용.
+func newly_unlocked_tabs(prev_best: int) -> Array:
+	var names: Array = []
+	for t in TAB_UNLOCKS:
+		if prev_best < int(t.wave) and best_wave >= int(t.wave):
+			names.append(t.name)
+	return names
 
 ## 목표 종류별 현재 진행값 (wave/kills/runs는 누적, cards는 이번 런 값)
 func _goal_progress(g: Dictionary, run_cards: int) -> int:
