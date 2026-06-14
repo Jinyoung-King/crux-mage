@@ -10,6 +10,7 @@ signal took_damage(amount: float)  ## 받는 피해 (빨간 데미지 숫자 표
 const PROJECTILE_SCENE := preload("res://scenes/projectile/projectile.tscn")
 const BARRIER_DROID := preload("res://scenes/fx/barrier_droid.gd")  ## 방어형 비행체(지속형 동반자)
 const FOCUS_SPREAD := PI / 90.0  ## 표적보다 발사 수가 많을 때 같은 표적에 겹쳐 쏘는 발사의 부채 각(≈2°)
+const BASIC_ATTACK_MULT := 0.04  ## 평타 피해 = effective_damage()의 이 비율(약한 베이스라인 — 스킬 쿨과 별개로 연사 주기마다)
 const MAX_SKILL_SLOTS := 4  ## 스킬 슬롯 제한(캐릭터 고유 1 포함) — 다 쓰기 방지, 슬롯 차면 진화 유도
 const EVOLVE_COST := 3  ## 같은 스킬 카드를 이만큼 모으면 1단계 진화(분기 선택)
 
@@ -66,7 +67,7 @@ func _process(delta: float) -> void:
 func _ready() -> void:
 	hp = max_hp
 	build = BuildState.new()  # 런타임 생성 (.tres 직접 참조 금지)
-	attack_timer.stop()  # v0.60 스킬-캐스터 전환: 연속 평타 없음 — 공격은 _process의 스킬 자동 시전으로만
+	attack_timer.timeout.connect(_on_attack_timer_timeout)  # 평타(약한 기본 공격) 재도입 — 연사 연동, 스킬 쿨과 별개
 
 ## 선택 캐릭터의 무기·기본 빌드·외형 적용 (게임 시작 시 main이 호출)
 func apply_character(c: CharacterData) -> void:
@@ -79,7 +80,8 @@ func apply_character(c: CharacterData) -> void:
 	max_hp = (max_hp + GameState.upgrade_value("max_hp", c) + GameState.kill_bonus_hp()) * mastery * GameState.trait_hp_mult()  # 기본 100 + 강화 + 처치업적, 숙련·특성 배율
 	hp = max_hp
 	lifesteal = GameState.upgrade_value("lifesteal", c) + GameState.trait_lifesteal_add()
-	attack_timer.wait_time = 1.0 / c.base_fire_rate  # 평타 고정 (카드 연사는 스킬 쿨타임으로)
+	attack_timer.wait_time = 1.0 / maxf(build.fire_rate, 0.1)  # 평타 발사 주기 = 현재 연사(연사 카드/특성/룬이 평타도 가속)
+	attack_timer.start()  # 평타 재가동
 	skills.clear()
 	if c.skill_id != "":  # 캐릭터 고유 스킬을 슬롯 0으로
 		skills.append(_make_skill(c.skill_id, c.skill_name, c.skill_cooldown, c.skill_power, c.skill_radius, c.skill_count))
@@ -287,6 +289,8 @@ func fire_skill_bolt(target, dmg: float) -> void:
 	fired.emit(p)
 
 func _on_attack_timer_timeout() -> void:
+	if hp <= 0.0 or skills_paused:
+		return  # 사망·카드선택 중엔 평타 정지
 	var shots := build.projectile_count
 	var targets := _nearest_enemies(shots)  # 가까운 순 최대 shots명
 	if targets.is_empty():
@@ -373,6 +377,7 @@ func apply_card(card: CardData) -> void:
 		hp_changed.emit(hp, max_hp)
 	rebuild_hit_modifiers()  # 빌드 변경 반영
 	_sync_barrier_droid()    # 비행체 스킬 획득/변경 반영(미보유면 무동작)
+	attack_timer.wait_time = 1.0 / maxf(build.fire_rate, 0.1)  # 연사 변동 → 평타 주기 갱신(다음 주기부터)
 
 func _fire_at(target, aim_offset := 0.0) -> void:
 	var p = PROJECTILE_SCENE.instantiate()
@@ -399,7 +404,7 @@ func _fire_at(target, aim_offset := 0.0) -> void:
 	p.direction = (predicted - global_position).normalized()
 	if aim_offset != 0.0:
 		p.direction = p.direction.rotated(aim_offset)  # 집중사격 부채 흩뿌림
-	p.damage = effective_damage()
+	p.damage = effective_damage() * BASIC_ATTACK_MULT  # 평타 = 공격력의 일부(약한 베이스라인). 스킬은 별도(eff_power)
 	p.lifesteal = lifesteal
 	if lifesteal > 0.0:
 		p.dealt.connect(_on_lifesteal)  # 명중 시 흡혈 회복
