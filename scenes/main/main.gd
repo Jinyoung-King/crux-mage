@@ -996,6 +996,13 @@ func _show_result(is_clear: bool, reached: int, leveled_name: String, new_best: 
 		lines.append("룬  " + ", ".join(rnames))
 	if new_best:
 		lines.append("★ 최고 기록 Wave %d!" % reached)
+	# 목표(도전 과제) 정산 — 이번 런으로 달성된 목표에 코인 지급, 요약에 표시 + 다음 목표 안내
+	var goals_done: Array = GameState.claim_goals(total_cards)
+	for g in goals_done:
+		lines.append("★ 목표 달성!  %s   +%s 코인" % [g.desc, NumFmt.compact(int(g.coins))])
+	var next_goal: Dictionary = GameState.current_goal()
+	if not next_goal.is_empty():
+		lines.append("▶ 다음 목표: %s" % next_goal.desc)
 	result_body.text = "\n".join(lines)
 	result_panel.show()
 

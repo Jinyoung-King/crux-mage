@@ -19,6 +19,7 @@ var desc_lbl: Label
 var prev_btn: Button
 var next_btn: Button
 var counter_panel: Control   # 오행 상성 도움말 오버레이
+var goal_lbl: Label          # 다음 목표(도전 과제) 안내 — 플레이 버튼 직전
 
 @onready var bg: Node2D = $BgLayer/Background
 @onready var char_view: VBoxContainer = $Center/CharView
@@ -43,6 +44,7 @@ func _ready() -> void:
 		best_label.text = "최고 Wave %d   ·   코인 %s" % [GameState.best_wave, NumFmt.compact(GameState.coins)]
 	else:
 		best_label.text = "첫 도전을 시작하세요"
+	_build_goal_label()  # ▶ 다음 목표 — 플레이 직전에 '한 판 더'의 이유 제시
 	# 해금된 캐릭터만 순환 대상
 	for c in GameState.characters:
 		if GameState.is_unlocked(c):
@@ -127,6 +129,17 @@ func _build_char_view() -> void:
 	info_btn.add_theme_color_override("font_color", Color(0.72, 0.78, 0.9))
 	info_btn.pressed.connect(_show_counter_help)
 	char_view.add_child(info_btn)
+
+## ▶ 다음 목표 라벨 — $Center에서 플레이 버튼 바로 앞에 배치('한 판 더'의 동기)
+func _build_goal_label() -> void:
+	var goal := GameState.current_goal()
+	goal_lbl = _label("", 18, Color(1.0, 0.86, 0.4))  # 보상=금색
+	if goal.is_empty():
+		goal_lbl.text = "모든 목표 달성! 최고 기록에 도전하세요"
+	else:
+		goal_lbl.text = "▶ 다음 목표: %s  (+%s 코인)" % [goal.desc, NumFmt.compact(int(goal.coins))]
+	$Center.add_child(goal_lbl)
+	$Center.move_child(goal_lbl, play_button.get_index())
 
 ## 오행 상성 도움말 오버레이(오방색). 상성표 버튼 → 표시, 딤/닫기 → 숨김.
 func _build_counter_help() -> void:
