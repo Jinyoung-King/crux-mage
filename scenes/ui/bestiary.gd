@@ -34,6 +34,7 @@ func _make_entry(ed) -> Control:
 
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(330, 92)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE  # 항목이 터치 드래그를 가로채지 않게 → ScrollContainer가 스크롤(웹·모바일)
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(0.16, 0.15, 0.21, 0.92) if seen else Color(0.12, 0.11, 0.15, 0.92)
 	sb.set_corner_radius_all(8)
@@ -41,6 +42,7 @@ func _make_entry(ed) -> Control:
 	panel.add_theme_stylebox_override("panel", sb)
 
 	var box := HBoxContainer.new()
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_theme_constant_override("separation", 12)
 	panel.add_child(box)
 
@@ -51,6 +53,7 @@ func _make_entry(ed) -> Control:
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if not seen:
 		icon.modulate = Color(0, 0, 0, 0.85)  # 미발견 실루엣
 	box.add_child(icon)
@@ -58,6 +61,7 @@ func _make_entry(ed) -> Control:
 	var info := VBoxContainer.new()
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	info.alignment = BoxContainer.ALIGNMENT_CENTER
+	info.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(info)
 	info.add_child(_label(ed.display_name if seen else "???", 19, Color(1, 1, 1) if seen else Color(0.55, 0.55, 0.55)))
 	if seen and ed.element != "":
@@ -71,6 +75,7 @@ func _label(text: String, size: int, color: Color) -> Label:
 	l.add_theme_font_override("font", FONT)
 	l.add_theme_font_size_override("font_size", size)
 	l.add_theme_color_override("font_color", color)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE  # 라벨이 드래그를 막지 않게(스크롤)
 	return l
 
 func _on_back() -> void:

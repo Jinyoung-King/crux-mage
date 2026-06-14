@@ -15,6 +15,67 @@ const TIER_COLORS := [
 	Color(0.98, 0.8, 0.32),
 ]
 
+# 장비 도트 픽셀 도안 — '#'=기본색, 'o'=밝은색(보석/광택), '.'=빈칸. 모든 행은 같은 길이.
+const PIXELS := {
+	"staff": [
+		"...ooo...",
+		"..ooooo..",
+		"...ooo...",
+		"....#....",
+		"....#....",
+		"....#....",
+		"....#....",
+		"....#....",
+		"....#....",
+		"...###...",
+	],
+	"robe": [
+		"...###...",
+		"...###...",
+		"..#####..",
+		"..#####..",
+		".#######.",
+		".#######.",
+		"#########",
+		"#########",
+		".#######.",
+		"..#####..",
+	],
+	"boots": [
+		".##......",
+		".##......",
+		".##......",
+		".##......",
+		".##......",
+		".##......",
+		".##......",
+		".#####...",
+		".######..",
+		".######..",
+	],
+	"ring": [
+		"...ooo...",
+		"..##.##..",
+		".##...##.",
+		".#.....#.",
+		".#.....#.",
+		".##...##.",
+		"..##.##..",
+		"...###...",
+	],
+	"amulet": [
+		"....#....",
+		"....#....",
+		"...ooo...",
+		"..#####..",
+		".#######.",
+		"#########",
+		".#######.",
+		"..#####..",
+		"...###...",
+	],
+}
+
 var equip_id: String = ""
 var shape_kind: String = ""
 var base_color: Color = Color.WHITE
@@ -65,28 +126,20 @@ func _draw() -> void:
 
 ## 장비 종류별 대표 도형 (placeholder 수준 — 알아볼 정도)
 func _draw_equip(sz: Vector2) -> void:
-	var c: Color = base_color
-	var cx: float = sz.x * 0.5
-	var cy: float = sz.y * 0.48
-	match shape_kind:
-		"staff":  # 지팡이: 대각 막대 + 끝 보석
-			draw_line(Vector2(sz.x * 0.34, sz.y * 0.7), Vector2(sz.x * 0.62, sz.y * 0.3), c.darkened(0.15), 5.0)
-			draw_circle(Vector2(sz.x * 0.64, sz.y * 0.28), 8.0, c.lightened(0.25))
-		"robe":  # 로브: 사다리꼴 + 옷깃
-			draw_colored_polygon(PackedVector2Array([
-				Vector2(sz.x * 0.42, sz.y * 0.28), Vector2(sz.x * 0.58, sz.y * 0.28),
-				Vector2(sz.x * 0.7, sz.y * 0.72), Vector2(sz.x * 0.3, sz.y * 0.72)]), c)
-			draw_line(Vector2(cx, sz.y * 0.28), Vector2(cx, sz.y * 0.58), c.darkened(0.25), 2.0)
-		"boots":  # 부츠: L자
-			draw_colored_polygon(PackedVector2Array([
-				Vector2(sz.x * 0.4, sz.y * 0.26), Vector2(sz.x * 0.52, sz.y * 0.26),
-				Vector2(sz.x * 0.52, sz.y * 0.58), Vector2(sz.x * 0.7, sz.y * 0.58),
-				Vector2(sz.x * 0.7, sz.y * 0.72), Vector2(sz.x * 0.4, sz.y * 0.72)]), c)
-		"ring":  # 반지: 고리(arc) + 보석
-			draw_arc(Vector2(cx, cy + sz.y * 0.06), sz.x * 0.16, 0, TAU, 28, c, 5.0)
-			draw_circle(Vector2(cx, cy - sz.y * 0.12), 7.0, c.lightened(0.3))
-		"amulet":  # 부적: 끈 + 마름모
-			draw_line(Vector2(cx, sz.y * 0.2), Vector2(cx, sz.y * 0.36), c.darkened(0.2), 3.0)
-			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx, sz.y * 0.34), Vector2(sz.x * 0.66, cy + sz.y * 0.06),
-				Vector2(cx, sz.y * 0.74), Vector2(sz.x * 0.34, cy + sz.y * 0.06)]), c)
+	var rows: Array = PIXELS.get(shape_kind, [])
+	if rows.is_empty():
+		return
+	var h: int = rows.size()
+	var w: int = (rows[0] as String).length()
+	var cell: float = minf(sz.x, sz.y) * 0.62 / float(maxi(w, h))  # 슬롯의 ~62%를 차지
+	var ox: float = (sz.x - w * cell) * 0.5
+	var oy: float = (sz.y - h * cell) * 0.5 - sz.y * 0.05  # 살짝 위로(하단 레벨 텍스트 공간)
+	var light: Color = base_color.lightened(0.35)
+	for r in h:
+		var line: String = rows[r]
+		for col in line.length():
+			var ch: String = line[col]
+			if ch == ".":
+				continue
+			var cc: Color = light if ch == "o" else base_color
+			draw_rect(Rect2(ox + col * cell, oy + r * cell, cell + 0.6, cell + 0.6), cc)  # +0.6: 셀 사이 틈 방지
