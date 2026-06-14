@@ -13,6 +13,7 @@ const FALLING_SKILL := preload("res://scenes/fx/falling_skill.gd")
 const DEATH_BURST_SCENE := preload("res://scenes/fx/death_burst.tscn")
 const SCORCH := preload("res://scenes/fx/scorch_mark.gd")  # 메테오 착탄 그을음
 const THORN_ERUPT := preload("res://scenes/fx/thorn_erupt.gd")  # 가시밭 가시 솟구침
+const BARRAGE_MAX_BOMBS := 10  # 융단폭격 폭탄 수 상한 — 다발 누적으로 폭탄·파편이 폭증해 후반 렉 방지
 const REACTION_HP_PCT := 0.06  ## 격발 반응(증발·빙결파쇄)이 주는 추가 % 최대체력 피해 — 복리 체력 관통
 
 var player
@@ -50,9 +51,14 @@ func execute(s: Dictionary) -> void:
 				_drop_aoe(center, er, ep, element, col, true)  # 하늘에서 낙하 후 폭발
 				focus = center
 		"barrage":
-			for pt in _random_enemy_points(count, pool):
-				_drop_aoe(pt, er, ep, element, col, false)
+			var bombs := mini(count, BARRAGE_MAX_BOMBS)  # 폭탄 수 상한(후반 렉 방지)
+			var pts := _random_enemy_points(bombs, pool)
+			var burst_amt := maxi(10, 56 / maxi(pts.size(), 1))  # 파편 예산을 폭탄 수로 분배(총량 일정)
+			for pt in pts:
+				_drop_aoe(pt, er, ep, element, col, false, burst_amt, false)  # 폭탄마다 가벼운 FX·흔들림 X
 				focus = pt
+			if not pts.is_empty():
+				host._add_shake(4.0)  # 캐스트당 1회(폭탄마다 X → 흔들림 과다·부하 방지)
 		"chain":
 			_skill_chain(count, ep, element, pool)
 		"freeze":
@@ -157,11 +163,15 @@ func _skill_aoe(center: Vector2, radius: float, dmg: float, burn: bool, element:
 				e.apply_burn(RelicLib.RELIC_BURN_DPS, RelicLib.RELIC_BURN_DUR)
 
 func _skill_burst(pos: Vector2, color: Color) -> void:
+	_skill_burst_n(pos, color, 64)  # 기본(단발 광역) — 화려
+
+## 파편 수를 지정하는 버스트(융단폭격처럼 다발일 때 폭탄당 적게 → 총량 제어)
+func _skill_burst_n(pos: Vector2, color: Color, amount: int) -> void:
 	var b = DEATH_BURST_SCENE.instantiate()
 	b.position = pos
 	b.color = color
-	b.amount = 64        # 파편 ↑ (더 화려)
-	b.lifetime = 0.9     # 파편이 더 오래 흩날림 (길게)
+	b.amount = amount
+	b.lifetime = 0.9     # 파편이 오래 흩날림
 	fx_root.add_child(b)
 
 ## 속성별 파티클 버스트(얼음 파편·잔불·먼지) — death_burst(CPUParticles) 재사용, 런타임 튜닝.
@@ -194,7 +204,8 @@ func _thorn_erupt(pos: Vector2, radius: float) -> void:
 	t.setup(radius)
 
 ## 하늘에서 떨어지는 광역 스킬(메테오·융단): 화면 위에서 낙하 비주얼 → 도달 지점에 폭발+피해.
-func _drop_aoe(center: Vector2, radius: float, ep: float, element: String, col: Color, burn: bool) -> void:
+## burst_amt=폭발 파편 수(다발일 때 작게), do_shake=폭탄별 화면 흔들림(다발은 호출측이 1회만).
+func _drop_aoe(center: Vector2, radius: float, ep: float, element: String, col: Color, burn: bool, burst_amt: int = 64, do_shake: bool = true) -> void:
 	var m = FALLING_SKILL.new()
 	m.position = center + Vector2(randf_range(-30.0, 30.0), -720.0)  # 화면 위에서 시작
 	m.setup(col, clampf(radius * 0.35, 16.0, 50.0), element)  # 속성별 낙하 비주얼(불=운석/흙=바위)
@@ -205,15 +216,17 @@ func _drop_aoe(center: Vector2, radius: float, ep: float, element: String, col: 
 		if not host.game_over:
 			_skill_aoe(center, radius, ep, burn, element)  # 도달 시 폭발 피해(스킬 속성 상성)
 			host._skill_ring(center, radius, col, element)
-			_skill_burst(center, col)
+			_skill_burst_n(center, col, burst_amt)
+			var sub := maxi(5, burst_amt / 3)  # 부속 입자(잔불·먼지)도 예산에 비례
 			if element == "fire":  # 유성: 그을음 크레이터 + 잔불
 				_scorch(center, radius)
-				_particle_fx(center, Color(1.0, 0.6, 0.2), 20, 0.8, 60.0, 200.0, 160.0, 2.0, 4.0)
+				_particle_fx(center, Color(1.0, 0.6, 0.2), sub, 0.8, 60.0, 200.0, 160.0, 2.0, 4.0)
 			elif element == "earth":  # 융단폭격: 먼지 기둥(위로 떠오름)
-				_particle_fx(center, Color(0.72, 0.6, 0.42), 18, 0.95, 25.0, 110.0, -50.0, 4.0, 8.0)
+				_particle_fx(center, Color(0.72, 0.6, 0.42), sub, 0.95, 25.0, 110.0, -50.0, 4.0, 8.0)
 			if player.build.ground_field:
 				_ground_field(center, radius, ep, element)
-			host._add_shake(4.0)
+			if do_shake:
+				host._add_shake(4.0)
 		m.queue_free())
 
 ## 잔류 장판: 명중 지점에 지속 피해 필드(초당 ep의 절반)
