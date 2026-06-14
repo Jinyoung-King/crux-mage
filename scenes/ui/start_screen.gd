@@ -55,6 +55,7 @@ func _ready() -> void:
 	$NavBar/Row/PatchButton.pressed.connect(_on_patch)
 	$NavBar/Row/RelicButton.pressed.connect(_on_relics)
 	$NavBar/Row/BestiaryButton.pressed.connect(_on_bestiary)
+	$NavBar/Row/TraitButton.pressed.connect(_on_traits)
 	# 시작 웨이브 다이얼: 1 ~ 최고 기록(1단위). 기록이 2 미만이면 숨김.
 	if GameState.best_wave < 2:
 		start_wave_box.hide()
@@ -233,3 +234,6 @@ func _on_relics() -> void:
 
 func _on_bestiary() -> void:
 	get_tree().change_scene_to_file("res://scenes/ui/bestiary.tscn")
+
+func _on_traits() -> void:
+	get_tree().change_scene_to_file("res://scenes/ui/traits.tscn")

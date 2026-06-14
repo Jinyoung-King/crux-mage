@@ -3,10 +3,11 @@ extends Node
 ## 씬을 새로 로드해도 유지되며, 최고 기록은 user://에 영속 저장된다.
 
 const SAVE_PATH := "user://save.cfg"
-const VERSION := "v1.29"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
+const VERSION := "v1.30"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
 
 # 패치노트 (최신이 위). 새 버전 추가 시 맨 앞에 한 항목 추가. 시작 화면 "패치노트" + 업데이트 시 자동 안내.
 const CHANGELOG := [
+	{"v": "v1.30", "notes": ["특성 시스템 추가 — 전 캐릭터 공용 영구 성장. '특성 포인트'는 캐릭터 숙련 레벨업마다 1점씩 쌓이며(모든 캐릭터 누적 숙련 합), 시작 화면 '특성'에서 6종을 올린다: 위력(공격력%)·활력(체력%)·재화(코인%)·신속(시작 연사)·절약(룬 뽑기 비용↓)·흡정(흡혈). 모든 캐릭터에 적용"]},
 	{"v": "v1.29", "notes": ["후반 고웨이브 렉 해결 — 무한 단계가 적 '수'에 곱해져 70웨이브쯤이면 한 웨이브에 100마리 이상이 쌓여 끊겼습니다. ① 동시 생존 적 50마리 상한(가득이면 잠시 스폰 보류, 적이 줄면 재개) ② 적 수 증가 상한(웨이브 70 기준 약 145→75마리) ③ 대량 처치 시 데미지 숫자 일부 생략. 난이도는 체력·피해 스케일로 유지(수만 제한)"]},
 	{"v": "v1.28", "notes": ["배경음악(BGM) 추가 — 메뉴(차분)·전투(경쾌)·보스(긴장) 3트랙을 절차 생성(칩튠)해 상황에 맞게 루프 재생. 보스 웨이브에서 음악이 바뀜. 기존 음량 슬라이더·음소거 설정과 연동(효과음 아래 음량)"]},
 	{"v": "v1.27", "notes": ["런 결과 요약 화면 추가 — 사망·스테이지 클리어 시 한 판을 리캡: 도달 웨이브·처치 수·획득 카드(장수/종류)·코인·숙련(레벨업)·스킬 빌드·보유 룬·최고 기록 갱신 표시. 다시하기/캐릭터 선택 버튼 통합"]},
@@ -173,6 +174,7 @@ var show_damage_numbers := true  ## 데미지 숫자 표시 토글 — 영속
 var coins := 0  ## 영구 재화 (런 종료 시 누적, 캐릭터 공용 지갑)
 var upgrades := {}  ## 영구 강화 레벨 — 캐릭터별 {char_key: {id: level}}
 var char_xp := {}  ## 캐릭터별 누적 경험치 {char_key: xp} → 숙련도 레벨(자동 패시브)
+var trait_levels := {}  ## 특성 레벨 {id: level} — 전 캐릭터 공용 영구 성장. 특성 포인트=누적 숙련 레벨−사용분
 var char_best := {}  ## 캐릭터별 최고 도달 웨이브 {char_key: wave} (기록 표시용)
 var kills := {}  ## 적 종류별 누적 처치 수 {kind_key: count} — 도감·처치 업적용
 var total_runs := 0  ## 누적 플레이 횟수(통계)
@@ -313,6 +315,7 @@ func add_xp(c: CharacterData, amount: int) -> void:
 func add_coins(n: int) -> void:
 	if n <= 0:
 		return
+	n = int(round(n * coin_mult()))  # 재화 특성 보너스
 	coins += n
 	lifetime_coins += n
 	_save()
@@ -360,13 +363,70 @@ func kill_bonus_damage() -> float:
 func kill_bonus_hp() -> float:
 	return kill_tier() * KILL_BONUS_HP
 
+## --- 특성(전 캐릭터 공용 영구 성장) ---
+## 특성 포인트 = 모든 캐릭터의 누적 숙련 레벨 합 − 사용분. 레벨당 1포인트.
+const TRAITS := [
+	{"id": "might",    "name": "위력", "desc": "전체 공격력", "per": 0.03, "max": 10, "suffix": "%", "pct": true},
+	{"id": "vitality", "name": "활력", "desc": "전체 최대 체력", "per": 0.03, "max": 10, "suffix": "%", "pct": true},
+	{"id": "fortune",  "name": "재화", "desc": "코인 획득", "per": 0.05, "max": 10, "suffix": "%", "pct": true},
+	{"id": "haste",    "name": "신속", "desc": "시작 연사", "per": 0.08, "max": 10, "suffix": "/s", "pct": false},
+	{"id": "thrift",   "name": "절약", "desc": "룬 뽑기 비용 감소", "per": 0.03, "max": 10, "suffix": "%", "pct": true},
+	{"id": "leech",    "name": "흡정", "desc": "흡혈", "per": 0.01, "max": 10, "suffix": "%", "pct": true},
+]
+
+func trait_def(id: String) -> Dictionary:
+	for t in TRAITS:
+		if t.id == id:
+			return t
+	return {}
+
+## 총 획득 특성 포인트 = 모든 캐릭터 숙련 레벨 합
+func trait_points_earned() -> int:
+	var t := 0
+	for c in characters:
+		t += char_level(c)
+	return t
+
+func trait_points_spent() -> int:
+	var t := 0
+	for v in trait_levels.values():
+		t += int(v)
+	return t
+
+func trait_points_available() -> int:
+	return trait_points_earned() - trait_points_spent()
+
+func trait_level(id: String) -> int:
+	return int(trait_levels.get(id, 0))
+
+## 특성 1레벨 올리기(포인트 1 소모). 성공 시 true.
+func buy_trait(id: String) -> bool:
+	var d := trait_def(id)
+	if d.is_empty() or trait_level(id) >= int(d.max) or trait_points_available() <= 0:
+		return false
+	trait_levels[id] = trait_level(id) + 1
+	_save()
+	return true
+
+## 현재 누적 효과값(레벨 × 레벨당)
+func trait_value(id: String) -> float:
+	return trait_level(id) * trait_def(id).get("per", 0.0)
+
+# 적용 헬퍼 (player·코인·룬에서 사용)
+func trait_damage_mult() -> float: return 1.0 + trait_value("might")
+func trait_hp_mult() -> float: return 1.0 + trait_value("vitality")
+func coin_mult() -> float: return 1.0 + trait_value("fortune")
+func trait_fire_rate_add() -> float: return trait_value("haste")
+func roll_discount_mult() -> float: return maxf(0.3, 1.0 - trait_value("thrift"))
+func trait_lifesteal_add() -> float: return trait_value("leech")
+
 ## --- 유물 (코인 랜덤 뽑기 → 모은 유물 전부 적용, 중복은 레벨↑로 강화) ---
 ## 지금까지 뽑은 총 횟수(= 모든 유물 레벨 합)만큼 비싸짐: ROLL_BASE × ROLL_GROWTH^총뽑기수
 func current_roll_cost() -> int:
 	var rolls := 0
 	for v in relic_levels.values():
 		rolls += int(v)
-	return int(round(ROLL_BASE * pow(ROLL_GROWTH, rolls)))
+	return int(round(ROLL_BASE * pow(ROLL_GROWTH, rolls) * roll_discount_mult()))  # 절약 특성 할인
 
 func can_roll_relic() -> bool:
 	return coins >= current_roll_cost()
@@ -400,6 +460,7 @@ func _load() -> void:
 		coins = cf.get_value("meta", "coins", 0)
 		upgrades = cf.get_value("meta", "upgrades", {})
 		char_xp = cf.get_value("meta", "char_xp", {})
+		trait_levels = cf.get_value("meta", "trait_levels", {})
 		seen_version = cf.get_value("meta", "seen_version", "")
 		relic_levels = cf.get_value("meta", "relic_levels", {})
 		if relic_levels.is_empty():  # 구형 세이브(해금 유물) → 레벨 1로 마이그레이션
@@ -422,6 +483,7 @@ func _save() -> void:
 	cf.set_value("meta", "coins", coins)
 	cf.set_value("meta", "upgrades", upgrades)
 	cf.set_value("meta", "char_xp", char_xp)
+	cf.set_value("meta", "trait_levels", trait_levels)
 	cf.set_value("meta", "seen_version", seen_version)
 	cf.set_value("meta", "relic_levels", relic_levels)
 	cf.set_value("record", "char_best", char_best)

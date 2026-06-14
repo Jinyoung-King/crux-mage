@@ -122,6 +122,14 @@ theme_override_fonts/font = ExtResource("2")
 theme_override_font_sizes/font_size = 22
 text = "강화"
 
+[node name="TraitButton" type="Button" parent="NavBar/Row"]
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_fonts/font = ExtResource("2")
+theme_override_font_sizes/font_size = 22
+text = "특성"
+
 [node name="RelicButton" type="Button" parent="NavBar/Row"]
 custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
