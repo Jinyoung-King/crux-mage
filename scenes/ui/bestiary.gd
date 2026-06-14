@@ -2,6 +2,7 @@ extends Control
 ## 몹 도감: 적 종류별 처치 수를 보여주고, 누적 처치 업적(영구 공격력·체력 보너스)을 표시한다.
 
 const FONT := preload("res://assets/fonts/NotoSansKR.ttf")
+const NAV_BAR := preload("res://scenes/ui/nav_bar.gd")  # 하단 탭 네비게이션(유지)
 
 @onready var grid: GridContainer = $Center/Scroll/Grid
 @onready var summary: Label = $Center/Summary
@@ -14,17 +15,27 @@ func _ready() -> void:
 	for ed in GameState.enemies:
 		grid.add_child(_make_entry(ed))
 	# 스킬 도감 섹션 (2열 그리드 → 헤더 + 빈 셀로 새 줄 시작)
-	grid.add_child(_section_header("★ 스킬 도감"))
+	grid.add_child(_section_header("★ 스킬 도감 (진화 트리)"))
 	grid.add_child(Control.new())
 	for id in SkillLib.DEFS:
 		grid.add_child(_make_skill_entry(id, SkillLib.DEFS[id]))
+	var nav := NAV_BAR.new()  # 하단 탭 네비게이션 유지
+	add_child(nav)
+	nav.setup("bestiary")
 
-## 상단 요약: 총 처치 + 현재 업적 보너스 + 다음 마일스톤까지
+## 상단 요약: 총 처치 + 현재 업적 보너스 + 도감 달성도(발견 종 수)
 func _refresh_summary() -> void:
 	var total := GameState.total_kills()
 	var dmg := int(GameState.kill_bonus_damage())
 	var hp := int(GameState.kill_bonus_hp())
-	summary.text = "총 처치 %d   ·   업적 보너스 공격력 +%d · 체력 +%d\n몹 종류마다 개별 집계 — 종류별로 많이 잡을수록 단계가 오릅니다" % [total, dmg, hp]
+	var types_total := GameState.enemies.size()
+	var found := 0
+	for ed in GameState.enemies:
+		var key: String = ed.resource_path.get_file().get_basename()
+		if int(GameState.kills.get(key, 0)) > 0:
+			found += 1
+	var pct := int(round(100.0 * float(found) / float(maxi(types_total, 1))))
+	summary.text = "총 처치 %d   ·   업적 보너스 공격력 +%d · 체력 +%d\n📖 도감 달성도 %d/%d종 발견 (%d%%)" % [total, dmg, hp, found, types_total, pct]
 
 ## 적 1종 도감 카드 (처치 0이면 미발견 실루엣 + ???)
 func _make_entry(ed) -> Control:
@@ -84,7 +95,7 @@ func _section_header(text: String) -> Label:
 func _make_skill_entry(id: String, def: Dictionary) -> Control:
 	var elem: String = def.get("element", "")
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(330, 92)
+	panel.custom_minimum_size = Vector2(330, 116)  # 진화 분기 한 줄 추가분
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(0.16, 0.15, 0.21, 0.92)
@@ -120,6 +131,16 @@ func _make_skill_entry(id: String, def: Dictionary) -> Control:
 		elif float(def.get("radius", 0.0)) > 0.0:
 			detail += " · 광역"
 	info.add_child(_label(detail, 15, Color(0.86, 0.8, 0.6)))
+	# 진화 트리: 3장 모으면 고르는 분기 이름(강화/속성/행동)
+	var branches: Array = SkillLib.EVOLVE_BRANCHES.get(id, [])
+	if not branches.is_empty():
+		var names := []
+		for b in branches:
+			names.append(str(b.get("name", "")))
+		var evo := _label("진화 ▸ " + " · ".join(names), 13, Color(0.72, 0.8, 0.96))
+		evo.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		evo.custom_minimum_size = Vector2(250, 0)
+		info.add_child(evo)
 	return panel
 
 func _label(text: String, size: int, color: Color) -> Label:

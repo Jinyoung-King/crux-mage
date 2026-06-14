@@ -2,6 +2,7 @@ extends Control
 ## 특성 화면: 전 캐릭터 공용 영구 성장. 특성 포인트(=누적 숙련 레벨−사용분)로 능력치를 올린다.
 
 const FONT := preload("res://assets/fonts/NotoSansKR.ttf")
+const NAV_BAR := preload("res://scenes/ui/nav_bar.gd")  # 하단 탭 네비게이션(유지)
 
 @onready var balance: Label = $Center/Balance
 @onready var rows: VBoxContainer = $Center/Rows
@@ -14,27 +15,45 @@ func _ready() -> void:
 	Music.play_menu()
 	$Center/Title.text = "특성"
 	back_button.pressed.connect(_on_back)
+	var grid := GridContainer.new()  # 특성 카드 2열 그리드
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 14)
+	grid.add_theme_constant_override("v_separation", 14)
+	grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	rows.add_child(grid)
 	for t in GameState.TRAITS:
-		_make_row(t)
+		grid.add_child(_make_card(t))
 	_refresh()
+	var nav := NAV_BAR.new()  # 하단 탭 네비게이션 유지
+	add_child(nav)
+	nav.setup("trait")
 
-func _make_row(t: Dictionary) -> void:
-	var row := HBoxContainer.new()
-	row.custom_minimum_size = Vector2(600, 56)
-	row.add_theme_constant_override("separation", 12)
-	var info := _label("", 20, Color(0.92, 0.94, 1.0))
-	info.custom_minimum_size = Vector2(430, 0)
-	info.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	row.add_child(info)
+## 특성 1개 카드 — 이름·레벨·효과 + 구매 버튼(세로). 그리드 셀로 배치.
+func _make_card(t: Dictionary) -> Control:
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(330, 0)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.16, 0.15, 0.21, 0.95)
+	sb.set_corner_radius_all(10)
+	sb.set_content_margin_all(12)
+	panel.add_theme_stylebox_override("panel", sb)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 6)
+	panel.add_child(v)
+	var info := _label("", 18, Color(0.92, 0.94, 1.0))
+	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	info.custom_minimum_size = Vector2(300, 0)
+	v.add_child(info)
 	row_labels[t.id] = info
 	var btn := Button.new()
-	btn.custom_minimum_size = Vector2(150, 50)
+	btn.custom_minimum_size = Vector2(0, 46)
+	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	btn.add_theme_font_override("font", FONT)
-	btn.add_theme_font_size_override("font_size", 20)
+	btn.add_theme_font_size_override("font_size", 19)
 	btn.pressed.connect(_on_buy.bind(t.id))
-	row.add_child(btn)
+	v.add_child(btn)
 	row_buttons[t.id] = btn
-	rows.add_child(row)
+	return panel
 
 func _label(text: String, size: int, color: Color) -> Label:
 	var l := Label.new()
@@ -59,7 +78,7 @@ func _refresh() -> void:
 			disp = "+%d%%" % int(round(val * 100.0))
 		else:
 			disp = "+%.2f%s" % [val, t.get("suffix", "")]
-		row_labels[t.id].text = "%s  Lv %d/%d   ·   %s %s" % [t.name, lv, int(t.max), t.desc, disp]
+		row_labels[t.id].text = "%s  (Lv %d/%d)\n%s\n현재 %s" % [t.name, lv, int(t.max), t.desc, disp]
 		var btn: Button = row_buttons[t.id]
 		if lv >= int(t.max):
 			btn.text = "MAX"
