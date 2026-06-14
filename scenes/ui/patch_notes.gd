@@ -7,6 +7,7 @@ const FONT := preload("res://assets/fonts/NotoSansKR.ttf")
 @onready var back_button: Button = $Center/BackButton
 
 func _ready() -> void:
+	Music.play_menu()
 	back_button.pressed.connect(_on_back)
 	for entry in GameState.CHANGELOG:
 		list.add_child(_header(entry.v))

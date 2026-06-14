@@ -14,6 +14,7 @@ var row_labels := {}  # id → Label
 var row_icons := {}   # id → RuneIcon
 
 func _ready() -> void:
+	Music.play_menu()
 	$Center/Title.text = "룬 뽑기"
 	back_button.pressed.connect(_on_back)
 	roll_button.pressed.connect(_on_roll)

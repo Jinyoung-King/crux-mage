@@ -148,6 +148,7 @@ var shake := 0.0  # 화면 흔들림 세기(px), 매 프레임 감쇠
 @onready var damage_button: Button = $HUD/PauseScreen/Center/DamageButton
 
 func _ready() -> void:
+	Music.play_battle()
 	var ch: CharacterData = GameState.selected
 	$Player.apply_character(ch)
 	for id in GameState.relic_levels:  # 모은 유물 전부 적용(런 시작, 레벨=강화)
@@ -359,6 +360,10 @@ func _roll_elite() -> Dictionary:
 func _start_wave(index: int) -> void:
 	wave_index = index
 	$Player.skills_paused = false  # 웨이브 진행 중에는 스킬 쿨타임 재개
+	if _wave_kind(index) == "boss":  # 보스 웨이브엔 긴장 음악, 그 외엔 전투 음악(같은 트랙이면 끊김 없음)
+		Music.play_boss()
+	else:
+		Music.play_battle()
 	spawn_list = _build_spawn_list(index)
 	endless_hp_scale = pow(1.0 + ENDLESS_HP_GROWTH, _endless_level(index))  # 복리: 후반 빌드 성장을 따라잡도록
 	endless_dmg_scale = minf(pow(1.0 + ENDLESS_DMG_GROWTH, _endless_level(index)), ENDLESS_DMG_CAP)  # 적 피해 상승(상한 적용)

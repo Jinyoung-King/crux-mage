@@ -32,6 +32,7 @@ var next_btn: Button
 @onready var mastery_bar: ProgressBar = $Center/MasteryBox/MasteryBar
 
 func _ready() -> void:
+	Music.play_menu()
 	# 업데이트 후 첫 진입이면 패치노트를 먼저 보여줌(버전당 1회)
 	if GameState.seen_version != GameState.VERSION:
 		get_tree().change_scene_to_file("res://scenes/ui/patch_notes.tscn")

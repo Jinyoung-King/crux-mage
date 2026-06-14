@@ -7,6 +7,7 @@ const FONT := preload("res://assets/fonts/NotoSansKR.ttf")
 @onready var summary: Label = $Center/Summary
 
 func _ready() -> void:
+	Music.play_menu()
 	$Center/Title.text = "몹 도감"
 	$Center/BackButton.pressed.connect(_on_back)
 	_refresh_summary()

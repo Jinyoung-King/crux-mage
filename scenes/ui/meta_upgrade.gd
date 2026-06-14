@@ -33,6 +33,7 @@ var buy_button: Button
 var coin_label: Label
 
 func _ready() -> void:
+	Music.play_menu()
 	for c in GameState.characters:
 		if GameState.is_unlocked(c):
 			unlocked_chars.append(c)
