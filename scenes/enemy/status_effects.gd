@@ -28,15 +28,21 @@ func apply_move(delta: float, base_speed: float) -> float:
 	slow_time_left -= delta
 	return base_speed * slow_factor
 
-## 화상 부여: 더 센 화상으로 갱신하고 지속시간 리프레시(기존 동작 보존)
+## 화상 부여: 더 센 화상으로 갱신하고 지속시간 리프레시. 이미 둔화 중이면 '과부하' 반응 방출(중첩 형성 순간 1회).
 func apply_burn(dps: float, dur: float) -> void:
+	var forms_combo := not is_burning() and is_slowed()  # 화상 신규 + 둔화 보유 → 중첩 형성
 	burn_dps = maxf(burn_dps, dps)
 	burn_time_left = maxf(burn_time_left, dur)
+	if forms_combo:
+		reaction.emit("overload", "fire")
 
-## 둔화 부여: 속도 배수 갱신, 지속시간 리프레시(기존 동작 보존)
+## 둔화 부여: 속도 배수 갱신, 지속시간 리프레시. 이미 화상 중이면 '과부하' 반응 방출(중첩 형성 순간 1회).
 func apply_slow(factor: float, dur: float) -> void:
+	var forms_combo := not is_slowed() and is_burning()  # 둔화 신규 + 화상 보유 → 중첩 형성
 	slow_factor = factor
 	slow_time_left = maxf(slow_time_left, dur)
+	if forms_combo:
+		reaction.emit("overload", "water")
 
 func is_burning() -> bool:
 	return burn_time_left > 0.0

@@ -80,10 +80,50 @@ func _skill_hit(e, dmg: float, element: String) -> void:
 	if is_instance_valid(e) and e.hp > 0.0:
 		for m in p.hit_modifiers:
 			m.on_hit(_hit_ctx)   # 파쇄·기폭·화상·둔화·점화·즉사·넉백 (순서 보존)
+	_apply_element_reactions(e, element)  # 증발·빙결파쇄 (속성×상태 베이스라인 반응)
 	if is_instance_valid(e) and e.hp <= 0.0:
 		for m in p.hit_modifiers:
 			m.on_kill(_hit_ctx)  # 처치 폭발
 	host._damage_number(_hit_ctx.pos, d, _hit_ctx.is_crit, false, _hit_ctx.mult > 1.0)
+
+# --- 원소 반응(Element Reaction) — Phase 2 ---
+## 속성×상태 베이스라인 반응(카드와 별개로 상성을 살림). 카드(기폭/파쇄)가 이미 상태를 소모했으면
+## 현재 상태(is_burning/is_slowed)를 보고 자연히 건너뛰어 중복 폭발을 막는다.
+func _apply_element_reactions(e, element: String) -> void:
+	if not is_instance_valid(e) or e.hp <= 0.0:
+		return
+	if element == "water" and e.is_burning():  # 증발: 물로 화상 적 타격 → 화상 소모 + 광역
+		e.consume_burn()
+		_reaction_popup(e.global_position, "증발!", Color(0.5, 0.85, 1.0))
+		_explode(e.global_position, _hit_ctx.dealt, element)
+		GameFeel.hit_stop(0.07, 0.9)
+	elif (element == "metal" or element == "earth") and e.is_slowed():  # 빙결파쇄: 금/토로 둔화 적 → 추가타
+		e.take_damage(_hit_ctx.dealt * 0.6)
+		_reaction_popup(e.global_position, "빙결파쇄!", ElementLib.color(element))
+		GameFeel.hit_stop(0.06, 0.8)
+
+## 과부하(Overload): 화상+둔화 중첩이 형성될 때 StatusEffects.reaction(Observer) → 이 핸들러.
+## 상태 부여 도중(재진입) 방출되므로 효과는 call_deferred로 다음 프레임에 안전 처리.
+func on_reaction(name: String, _source_element: String, enemy) -> void:
+	if name == "overload":
+		_overload.call_deferred(enemy)
+
+func _overload(enemy) -> void:
+	if not is_instance_valid(enemy):
+		return
+	var pos: Vector2 = enemy.global_position
+	_reaction_popup(pos, "과부하!", Color(1.0, 0.72, 0.2))
+	_explode(pos, player.build.damage * 2.0, enemy.element)  # 빌드 공격력 기반 광역
+	if is_instance_valid(enemy) and enemy.hp > 0.0 and not enemy.is_huge:
+		enemy.position.y -= 60.0  # 넉백(거대 면역)
+	GameFeel.hit_stop(0.09, 1.0)
+
+## 반응 이름 팝업 (스킬 이름 팝업 FX 재사용)
+func _reaction_popup(pos: Vector2, text: String, color: Color) -> void:
+	var l = SKILL_NAME.new()
+	l.position = pos + Vector2(-44, -34)
+	fx_root.add_child(l)
+	l.setup(text, color)
 
 ## 처치 폭발: 중심 주변 적에게 직접 피해(+연출). _skill_hit를 안 거쳐 재귀 폭발 방지.
 func _explode(center: Vector2, dmg: float, element: String) -> void:

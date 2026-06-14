@@ -478,6 +478,7 @@ func _create_enemy(data: EnemyData, pos: Vector2, elite: Dictionary = {}) -> voi
 	enemy.goal_y = $Player.position.y - 30.0 - data.size / 2.0  # 플레이어 반높이 + 적 반높이
 	enemy.died.connect(_on_enemy_died)
 	enemy.reached_player.connect(_on_enemy_reached_player)
+	enemy.status.reaction.connect(skill_executor.on_reaction.bind(enemy))  # 원소 반응(과부하 등) 구독(Observer)
 	enemy.summon.connect(_on_summon)
 	enemy.ranged_attack.connect(_on_enemy_ranged_attack)
 	enemy.charge_hit.connect(_on_enemy_charge_hit)
@@ -554,6 +555,7 @@ func _on_enemy_died(pos: Vector2, color: Color, size: float, tex: Texture2D, coi
 	remains.setup(tex, size)
 	if size >= 42.0:
 		_add_shake(size / 8.0)  # 큰 적이 죽을수록 화면이 더 울리도록 (보스 9)
+		GameFeel.hit_stop(0.07, clampf(size / 90.0, 0.4, 1.0))  # 큰 적·보스 처치 역경직(클수록 강하게)
 	var gain := coins  # 처치 코인 (엘리트 보너스 포함, 도달한 적은 _unregister만)
 	if $Player.relic_levels.has("greed"):
 		gain = int(round(gain * RelicLib.greed_mult($Player.relic_levels["greed"])))  # 황금의 룬(레벨별)
