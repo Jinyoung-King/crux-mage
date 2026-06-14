@@ -200,6 +200,8 @@ func _ready() -> void:
 	_update_damage_label()
 	_build_cards_ui()  # '내 카드' 버튼 + 획득 카드 리스트 패널
 	_build_base_hp_bar()  # 성벽 내구도 바(스킬 아이콘 하단)
+	$HUD/HpIcon.hide()  # 좌상단 방패 아이콘 제거 — HP는 하단 바, 좌상단은 '남은 적 수'로 대체
+	hp_label.offset_left = 20.0  # 방패 자리까지 좌측 정렬(빈 칸 제거)
 	_build_result_ui()  # 사망·클리어 결과 요약 패널
 	_on_player_hp_changed($Player.hp, $Player.max_hp)  # HP 초기 표시
 	_update_best_label()
@@ -285,6 +287,7 @@ func _process(delta: float) -> void:
 		var elem: String = SkillLib.DEFS.get(s.id, {}).get("element", "")
 		var ratio: float = 1.0 if s.id == "barrier_droid" else pl.cd_ratio(s)  # 비행체는 지속형 → 항상 활성 표시
 		_skill_icons[i].update_cd(s.name, ElementLib.color(elem), ratio, delta)
+	_update_remaining_label()  # 좌상단: 이번 웨이브 남은 적 수
 
 ## 보유 스킬 수가 바뀌면 스킬 아이콘을 다시 만든다(이름·색·쿨은 매 프레임 update_cd로 갱신 → 진화 반영)
 func _rebuild_skill_icons(skills: Array) -> void:
@@ -683,10 +686,13 @@ func _has_slow_source() -> bool:
 ## 현재 빌드에서 의미 있는 카드인지 — 죽은 픽(조건 미충족 시너지 등)을 드래프트에서 제외
 func _is_card_useful(card: CardData) -> bool:
 	if card.grant_skill_id != "":
+		var owned: bool = _has_skill(card.grant_skill_id)
+		var evolvable: bool = owned and $Player.can_evolve(card.grant_skill_id)
 		if $Player.skills.size() >= $Player.MAX_SKILL_SLOTS:
-			return false  # 슬롯이 가득 차면 스킬 카드 전부 제외
-		if _has_skill(card.grant_skill_id) and not $Player.can_evolve(card.grant_skill_id):
-			return false  # 이미 보유 + 최고 단계(더 진화 불가) → 중복(낭비) 제외. 진화 가능하면 노출 유지
+			if not evolvable:
+				return false  # 슬롯 가득 — 보유 중 '풀업 아닌'(업그레이드 가능한) 스킬만 노출
+		elif owned and not evolvable:
+			return false  # 슬롯 여유라도 이미 최고 단계인 보유 스킬은 중복(낭비) 제외
 	if (card.skill_radius_bonus > 0.0 or card.grant_ground_field) and not _has_radius_skill():
 		return false  # 범위 스킬(메테오/융단폭격)이 없으면 범위 강화·장판 무의미
 	if card.extra_targets_bonus > 0 and not _has_count_skill():
@@ -911,7 +917,7 @@ func _apply_evo_branch(card: CardData) -> void:
 	cont.call()
 
 func _on_player_hp_changed(hp: float, max_hp: float) -> void:
-	hp_label.text = "%s / %s" % [NumFmt.compact(int(hp)), NumFmt.compact(int(max_hp))]  # 앞의 방패 아이콘(HpIcon)이 '기지 내구도'를 표시
+	# 좌상단 HP 표시는 제거(하단 성벽 바와 중복) — 좌상단은 '남은 적 수'로 대체(_update_remaining_label)
 	if base_hp_bar == null:
 		return  # 바 생성 전 이른 호출 방어(초기 표시는 _ready 끝에서 다시 들어옴)
 	# 성벽 내구도 바(스킬 아이콘 하단) — 바 안에 숫자, 저체력 시 빨강
@@ -920,6 +926,10 @@ func _on_player_hp_changed(hp: float, max_hp: float) -> void:
 	base_hp_label.text = "%s / %s" % [NumFmt.compact(int(hp)), NumFmt.compact(int(max_hp))]
 	var ratio: float = hp / max_hp if max_hp > 0.0 else 0.0
 	_base_hp_fill.bg_color = Color(0.85, 0.3, 0.3) if ratio < 0.3 else Color(0.35, 0.75, 0.45)
+
+## 좌상단: 이번 웨이브 남은 적 수 = 미스폰분 + 생존분(분열·소환 포함). 0이면 곧 클리어.
+func _update_remaining_label() -> void:
+	hp_label.text = "남은 적 %d" % maxi((spawn_list.size() - spawned) + alive, 0)
 
 ## 스테이지 모드 클리어 — 마지막(보스) 웨이브 격파. 승리 화면(코인·숙련 정산).
 func _stage_cleared() -> void:
