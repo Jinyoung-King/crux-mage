@@ -183,19 +183,34 @@ func _cast_skill(s: Dictionary) -> void:
 			if hp > 0.0:
 				skill_cast.emit(echo_data))
 
-## 실효 쿨타임: 스킬 기본쿨 × (캐릭터 기본연사 / 현재 연사). 연사가 오를수록 짧아지되,
-## 기본쿨의 60% 밑으론 안 내려간다(최소 2초) — 강력·광역 스킬이 연사로 난사되는 것 방지.
-func eff_cooldown(s: Dictionary) -> float:
-	var floor_cd: float = maxf(2.0, s.cooldown * 0.6)
-	if character == null or character.base_fire_rate <= 0.0 or build.fire_rate <= 0.0:
-		return maxf(s.cooldown, floor_cd)
-	return maxf(s.cooldown * character.base_fire_rate / build.fire_rate, floor_cd)
+## 쿨 하한을 넘긴 '초과 연사'를 위력으로 환산하는 비율 / 그 보너스 상한(+75%) — 평타 없는 구조에서 연사가 죽지 않게.
+const OVERFLOW_TO_DMG := 0.5
+const OVERFLOW_DMG_CAP := 0.75
 
-## 실효 위력 = 스킬 기본위력 × (현재 공격력/기본 공격력) × 강화배율 — 공격력 카드·강화·숙련이 모든 스킬을 키움
+## 하한 적용 전 '원시' 쿨타임 (연사에 반비례)
+func _raw_cooldown(s: Dictionary) -> float:
+	if character == null or character.base_fire_rate <= 0.0 or build.fire_rate <= 0.0:
+		return s.cooldown
+	return s.cooldown * character.base_fire_rate / build.fire_rate
+
+## 실효 쿨타임: 원시 쿨(연사↑이면 ↓), 단 기본쿨의 60%(최소 2초) 밑으론 안 내려감 — 강력·광역 스킬 난사 방지.
+func eff_cooldown(s: Dictionary) -> float:
+	return maxf(_raw_cooldown(s), maxf(2.0, s.cooldown * 0.6))
+
+## 쿨 하한을 넘어선 초과 연사를 위력 배율로 환산(>=1.0). 하한 도달 후에도 연사 카드·특성·룬이 위력으로 계속 기여.
+func fire_overflow_mult(s: Dictionary) -> float:
+	var floor_cd: float = maxf(2.0, s.cooldown * 0.6)
+	var raw: float = _raw_cooldown(s)
+	if raw >= floor_cd:
+		return 1.0  # 아직 하한 미달 — 연사가 쿨 단축에 쓰이는 중
+	return 1.0 + minf((floor_cd / raw - 1.0) * OVERFLOW_TO_DMG, OVERFLOW_DMG_CAP)
+
+## 실효 위력 = 기본위력 × (현재공격력/기본공격력) × 강화% × 초과연사보너스 — 공격력·강화·숙련·초과연사가 모든 스킬을 키움
 func eff_power(s: Dictionary) -> float:
-	if character == null or character.base_damage <= 0.0:
-		return s.power * build.skill_power_mult
-	return s.power * (build.damage / character.base_damage) * build.skill_power_mult
+	var p: float = s.power * build.skill_power_mult
+	if character != null and character.base_damage > 0.0:
+		p = s.power * (build.damage / character.base_damage) * build.skill_power_mult
+	return p * fire_overflow_mult(s)
 
 func eff_radius(s: Dictionary) -> float:
 	return s.radius * build.skill_radius_mult

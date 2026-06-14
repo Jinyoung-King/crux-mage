@@ -1268,8 +1268,10 @@ func _skill_stat_row(s: Dictionary) -> Label:
 		_:         shape = ("%d발" % cnt) if cnt > 0 else (("반경 %d" % rad) if rad > 0 else "광역")
 	var tier := int(s.get("tier", 1))
 	var name_txt: String = s.name + ("  [%d티어]" % tier if tier > 1 else "")
+	var fov: float = pl.fire_overflow_mult(s)
+	var fr_note: String = ("  · 연사+%d%%" % int(round((fov - 1.0) * 100.0))) if fov > 1.005 else ""
 	var l := Label.new()
-	l.text = "%s\n   피해 %d · 쿨 %.1f초 · 사거리 %d · %s" % [name_txt, dmg, cd, rng, shape]
+	l.text = "%s\n   피해 %d · 쿨 %.1f초 · 사거리 %d · %s%s" % [name_txt, dmg, cd, rng, shape, fr_note]
 	l.add_theme_font_override("font", FONT)
 	l.add_theme_font_size_override("font_size", 17)
 	l.add_theme_color_override("font_color", Color(0.9, 0.92, 0.98))
