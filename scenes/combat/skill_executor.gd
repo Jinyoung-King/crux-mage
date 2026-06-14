@@ -41,7 +41,7 @@ func execute(s: Dictionary) -> void:
 			pool.sort_custom(func(a, b): return pp.distance_squared_to(a.global_position) < pp.distance_squared_to(b.global_position))
 			for e in pool.slice(0, count):
 				if is_instance_valid(e):
-					player.fire_skill_bolt(e, ep)  # 보이는 마력탄이 날아가 명중(상성·데미지숫자 자체 처리)
+					player.fire_skill_bolt(e, ep, element)  # 보이는 마력탄이 날아가 명중(스킬 속성으로 상성·틴트)
 		"meteor":
 			var center := _densest_cluster(er, pool)
 			if center != Vector2.INF:
@@ -64,7 +64,7 @@ func execute(s: Dictionary) -> void:
 		"thorns":  # 가시밭: 가장 밀집한 곳에 초기 광역 피해 + 지속 가시 장판(속성색=초록)
 			var tc := _densest_cluster(er, pool)
 			if tc != Vector2.INF:
-				_skill_aoe(tc, er, ep, false)
+				_skill_aoe(tc, er, ep, false, element)
 				_ground_field(tc, er, ep, element)
 				host._skill_ring(tc, er, col)
 				_skill_burst(tc, col)
@@ -144,11 +144,11 @@ func _explode(center: Vector2, dmg: float, element: String) -> void:
 		if is_instance_valid(e) and center.distance_to(e.global_position) <= 72.0:
 			e.take_damage(dmg * ElementLib.multiplier(element, e.element) * randf_range(0.95, 1.05))
 
-## 반경 내 적에게 스킬 피해(+선택적 화상) — 캐릭터 속성 상성 적용
-func _skill_aoe(center: Vector2, radius: float, dmg: float, burn: bool) -> void:
+## 반경 내 적에게 스킬 피해(+선택적 화상) — 스킬 자체 속성 상성 적용
+func _skill_aoe(center: Vector2, radius: float, dmg: float, burn: bool, element: String) -> void:
 	for e in get_tree().get_nodes_in_group("enemies"):
 		if is_instance_valid(e) and center.distance_to(e.global_position) <= radius:
-			_skill_hit(e, dmg, player.character.element)
+			_skill_hit(e, dmg, element)
 			if burn:
 				e.apply_burn(RelicLib.RELIC_BURN_DPS, RelicLib.RELIC_BURN_DUR)
 
@@ -164,13 +164,13 @@ func _skill_burst(pos: Vector2, color: Color) -> void:
 func _drop_aoe(center: Vector2, radius: float, ep: float, element: String, col: Color, burn: bool) -> void:
 	var m = FALLING_SKILL.new()
 	m.position = center + Vector2(randf_range(-30.0, 30.0), -720.0)  # 화면 위에서 시작
-	m.setup(col, clampf(radius * 0.35, 16.0, 50.0))
+	m.setup(col, clampf(radius * 0.35, 16.0, 50.0), element)  # 속성별 낙하 비주얼(불=운석/흙=바위)
 	fx_root.add_child(m)
 	var t := m.create_tween()
 	t.tween_property(m, "position", center, 0.38).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)  # 가속 낙하
 	t.tween_callback(func() -> void:
 		if not host.game_over:
-			_skill_aoe(center, radius, ep, burn)  # 도달 시 폭발 피해
+			_skill_aoe(center, radius, ep, burn, element)  # 도달 시 폭발 피해(스킬 속성 상성)
 			host._skill_ring(center, radius, col)
 			_skill_burst(center, col)
 			if player.build.ground_field:

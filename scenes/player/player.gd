@@ -204,7 +204,7 @@ func _cast_skill(s: Dictionary) -> void:
 		"power": eff_power(s),
 		"radius": eff_radius(s),
 		"count": s.count,
-		"element": character.element if character else "",
+		"element": SkillLib.DEFS.get(s.id, {}).get("element", character.element if character else ""),  # 스킬 자체 속성(시전자 속성 아님) — 색·상성 통일
 	}
 	skill_cast.emit(data)
 	if build.echo:  # 메아리: 0.25초 뒤 60% 위력으로 한 번 더(재귀 없음 — _cast_skill 안 거침)
@@ -259,14 +259,14 @@ func cd_ratio(s: Dictionary) -> float:
 
 ## 스킬 발사체 1발: 예측 조준으로 target에 마력탄을 쏨(위력=dmg). 평타 패시브/유물 미적용 — 순수 스킬.
 ## fired 신호로 main이 사운드·데미지숫자 연결 + Projectiles에 추가. 상성/사망연출은 발사체가 자체 처리.
-func fire_skill_bolt(target, dmg: float) -> void:
+func fire_skill_bolt(target, dmg: float, elem: String) -> void:
 	var p = PROJECTILE_SCENE.instantiate()
 	var spr: Sprite2D = p.get_node("Sprite2D")
 	spr.texture = SKILL_BOLT_TEX  # 평타와 구분되는 '간지' 마법 별
+	spr.modulate = ElementLib.color(elem)  # 스킬 자체 속성색으로 틴트(오방색)
+	spr.scale *= 1.5  # 평타보다 크게(강조)
+	p.element = elem  # 스킬 속성으로 상성 판정(시전자 속성 아님)
 	if character:
-		spr.modulate = ElementLib.color(character.element)  # 속성색으로 틴트
-		spr.scale *= 1.5  # 평타보다 크게(강조)
-		p.element = character.element  # 오행 상성(발사체가 명중 시 적용)
 		p.crit_chance = character.passive_crit_chance
 		p.crit_mult = character.passive_crit_mult
 	p.position = global_position
