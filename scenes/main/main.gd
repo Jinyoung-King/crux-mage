@@ -31,7 +31,8 @@ const RARITY_COLORS := {
 const RARITY_BADGE := {"legendary": "전설", "epic": "영웅", "rare": "희귀", "uncommon": "고급", "common": "일반"}
 const ENDLESS_HP_GROWTH := 0.15  # 무한 모드 단계당 적 체력 증가율
 const ENDLESS_DMG_GROWTH := 0.10  # 무한 모드 단계당 적 피해 증가율(체력보다 완만, 흡혈 무한지속 방지)
-const ENDLESS_DMG_CAP := 12.0  # 적 피해 배율 상한 — 체력은 무한 증가하되 '한 방 즉사'는 방지(체력안배 가능)
+const ENDLESS_DMG_CAP := 12.0  # 적 피해 배율 '기본' 상한 — 고정 벽이 아니라 아래 GROWTH로 무한단계마다 완화
+const ENDLESS_DMG_CAP_GROWTH := 0.4  # 무한단계당 상한 상승 — 후반 적이 점점 세짐(고정 12 벽 제거, 유저 요청)
 const MAX_ALIVE := 50  # 동시 생존 적 수 상한 — 가득이면 스폰 보류(후반 고웨이브 렉 방지, 난이도는 체력·피해로 유지)
 const COUNT_SCALE_CAP := 30  # 적 '수' 증가에 쓰는 무한 단계 상한(체력·피해 스케일은 무제한 — 수만 제한해 과밀 방지)
 const ELEMENT_ORDER := ["wood", "fire", "earth", "metal", "water"]  # 속성 스테이지 순환 순서(목→화→토→금→수)
@@ -389,8 +390,9 @@ func _start_wave(index: int) -> void:
 		Music.play_battle()
 	spawn_list = _build_spawn_list(index)
 	endless_hp_scale = pow(1.0 + ENDLESS_HP_GROWTH, _endless_level(index))  # 복리: 후반 빌드 성장을 따라잡도록
-	endless_dmg_scale = minf(pow(1.0 + ENDLESS_DMG_GROWTH, _endless_level(index)), ENDLESS_DMG_CAP)  # 적 피해 상승(상한 적용)
-	$HUD/ThreatLabel.text = ("적 피해 ×%.1f%s" % [endless_dmg_scale, " (최대)" if endless_dmg_scale >= ENDLESS_DMG_CAP else ""]) if endless_dmg_scale > 1.05 else ""
+	var dmg_cap: float = ENDLESS_DMG_CAP + ENDLESS_DMG_CAP_GROWTH * _endless_level(index)  # 단계 비례 완화 상한
+	endless_dmg_scale = minf(pow(1.0 + ENDLESS_DMG_GROWTH, _endless_level(index)), dmg_cap)  # 적 피해 상승(상한도 단계마다 상승)
+	$HUD/ThreatLabel.text = ("적 피해 ×%.1f%s" % [endless_dmg_scale, " (최대)" if endless_dmg_scale >= dmg_cap else ""]) if endless_dmg_scale > 1.05 else ""
 	spawned = 0
 	alive = 0
 	var kind := _wave_kind(index)

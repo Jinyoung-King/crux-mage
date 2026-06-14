@@ -11,6 +11,7 @@ const SKILL_NAME := preload("res://scenes/fx/skill_name_popup.gd")
 const GROUND_HAZARD := preload("res://scenes/fx/ground_hazard.gd")
 const FALLING_SKILL := preload("res://scenes/fx/falling_skill.gd")
 const DEATH_BURST_SCENE := preload("res://scenes/fx/death_burst.tscn")
+const REACTION_HP_PCT := 0.06  ## 격발 반응(증발·빙결파쇄)이 주는 추가 % 최대체력 피해 — 복리 체력 관통
 
 var player
 var fx_root: Node2D
@@ -100,13 +101,18 @@ func _skill_hit(e, dmg: float, element: String) -> void:
 func _apply_element_reactions(e, element: String) -> void:
 	if not is_instance_valid(e) or e.hp <= 0.0:
 		return
-	if element == "water" and e.is_burning():  # 증발: 물로 화상 적 타격 → 화상 소모 + 광역
+	if element == "water" and e.is_burning():  # 증발: 물로 화상 적 타격 → 화상 소모 + 광역 + %체력
+		var pos: Vector2 = e.global_position  # take_percent_damage로 free될 수 있어 먼저 캡처
 		e.consume_burn()
-		_reaction_popup(e.global_position, "증발!", Color(0.5, 0.85, 1.0))
-		_explode(e.global_position, _hit_ctx.dealt, element)
-	elif (element == "metal" or element == "earth") and e.is_slowed():  # 빙결파쇄: 금/토로 둔화 적 → 추가타
+		_reaction_popup(pos, "증발!", Color(0.5, 0.85, 1.0))
+		e.take_percent_damage(REACTION_HP_PCT)  # 복리 체력 관통(% 최대체력)
+		_explode(pos, _hit_ctx.dealt, element)
+	elif (element == "metal" or element == "earth") and e.is_slowed():  # 빙결파쇄: 금/토로 둔화 적 → 추가타 + %체력
+		var pos2: Vector2 = e.global_position
 		e.take_damage(_hit_ctx.dealt * 0.6)
-		_reaction_popup(e.global_position, "빙결파쇄!", ElementLib.color(element))
+		if is_instance_valid(e):
+			e.take_percent_damage(REACTION_HP_PCT)
+		_reaction_popup(pos2, "빙결파쇄!", ElementLib.color(element))
 
 ## 과부하(Overload): 화상+둔화 중첩이 형성될 때 StatusEffects.reaction(Observer) → 이 핸들러.
 ## 상태 부여 도중(재진입) 방출되므로 효과는 call_deferred로 다음 프레임에 안전 처리.

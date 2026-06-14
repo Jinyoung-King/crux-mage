@@ -8,6 +8,7 @@ signal ranged_attack(damage: float, from_pos: Vector2, count: int, spread_deg: f
 signal charge_hit(damage: float)  ## 보스 돌진이 플레이어에 닿을 때
 
 const ELEMENT_AURA := preload("res://scenes/fx/element_aura.gd")  ## 속성 표시 오라
+const HUGE_PCT_RESIST := 0.2  ## 거대(보스)는 %체력 피해를 이 비율로만 받음(보스전 트리비얼화 방지)
 
 @export var max_hp: float = 30.0
 @export var speed: float = 60.0  ## 이동 속도(px/s)
@@ -272,6 +273,18 @@ func take_damage(amount: float) -> void:
 	hp -= amount
 	if hp <= 0.0:
 		_die()
+
+## 최대(또는 현재) 체력 비례 절대 피해 — 복리로 두꺼워진 적을 확정적으로 깎는다(anti-tank, 복리 관통).
+## 거대(보스) 타입은 HUGE_PCT_RESIST로 크게 감쇠해 보스전이 무의미해지지 않게 한다.
+## @param pct 0~1 비율 / @param of_max true=최대체력 기준(기본), false=현재체력 기준
+## Performance: take_damage 1회만 호출(추가 노드/탐색 없음) — O(1).
+func take_percent_damage(pct: float, of_max: bool = true) -> void:
+	if hp <= 0.0 or pct <= 0.0:
+		return
+	var amt: float = (max_hp if of_max else hp) * pct
+	if is_huge:
+		amt *= HUGE_PCT_RESIST
+	take_damage(amt)
 
 ## 상태이상 위임 래퍼 — 외부 호출부(main·relic·projectile·freeze)는 그대로 enemy를 통해 접근
 func apply_burn(dps: float, dur: float) -> void:
