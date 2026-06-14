@@ -1491,8 +1491,8 @@ func _on_player_took_damage(amount: float) -> void:
 	_damage_number($Player.global_position + Vector2(0, -40), amount, false, true)
 
 ## 광역 스킬 범위 링 FX
-func _skill_ring(pos: Vector2, radius: float, color: Color) -> void:
+func _skill_ring(pos: Vector2, radius: float, color: Color, element := "") -> void:
 	var r = SKILL_RING.new()
 	r.position = pos
 	$Fx.add_child(r)
-	r.setup(radius, color)
+	r.setup(radius, color, element)

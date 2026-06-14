@@ -58,7 +58,7 @@ func execute(s: Dictionary) -> void:
 				if is_instance_valid(e):
 					e.apply_slow(0.3, 2.5)
 					_skill_hit(e, ep, element)
-			host._skill_ring(Vector2(360, 420), 460.0, Color(0.5, 0.8, 1.0))  # 화면 전체 서리 링
+			host._skill_ring(Vector2(360, 420), 460.0, Color(0.5, 0.8, 1.0), "water")  # 화면 전체 서리 폭발(얼음 결정)
 			_skill_burst(Vector2(360, 420), Color(0.5, 0.8, 1.0))
 			focus = Vector2(360, 360)
 		"thorns":  # 가시밭: 가장 밀집한 곳에 초기 광역 피해 + 지속 가시 장판(속성색=초록)
@@ -66,7 +66,7 @@ func execute(s: Dictionary) -> void:
 			if tc != Vector2.INF:
 				_skill_aoe(tc, er, ep, false, element)
 				_ground_field(tc, er, ep, element)
-				host._skill_ring(tc, er, col)
+				host._skill_ring(tc, er, col, element)
 				_skill_burst(tc, col)
 				focus = tc
 	_skill_name_popup(focus, s.name, col)  # 시전 스킬 이름 표시
@@ -171,7 +171,7 @@ func _drop_aoe(center: Vector2, radius: float, ep: float, element: String, col: 
 	t.tween_callback(func() -> void:
 		if not host.game_over:
 			_skill_aoe(center, radius, ep, burn, element)  # 도달 시 폭발 피해(스킬 속성 상성)
-			host._skill_ring(center, radius, col)
+			host._skill_ring(center, radius, col, element)
 			_skill_burst(center, col)
 			if player.build.ground_field:
 				_ground_field(center, radius, ep, element)
