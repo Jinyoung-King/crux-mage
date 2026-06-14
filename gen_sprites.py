@@ -286,6 +286,23 @@ SPARK_PAL = {  # 뇌전술사 연쇄 번개 탄 (보라/전기)
     "W": (240, 230, 255, 255),
 }
 
+# 마력탄(스킬) 전용 — 평타와 구분되는 '간지나는' 빛나는 마법 별(9x9). 흰-청 기반 → 시전 시 속성색으로 틴트.
+SKILL_BOLT = [
+    "....X....",
+    "....#....",
+    "..X.#.X..",
+    "...###...",
+    "X#######X",
+    "...###...",
+    "..X.#.X..",
+    "....#....",
+    "....X....",
+]
+SKILL_BOLT_PAL = {
+    "#": (235, 245, 255, 255),  # 밝은 본체(흰-청)
+    "X": (175, 215, 255, 210),  # 별빛 끝/스파클(반투명 글로우)
+}
+
 # 화염구 (7x7) — 화염술사
 FIREBALL = [
     "..OOO..",
@@ -390,6 +407,7 @@ write_png("enemy_treasure.png", TREASURE, TREASURE_PAL)
 write_png("dark_bolt.png", DARK_BOLT, DARK_BOLT_PAL)
 write_png("bolt.png", BOLT, BOLT_PAL)
 write_png("bolt_wood.png", BOLT, {"Y": (120, 205, 90, 255), "W": (230, 255, 215, 255)})  # 초록 마력탄(목)
+write_png("bolt_skill.png", SKILL_BOLT, SKILL_BOLT_PAL)  # 마력탄 스킬 전용(별/마법구) — 시전 시 속성색 틴트
 write_png("spark.png", BOLT, SPARK_PAL)
 
 # === 추가 적 (v1.11): 중복 스프라이트 해소 — 잡몹은 신규 그리드, 보스류는 BOSS 그리드+속성색 ===

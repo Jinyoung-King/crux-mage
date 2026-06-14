@@ -8,6 +8,7 @@ extends Node2D
 ##  - 적 지속 피해는 TICK_INTERVAL 주기로만 enemies 그룹을 순회(매 프레임 아님)해 O(N) 탐색 빈도를 낮춘다.
 ##  - 드론 위치는 공전각 _angle 하나로 파생(노드 N개를 따로 두지 않음) — 할당/노드 비용 0.
 
+const DEATH_BURST := preload("res://scenes/fx/death_burst.tscn")  ## 적탄 차단 스파크
 const CLEAR_RADIUS := 28.0   ## 드론이 적탄을 소멸시키는 근접 반경(px)
 const TICK_INTERVAL := 0.4   ## 적 지속 피해 주기(s)
 const TICK_RADIUS := 48.0    ## 드론 주변 피해 반경(px)
@@ -60,8 +61,18 @@ func _clear_enemy_bolts() -> void:
 			continue
 		for i in _count:
 			if (global_position + _drone_offset(i)).distance_to(b.global_position) <= CLEAR_RADIUS:
+				_block_fx(b.global_position)  # 막은 자리에 차단 스파크
 				b.queue_free()
 				break
+
+## 적탄을 막은 위치에 가벼운 방어 스파크(밝은 청 — 차단 느낌)
+func _block_fx(pos: Vector2) -> void:
+	var burst = DEATH_BURST.instantiate()
+	burst.color = Color(0.6, 0.9, 1.0)
+	burst.amount = 10      # 가볍게(자주 발생 → 부하 최소)
+	burst.lifetime = 0.3
+	get_tree().current_scene.add_child(burst)
+	burst.global_position = pos
 
 ## 드론 반경 안의 적에게 주기당 피해(상성 적용). build.damage 비례라 후반에도 유효.
 func _damage_enemies() -> void:

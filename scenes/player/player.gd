@@ -9,6 +9,7 @@ signal took_damage(amount: float)  ## 받는 피해 (빨간 데미지 숫자 표
 
 const PROJECTILE_SCENE := preload("res://scenes/projectile/projectile.tscn")
 const BARRIER_DROID := preload("res://scenes/fx/barrier_droid.gd")  ## 방어형 비행체(지속형 동반자)
+const SKILL_BOLT_TEX := preload("res://assets/sprites/bolt_skill.png")  ## 마력탄 스킬 전용 발사체(평타와 구분)
 const FOCUS_SPREAD := PI / 90.0  ## 표적보다 발사 수가 많을 때 같은 표적에 겹쳐 쏘는 발사의 부채 각(≈2°)
 const BASIC_ATTACK_MULT := 0.04  ## 평타 피해 = effective_damage()의 이 비율(약한 베이스라인 — 스킬 쿨과 별개로 연사 주기마다)
 const MAX_SKILL_SLOTS := 4  ## 스킬 슬롯 제한(캐릭터 고유 1 포함) — 다 쓰기 방지, 슬롯 차면 진화 유도
@@ -260,9 +261,11 @@ func cd_ratio(s: Dictionary) -> float:
 ## fired 신호로 main이 사운드·데미지숫자 연결 + Projectiles에 추가. 상성/사망연출은 발사체가 자체 처리.
 func fire_skill_bolt(target, dmg: float) -> void:
 	var p = PROJECTILE_SCENE.instantiate()
-	if character and character.projectile_sprite:
-		p.get_node("Sprite2D").texture = character.projectile_sprite
+	var spr: Sprite2D = p.get_node("Sprite2D")
+	spr.texture = SKILL_BOLT_TEX  # 평타와 구분되는 '간지' 마법 별
 	if character:
+		spr.modulate = ElementLib.color(character.element)  # 속성색으로 틴트
+		spr.scale *= 1.5  # 평타보다 크게(강조)
 		p.element = character.element  # 오행 상성(발사체가 명중 시 적용)
 		p.crit_chance = character.passive_crit_chance
 		p.crit_mult = character.passive_crit_mult
@@ -292,7 +295,7 @@ func fire_skill_bolt(target, dmg: float) -> void:
 func _on_attack_timer_timeout() -> void:
 	if hp <= 0.0 or skills_paused:
 		return  # 사망·카드선택 중엔 평타 정지
-	var shots := build.projectile_count
+	var shots := 1  # 평타는 항상 1발(projectile_count는 스킬·시너지용 — 서리마도사 3발 평타 방지)
 	var targets := _nearest_enemies(shots)  # 가까운 순 최대 shots명
 	if targets.is_empty():
 		return
