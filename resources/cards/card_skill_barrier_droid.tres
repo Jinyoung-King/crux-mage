@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+card_name = "수호 비행체"
+description = "수호 비행체 — 마법사 주위를 도는 비행체가 적탄을 소멸시키고 근접 적을 지속 타격(획득 시 즉시 공전, 모으면 비행체↑)."
+rarity = "rare"
+grant_skill_id = "barrier_droid"

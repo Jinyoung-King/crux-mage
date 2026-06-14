@@ -261,6 +261,17 @@ func _skill_detail(id: String) -> String:
 	var d: Dictionary = SkillLib.DEFS.get(id, {})
 	if d.is_empty():
 		return ""
+	if id == "barrier_droid":  # 지속형 동반자 — 캐스트 수치 대신 동작 설명
+		var bl: PackedStringArray = []
+		if _skill_owned_evolvable(id):
+			bl.append("진화 진행 %d/%d — 모으면 비행체가 강화됩니다." % [_skill_stacks(id), player.EVOLVE_COST])
+		else:
+			bl.append("수호 비행체를 획득합니다(지속형).")
+		bl.append("마법사 주위를 도는 비행체 %d기." % int(d.get("count", 2)))
+		bl.append("적의 탄환에 닿으면 소멸시킵니다.")
+		bl.append("공전 반경 안의 적에게 지속 피해.")
+		bl.append("모으면 비행체 수·위력이 늘어납니다.")
+		return "\n".join(bl)
 	var lines: PackedStringArray = []
 	if _skill_owned_evolvable(id):
 		lines.append("진화 진행 %d/%d — 모으면 진화 분기를 선택합니다." % [_skill_stacks(id), player.EVOLVE_COST])

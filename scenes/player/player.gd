@@ -8,6 +8,7 @@ signal skill_cast(data: Dictionary)  ## 액티브 스킬 발동 — {id,power,ra
 signal took_damage(amount: float)  ## 받는 피해 (빨간 데미지 숫자 표시용)
 
 const PROJECTILE_SCENE := preload("res://scenes/projectile/projectile.tscn")
+const BARRIER_DROID := preload("res://scenes/fx/barrier_droid.gd")  ## 방어형 비행체(지속형 동반자)
 const FOCUS_SPREAD := PI / 90.0  ## 표적보다 발사 수가 많을 때 같은 표적에 겹쳐 쏘는 발사의 부채 각(≈2°)
 const MAX_SKILL_SLOTS := 4  ## 스킬 슬롯 제한(캐릭터 고유 1 포함) — 다 쓰기 방지, 슬롯 차면 진화 유도
 const EVOLVE_COST := 3  ## 같은 스킬 카드를 이만큼 모으면 1단계 진화(분기 선택)
@@ -21,6 +22,7 @@ var lifesteal := 0.0  ## 입힌 피해의 흡혈 비율 (영구 강화)
 var relic_levels := {}  ## 이번 런 보유 유물 {id: level} (GameState에서 복사 — 보유분 전부 적용, 레벨=강화)
 var skills: Array = []  ## 보유 스킬 목록(각 dict: id/name/cooldown/power/radius/count/cd_left). [0]=캐릭터 고유, 이후=카드 획득
 var skills_paused := false  ## 카드 선택(드래프트/상점) 중 스킬 쿨타임 정지
+var _barrier_droid: Node2D  ## 방어형 비행체 동반자(barrier_droid 스킬 보유 시 생성) — 쿨캐스트 아님
 var hit_modifiers: Array = []  ## 활성 적중 전략(HitModifierLib) — 빌드/유물/캐릭터 변경 시 rebuild_hit_modifiers()로 재구성
 
 ## 빌드·유물·캐릭터가 바뀔 때마다 활성 적중 전략 목록을 다시 구성(매 적중이 아닌 변경 시 1회)
@@ -49,6 +51,8 @@ func _process(delta: float) -> void:
 	# 액티브 스킬: 보유 스킬마다 독립 쿨타임으로 자동 발동 (연사 스탯이 모든 쿨타임 단축)
 	if hp > 0.0 and not skills_paused:
 		for s in skills:
+			if s.id == "barrier_droid":
+				continue  # 지속형 동반자 — 쿨캐스트 아님(_barrier_droid 노드가 매 프레임 자동 동작)
 			s.cd_left -= delta
 			if s.cd_left <= 0.0:
 				if _has_target_in_range(s):
@@ -81,6 +85,7 @@ func apply_character(c: CharacterData) -> void:
 		skills.append(_make_skill(c.skill_id, c.skill_name, c.skill_cooldown, c.skill_power, c.skill_radius, c.skill_count))
 	$Sprite2D.texture = c.mage_sprite
 	rebuild_hit_modifiers()  # 캐릭터(치명타 패시브 등) 반영
+	_sync_barrier_droid()    # 새 캐릭터(비행체 없음) — 기존 동반자 정리
 
 ## 웨이브 시작 시 패시브 회복 (견습 마법사)
 func on_wave_start() -> void:
@@ -130,6 +135,7 @@ func add_skill_stack(id: String) -> bool:
 		if s.id == id:
 			s.power *= 1.08  # 누적 중에도 조금씩 강해짐
 			s["stacks"] = int(s.get("stacks", 0)) + 1
+			_sync_barrier_droid()  # 스택으로 위력 변동 → 비행체 dps 갱신(미보유면 무동작)
 			return s["stacks"] >= EVOLVE_COST and can_evolve(id)
 	return false
 
@@ -154,7 +160,28 @@ func evolve_branch(id: String, branch: Dictionary) -> void:
 						"extra_targets": build.extra_targets += int(branch.get("amount", 1))
 						"explode": build.explode_power += float(branch.get("amount", 0.3))
 			rebuild_hit_modifiers()
+			_sync_barrier_droid()  # 진화로 비행체 파라미터 갱신
 			return
+
+## 보유 스킬에서 id를 찾아 반환(없으면 빈 사전)
+func _find_skill(id: String) -> Dictionary:
+	for s in skills:
+		if s.id == id:
+			return s
+	return {}
+
+## 방어형 비행체 동반자 생성/갱신/제거 — barrier_droid 스킬 보유 상태에 동기화(획득·진화·캐릭터 변경 시).
+func _sync_barrier_droid() -> void:
+	var s := _find_skill("barrier_droid")
+	if s.is_empty():
+		if is_instance_valid(_barrier_droid):
+			_barrier_droid.queue_free()
+		_barrier_droid = null
+		return
+	if not is_instance_valid(_barrier_droid):
+		_barrier_droid = BARRIER_DROID.new()
+		add_child(_barrier_droid)
+	_barrier_droid.configure(self, s)
 
 ## 스킬 사거리 내에 살아있는 적이 하나라도 있는지 (executor._enemies_in_range와 동일 기준)
 func _has_target_in_range(s: Dictionary) -> bool:
@@ -345,6 +372,7 @@ func apply_card(card: CardData) -> void:
 		hp = minf(hp + card.heal, max_hp)
 		hp_changed.emit(hp, max_hp)
 	rebuild_hit_modifiers()  # 빌드 변경 반영
+	_sync_barrier_droid()    # 비행체 스킬 획득/변경 반영(미보유면 무동작)
 
 func _fire_at(target, aim_offset := 0.0) -> void:
 	var p = PROJECTILE_SCENE.instantiate()

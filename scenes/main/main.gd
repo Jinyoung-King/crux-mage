@@ -96,6 +96,7 @@ var card_pool: Array = [
 	preload("res://resources/cards/card_overload.tres"),
 	preload("res://resources/cards/card_echo.tres"),
 	preload("res://resources/cards/card_resonance.tres"),
+	preload("res://resources/cards/card_skill_barrier_droid.tres"),
 	preload("res://resources/cards/card_pierce.tres"),
 	preload("res://resources/cards/card_field.tres"),
 	preload("res://resources/cards/card_reaper.tres"),
@@ -282,7 +283,8 @@ func _process(delta: float) -> void:
 	for i in pl.skills.size():
 		var s: Dictionary = pl.skills[i]
 		var elem: String = SkillLib.DEFS.get(s.id, {}).get("element", "")
-		_skill_icons[i].update_cd(s.name, ElementLib.color(elem), pl.cd_ratio(s), delta)
+		var ratio: float = 1.0 if s.id == "barrier_droid" else pl.cd_ratio(s)  # 비행체는 지속형 → 항상 활성 표시
+		_skill_icons[i].update_cd(s.name, ElementLib.color(elem), ratio, delta)
 
 ## 보유 스킬 수가 바뀌면 스킬 아이콘을 다시 만든다(이름·색·쿨은 매 프레임 update_cd로 갱신 → 진화 반영)
 func _rebuild_skill_icons(skills: Array) -> void:
@@ -1333,6 +1335,8 @@ func _section_sub(text: String, color: Color) -> Label:
 ## 보유 스킬 한 줄: 이름[티어] + 실효 수치(피해·쿨·사거리·대상/범위)
 func _skill_stat_row(s: Dictionary) -> Label:
 	var pl = $Player
+	if s.id == "barrier_droid":  # 지속형 동반자 — 캐스트 수치(피해/쿨/사거리)가 무의미
+		return _build_stat_label("%s\n   비행체 %d기 · 적탄 소멸 · 근접 지속 피해" % [s.name, int(s.get("count", 2))])
 	var dmg := int(round(pl.eff_power(s)))
 	var cd: float = pl.eff_cooldown(s)
 	var rng := int(SkillLib.SKILL_RANGE.get(s.id, 0))
@@ -1351,8 +1355,12 @@ func _skill_stat_row(s: Dictionary) -> Label:
 	var name_txt: String = s.name + ("  [%d티어]" % tier if tier > 1 else "")
 	var fov: float = pl.fire_overflow_mult(s)
 	var fr_note: String = ("  · 연사+%d%%" % int(round((fov - 1.0) * 100.0))) if fov > 1.005 else ""
+	return _build_stat_label("%s\n   피해 %d · 쿨 %.1f초 · 사거리 %d · %s%s" % [name_txt, dmg, cd, rng, shape, fr_note])
+
+## 보유 스킬 행 라벨(공통 스타일)
+func _build_stat_label(text: String) -> Label:
 	var l := Label.new()
-	l.text = "%s\n   피해 %d · 쿨 %.1f초 · 사거리 %d · %s%s" % [name_txt, dmg, cd, rng, shape, fr_note]
+	l.text = text
 	l.add_theme_font_override("font", FONT)
 	l.add_theme_font_size_override("font_size", 17)
 	l.add_theme_color_override("font_color", Color(0.9, 0.92, 0.98))
