@@ -92,7 +92,6 @@ var card_pool: Array = [
 	preload("res://resources/cards/card_overload.tres"),
 	preload("res://resources/cards/card_echo.tres"),
 	preload("res://resources/cards/card_resonance.tres"),
-	preload("res://resources/cards/card_knockback.tres"),
 	preload("res://resources/cards/card_pierce.tres"),
 	preload("res://resources/cards/card_field.tres"),
 	preload("res://resources/cards/card_reaper.tres"),

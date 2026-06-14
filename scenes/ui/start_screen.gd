@@ -20,6 +20,18 @@ var prev_btn: Button
 var next_btn: Button
 var counter_panel: Control   # 오행 상성 도움말 오버레이
 var goal_lbl: Label          # 다음 목표(도전 과제) 안내 — 플레이 버튼 직전
+var tips_panel: Control      # 공략 팁 오버레이
+
+# 공략 팁 (도움말 오버레이) — 친구 피드백: 30웨이브 벽·상성/메커니즘 안내
+const TIPS := [
+	"상성: 목→토→수→화→금. 극하면 ×1.5, 당하면 ×0.7 (오행 상성표 참고).",
+	"스킬 피해는 공격력에 비례합니다 — 공격력·스킬 강화에 투자하세요.",
+	"연사는 쿨타임을 줄이고, 한계 도달 후엔 위력으로 전환돼 끝까지 유효합니다.",
+	"광역 스킬(유성·융단폭격·가시밭)로 무리를 한 번에. 동시 적 50 상한이라 '순삭 화력'이 핵심.",
+	"부여+격발을 묶으세요: 화상+기폭, 둔화+파쇄 = 폭발적 시너지.",
+	"룬·강화·특성으로 매 판 영구히 강해집니다. 막히면 코인·룬에 투자하세요.",
+	"보스·중간보스(HP바)는 화력을 집중. 카드 새로고침으로 빌드에 맞는 카드를 고르세요.",
+]
 
 @onready var bg: Node2D = $BgLayer/Background
 @onready var char_view: VBoxContainer = $Center/CharView
@@ -88,6 +100,7 @@ func _ready() -> void:
 	_build_stage_buttons()
 	_apply_char()  # 텍스처·이름·속성색·배경·오라 적용
 	_build_counter_help()  # 상성 오버레이(최상단으로 마지막에 추가)
+	_build_tips_help()     # 공략 팁 오버레이
 
 ## 캐릭터 뷰(◀ [오라+마법사] ▶ + 이름·속성·설명) 구성
 func _build_char_view() -> void:
@@ -130,6 +143,14 @@ func _build_char_view() -> void:
 	info_btn.add_theme_color_override("font_color", Color(0.72, 0.78, 0.9))
 	info_btn.pressed.connect(_show_counter_help)
 	char_view.add_child(info_btn)
+	var tips_btn := Button.new()
+	tips_btn.text = "공략 팁 ⓘ"
+	tips_btn.flat = true
+	tips_btn.add_theme_font_override("font", FONT)
+	tips_btn.add_theme_font_size_override("font_size", 16)
+	tips_btn.add_theme_color_override("font_color", Color(0.72, 0.78, 0.9))
+	tips_btn.pressed.connect(_show_tips_help)
+	char_view.add_child(tips_btn)
 
 ## 메타 탭 점진 공개 — best_wave가 임계 이상인 탭만 노출. 강화·패치노트는 항상.
 ## 해금 '알림' 토스트는 런 종료 요약에서 처리(실제로 넘긴 런에만) → 여기선 표시 여부만.
@@ -218,6 +239,68 @@ func _hide_counter_help() -> void:
 func _on_counter_dim(event: InputEvent) -> void:
 	if (event is InputEventMouseButton and event.pressed) or (event is InputEventScreenTouch and event.pressed):
 		_hide_counter_help()
+
+## 공략 팁 오버레이. '공략 팁' 버튼 → 표시, 딤/닫기 → 숨김.
+func _build_tips_help() -> void:
+	tips_panel = Control.new()
+	tips_panel.visible = false
+	tips_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(tips_panel)
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.72)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.gui_input.connect(_on_tips_dim)
+	tips_panel.add_child(dim)
+	var panel := PanelContainer.new()
+	panel.anchor_left = 0.5
+	panel.anchor_top = 0.5
+	panel.anchor_right = 0.5
+	panel.anchor_bottom = 0.5
+	panel.offset_left = -310.0
+	panel.offset_right = 310.0
+	panel.offset_top = -360.0
+	panel.offset_bottom = 360.0
+	var st := StyleBoxFlat.new()
+	st.bg_color = Color(0.13, 0.12, 0.18, 0.98)
+	st.set_corner_radius_all(14)
+	st.set_content_margin_all(22)
+	st.set_border_width_all(2)
+	st.border_color = Color(0.42, 0.42, 0.52)
+	panel.add_theme_stylebox_override("panel", st)
+	tips_panel.add_child(panel)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 13)
+	panel.add_child(v)
+	v.add_child(_label("공략 팁", 30, Color(0.95, 0.96, 1.0)))
+	for t in TIPS:
+		v.add_child(_tip_row(t))
+	var spacer := Control.new(); spacer.custom_minimum_size = Vector2(0, 6); v.add_child(spacer)
+	var close := Button.new()
+	close.text = "닫기"
+	close.custom_minimum_size = Vector2(200, 50)
+	close.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	close.add_theme_font_override("font", FONT)
+	close.add_theme_font_size_override("font_size", 22)
+	close.pressed.connect(_hide_tips_help)
+	v.add_child(close)
+
+## 팁 한 줄(왼쪽 정렬·자동 줄바꿈)
+func _tip_row(text: String) -> Label:
+	var l := _label("• " + text, 16, Color(0.85, 0.88, 0.94))
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.custom_minimum_size = Vector2(566, 0)
+	return l
+
+func _show_tips_help() -> void:
+	tips_panel.show()
+
+func _hide_tips_help() -> void:
+	tips_panel.hide()
+
+func _on_tips_dim(event: InputEvent) -> void:
+	if (event is InputEventMouseButton and event.pressed) or (event is InputEventScreenTouch and event.pressed):
+		_hide_tips_help()
 
 ## 오행 속성별 오라 변 수(0=원). fire=3·water=0·wood=5·metal=4·earth=6
 func _sides(elem: String) -> int:
