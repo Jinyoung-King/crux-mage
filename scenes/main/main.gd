@@ -966,6 +966,7 @@ func _open_shop() -> void:
 func _on_reroll_requested() -> void:
 	if _shop_active:
 		_shop_active = false
+		card_select.hide()  # 패널 닫고 진행 — 안 닫으면 다음 웨이브가 dim 패널 뒤에서 돌고, 스테일 패널 탭 시 웨이브 이중 진행(스폰 누락)
 		_start_wave(wave_index + 1)
 
 ## 카드별 새로고침: 그 자리만 새 카드 1장으로 교체(현재 3장과 중복 회피)
