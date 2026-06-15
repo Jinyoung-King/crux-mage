@@ -41,6 +41,9 @@ const MAX_PROJECTILES := 36  # 동시 발사체 상한 — 연사·다발 폭증
 const MAX_FX := 28  # 동시 FX 상한 — 가득이면 명중 스파크 등 비필수 FX 생략(후반 렉↓)
 const RIFT_EMPOWER := 0.3  # 원소 균열 이벤트: 고른 속성 스킬 위력 +30%(중복 누적)
 const ALTAR_HP_COST := 20  # 제물 제단: 최대 체력(기지 내구도) 대가
+const CROSSROADS_HEAL := 0.4  # 갈림길 안전: 최대 체력 비율 회복
+const CHALLENGE_WAVES := 2    # 갈림길 도전: 적 강화 지속 웨이브 수
+const CHALLENGE_MULT := 1.3   # 갈림길 도전: 그 동안 적 체력·피해 배율
 const EVENT_FROM_WAVE := 11  # 중간 이벤트 시작 웨이브(첫 10웨이브는 온보딩으로 이벤트 없음)
 const COUNT_SCALE_CAP := 30  # 적 '수' 증가에 쓰는 무한 단계 상한(체력·피해 스케일은 무제한 — 수만 제한해 과밀 방지)
 const ELEMENT_ORDER := ["wood", "fire", "earth", "metal", "water"]  # 속성 스테이지 순환 순서(목→화→토→금→수)
@@ -138,7 +141,8 @@ var cards_list: VBoxContainer        # 카드 행 컨테이너
 var cards_count_label: Label         # "총 N장 · M종"
 var _shop_active := false  # 상점 드래프트 진행 중
 var _active_event = null    # 표시 중인 중간 이벤트 패널(없으면 null)
-var _event_kind := ""       # 현재 이벤트 종류("rift" 등)
+var _event_kind := ""       # 현재 이벤트 종류("rift"/"altar"/"crossroads")
+var _challenge_left := 0    # 갈림길 '도전' 잔여 강화 웨이브 수(>0이면 적 ×CHALLENGE_MULT)
 var _shop_cards: Array = []
 var _shop_cost: Array = []
 var start_drafts_left := 0  # 웨이브 전 시작 드래프트 남은 횟수 (1 + 추가 시작 카드 레벨)
@@ -417,6 +421,10 @@ func _start_wave(index: int) -> void:
 	endless_hp_scale = pow(1.0 + ENDLESS_HP_GROWTH, _endless_level(index))  # 복리: 후반 빌드 성장을 따라잡도록
 	var dmg_cap: float = ENDLESS_DMG_CAP + ENDLESS_DMG_CAP_GROWTH * _endless_level(index)  # 단계 비례 완화 상한
 	endless_dmg_scale = minf(pow(1.0 + ENDLESS_DMG_GROWTH, _endless_level(index)), dmg_cap)  # 적 피해 상승(상한도 단계마다 상승)
+	if _challenge_left > 0:  # 갈림길 '도전': 다음 N웨이브 적 체력·피해 강화
+		endless_hp_scale *= CHALLENGE_MULT
+		endless_dmg_scale *= CHALLENGE_MULT
+		_challenge_left -= 1
 	$HUD/ThreatLabel.text = ("적 피해 ×%.1f%s" % [endless_dmg_scale, " (최대)" if endless_dmg_scale >= dmg_cap else ""]) if endless_dmg_scale > 1.05 else ""
 	spawned = 0
 	alive = 0
@@ -661,6 +669,8 @@ func _on_wave_cleared() -> void:
 ## 이번 클리어 웨이브 뒤 띄울 중간 이벤트 종류("" = 일반 드래프트). wave EVENT_FROM_WAVE+ 부터(온보딩 보호).
 ## 끝자리4 = 원소 균열. (v1.95 제단=끝자리2, v1.96 갈림길=보스후 추가 예정 — 상점6·보스0·중간보스3/5/7·보너스8과 안 겹침)
 func _event_for_wave(index: int) -> String:
+	if _wave_kind(index) == "boss":
+		return "crossroads"  # 보스 클리어 직후 갈림길(보스는 wave10+라 온보딩 게이트 무관)
 	if index + 1 < EVENT_FROM_WAVE:
 		return ""
 	if (index + 1) % 10 == 4:
@@ -692,6 +702,12 @@ func _open_event(kind: String) -> void:
 			{"label": "거절", "desc": "그냥 지나간다", "color": Color(0.82, 0.84, 0.92)},
 		]
 		panel.open("제물 제단", "기지 내구도를 바쳐 강한 카드를 얻습니다. 거절해도 됩니다.", choices, 1)  # 자동=거절(안전)
+	elif kind == "crossroads":
+		var choices: Array = [
+			{"label": "안전", "desc": "체력 %d%% 회복 + 희귀 보상" % int(CROSSROADS_HEAL * 100.0), "color": Color(0.6, 0.9, 0.7)},
+			{"label": "도전", "desc": "다음 %d웨이브 적 +%d%% · 전설 확정 보상" % [CHALLENGE_WAVES, int((CHALLENGE_MULT - 1.0) * 100.0)], "color": Color(0.95, 0.6, 0.5)},
+		]
+		panel.open("갈림길", "보스를 넘었습니다 — 안전하게 갈지, 위험을 무릅쓸지.", choices, 0)  # 자동=안전
 
 ## 원소 균열 자동선택 인덱스(10초 미선택 시) — 보유 스킬 속성이 가장 많은 원소. 없으면 무작위.
 func _rift_auto_index() -> int:
@@ -732,6 +748,15 @@ func _on_event_choice(index: int) -> void:
 				_open_draft(true)  # 희귀 드래프트 — card_select가 카드·효과를 보여주고 택1, 이후 다음 웨이브
 			else:  # 거절
 				_start_wave(wave_index + 1)
+		"crossroads":
+			if index == 1:  # 도전 — 다음 몇 웨이브 적 강화 + 전설 확정 보상
+				_challenge_left = CHALLENGE_WAVES
+				_open_draft(false, true)  # 전설 확정 드래프트(이후 다음 웨이브)
+			else:  # 안전 — 회복 + 일반 보스 보상(희귀+)
+				var pl = $Player
+				pl.hp = minf(pl.hp + CROSSROADS_HEAL * pl.max_hp, pl.max_hp)
+				pl.hp_changed.emit(pl.hp, pl.max_hp)
+				_open_draft(true)
 		_:
 			_start_wave(wave_index + 1)
 
@@ -826,9 +851,15 @@ func _is_card_useful(card: CardData) -> bool:
 	return true
 
 ## 풀에서 희귀도 가중치로 count장 중복 없이 뽑기. rare_only면 희귀 카드만.
-func _draw_cards(count: int, rare_only: bool = false, exclude: Array = []) -> Array:
+func _draw_cards(count: int, rare_only: bool = false, exclude: Array = [], legendary_only: bool = false) -> Array:
 	var pool := card_pool.filter(_is_card_useful)
-	if rare_only:
+	if legendary_only:
+		var leg := pool.filter(func(c): return c.rarity == "legendary")  # 갈림길 도전: 전설 확정
+		if not leg.is_empty():
+			pool = leg  # 전설이 없으면(필터 고갈) 희귀+로 폴백
+		else:
+			pool = pool.filter(func(c): return c.rarity in ["rare", "epic", "legendary"])
+	elif rare_only:
 		pool = pool.filter(func(c): return c.rarity in ["rare", "epic", "legendary"])  # 보스 보상: 희귀+ 확정
 	if not exclude.is_empty():
 		var trimmed := pool.filter(func(c): return not exclude.has(c))
@@ -883,10 +914,10 @@ func _card_synergy(card: CardData) -> float:
 	return m
 
 ## 카드 드래프트 표시(희귀 확정 여부 rare). 테스트 자동선택(auto_pick) 시 잠깐 뒤 무작위 1장.
-func _open_draft(rare: bool = false) -> void:
+func _open_draft(rare: bool = false, legendary: bool = false) -> void:
 	$Player.skills_paused = true  # 드래프트 중 스킬 쿨타임 정지
-	_draft_rare = rare
-	var cards := _draw_cards(CHOICES_PER_CLEAR, rare)
+	_draft_rare = rare or legendary  # 리롤도 최소 희귀+ 유지
+	var cards := _draw_cards(CHOICES_PER_CLEAR, rare, [], legendary)
 	card_select.open(cards)
 	if auto_pick and not cards.is_empty():
 		get_tree().create_timer(0.25).timeout.connect(card_select.pick_random)
