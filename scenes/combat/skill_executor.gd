@@ -138,15 +138,12 @@ func _apply_element_reactions(e, element: String) -> void:
 	if element == "water" and e.is_burning():  # 증발: 물로 화상 적 타격 → 화상 소모 + 광역 + %체력
 		var pos: Vector2 = e.global_position  # take_percent_damage로 free될 수 있어 먼저 캡처
 		e.consume_burn()
-		_reaction_popup(pos, "증발!", Color(0.5, 0.85, 1.0))
 		e.take_percent_damage(REACTION_HP_PCT)  # 복리 체력 관통(% 최대체력)
 		_explode(pos, _hit_ctx.dealt, element)
 	elif (element == "metal" or element == "earth") and e.is_slowed():  # 빙결파쇄: 금/토로 둔화 적 → 추가타 + %체력
-		var pos2: Vector2 = e.global_position
 		e.take_damage(_hit_ctx.dealt * 0.6)
 		if is_instance_valid(e):
 			e.take_percent_damage(REACTION_HP_PCT)
-		_reaction_popup(pos2, "빙결파쇄!", ElementLib.color(element))
 
 ## 과부하(Overload): 화상+둔화 중첩이 형성될 때 StatusEffects.reaction(Observer) → 이 핸들러.
 ## 상태 부여 도중(재진입) 방출되므로 효과는 call_deferred로 다음 프레임에 안전 처리.
@@ -158,17 +155,9 @@ func _overload(enemy) -> void:
 	if not is_instance_valid(enemy):
 		return
 	var pos: Vector2 = enemy.global_position
-	_reaction_popup(pos, "과부하!", Color(1.0, 0.72, 0.2))
 	_explode(pos, player.build.damage * 2.0, enemy.element)  # 빌드 공격력 기반 광역
 	if is_instance_valid(enemy) and enemy.hp > 0.0 and not enemy.is_huge:
 		enemy.position.y -= 60.0  # 넉백(거대 면역)
-
-## 반응 이름 팝업 (스킬 이름 팝업 FX 재사용)
-func _reaction_popup(pos: Vector2, text: String, color: Color) -> void:
-	var l = SKILL_NAME.new()
-	l.position = pos + Vector2(-44, -34)
-	fx_root.add_child(l)
-	l.setup(text, color)
 
 ## 처치 폭발: 중심 주변 적에게 직접 피해(+연출). _skill_hit를 안 거쳐 재귀 폭발 방지.
 func _explode(center: Vector2, dmg: float, element: String) -> void:
