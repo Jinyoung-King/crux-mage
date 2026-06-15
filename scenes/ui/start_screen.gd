@@ -47,11 +47,8 @@ const TIPS := [
 
 func _ready() -> void:
 	Music.play_menu()
-	# 업데이트 후 첫 진입이면 패치노트를 먼저 보여줌(버전당 1회)
-	if GameState.seen_version != GameState.VERSION:
-		get_tree().change_scene_to_file("res://scenes/ui/patch_notes.tscn")
-		return
 	$VersionLabel.text = GameState.VERSION  # 빌드 버전 표기(단일 출처)
+	# 업데이트 후 첫 진입: 자동 전환 대신 상단에 '새 패치' 배지(탭하면 패치노트) — _build_patch_badge
 	if GameState.best_wave > 0:
 		best_label.text = "최고 Wave %d   ·   코인 %s" % [GameState.best_wave, NumFmt.compact(GameState.coins)]
 	else:
@@ -98,6 +95,31 @@ func _ready() -> void:
 	_apply_char()  # 텍스처·이름·속성색·배경·오라 적용
 	_build_counter_help()  # 상성 오버레이(최상단으로 마지막에 추가)
 	_build_tips_help()     # 공략 팁 오버레이
+	_build_patch_badge()   # 미열람 새 패치가 있으면 상단 배지
+
+## 업데이트 후 첫 진입: 미열람 새 버전이면 제목 아래 '새 패치' 배지(탭 → 패치노트, 열람 시 mark_version_seen으로 사라짐).
+## 자동 전환(이전 방식) 대신 — 강제로 끌고 가지 않고 눈에 띄게만(피드백 반영).
+func _build_patch_badge() -> void:
+	if GameState.seen_version == GameState.VERSION:
+		return  # 이미 본 버전 — 배지 없음
+	var b := Button.new()
+	b.text = "★ 새 패치 %s — 보기" % GameState.VERSION
+	b.add_theme_font_override("font", FONT)
+	b.add_theme_font_size_override("font_size", 18)
+	b.add_theme_color_override("font_color", Color(1.0, 0.92, 0.5))
+	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var st := StyleBoxFlat.new()
+	st.bg_color = Color(0.95, 0.55, 0.2, 0.22)
+	st.set_corner_radius_all(8)
+	st.set_border_width_all(2)
+	st.border_color = Color(1.0, 0.7, 0.3)
+	st.set_content_margin_all(9)
+	b.add_theme_stylebox_override("normal", st)
+	b.add_theme_stylebox_override("hover", st)
+	b.add_theme_stylebox_override("pressed", st)
+	b.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/ui/patch_notes.tscn"))
+	$Center.add_child(b)
+	$Center.move_child(b, 1)  # 제목 바로 아래로
 
 ## 캐릭터 뷰(◀ [오라+마법사] ▶ + 이름·속성·설명) 구성
 func _build_char_view() -> void:
