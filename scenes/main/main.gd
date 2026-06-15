@@ -7,6 +7,7 @@ const DEATH_REMAINS := preload("res://scenes/fx/death_remains.gd")
 const DAMAGE_NUMBER := preload("res://scenes/fx/damage_number.gd")
 const SKILL_RING := preload("res://scenes/fx/skill_ring.gd")  # 광역 스킬 범위 링 (적 사망 연출 등 공용)
 const HIT_SPARK := preload("res://scenes/fx/hit_spark.gd")  # 명중·착탄 별 섬광
+const EVENT_SELECT := preload("res://scenes/ui/event_select.gd")  # 중간 이벤트 선택 패널
 const PROJECTILE_SCENE := preload("res://scenes/projectile/projectile.tscn")  # 발사체 풀 생성용
 const FONT := preload("res://assets/fonts/NotoSansKR.ttf")
 const SKILL_ICON := preload("res://scenes/ui/skill_icon.gd")  # 스킬 쿨타임 아이콘
@@ -38,6 +39,8 @@ const ENDLESS_DMG_CAP_GROWTH := 0.4  # 무한단계당 상한 상승 — 후반 
 const MAX_ALIVE := 24  # 동시 생존 적 수 상한 — 가득이면 스폰 보류(후반 렉↓, 총 적 수·난이도는 유지하고 출현만 분산). 소환·분열도 이 상한 준수(_on_summon)
 const MAX_PROJECTILES := 36  # 동시 발사체 상한 — 연사·다발 폭증 시 초과분 드랍(후반 렉↓)
 const MAX_FX := 28  # 동시 FX 상한 — 가득이면 명중 스파크 등 비필수 FX 생략(후반 렉↓)
+const RIFT_EMPOWER := 0.3  # 원소 균열 이벤트: 고른 속성 스킬 위력 +30%(중복 누적)
+const EVENT_FROM_WAVE := 11  # 중간 이벤트 시작 웨이브(첫 10웨이브는 온보딩으로 이벤트 없음)
 const COUNT_SCALE_CAP := 30  # 적 '수' 증가에 쓰는 무한 단계 상한(체력·피해 스케일은 무제한 — 수만 제한해 과밀 방지)
 const ELEMENT_ORDER := ["wood", "fire", "earth", "metal", "water"]  # 속성 스테이지 순환 순서(목→화→토→금→수)
 const WAVES_PER_STAGE := 10  # (무한모드) 스테이지당 웨이브 수(보스로 끝). 스테이지마다 속성이 바뀜
@@ -133,6 +136,8 @@ var cards_panel: Control             # 획득 카드 패널(스크롤)
 var cards_list: VBoxContainer        # 카드 행 컨테이너
 var cards_count_label: Label         # "총 N장 · M종"
 var _shop_active := false  # 상점 드래프트 진행 중
+var _active_event = null    # 표시 중인 중간 이벤트 패널(없으면 null)
+var _event_kind := ""       # 현재 이벤트 종류("rift" 등)
 var _shop_cards: Array = []
 var _shop_cost: Array = []
 var start_drafts_left := 0  # 웨이브 전 시작 드래프트 남은 횟수 (1 + 추가 시작 카드 레벨)
@@ -640,11 +645,54 @@ func _on_wave_cleared() -> void:
 	if GameState.game_mode == "stage" and wave_index >= STAGE_WAVES - 1:
 		_stage_cleared()
 		return
-	# 끝자리 6 웨이브 클리어 후엔 상점(코인 사용처), 그 외엔 카드 드래프트(보스는 희귀 확정)
+	# 클리어 후: 상점(끝자리6) > 중간 이벤트(특정 끝자리, wave11+) > 일반 드래프트(보스는 희귀 확정)
 	if _is_shop_wave(wave_index):
 		_open_shop()
 	else:
-		_open_draft(_wave_kind(wave_index) == "boss")
+		var ev := _event_for_wave(wave_index)
+		if ev != "":
+			_open_event(ev)
+		else:
+			_open_draft(_wave_kind(wave_index) == "boss")
+
+## 이번 클리어 웨이브 뒤 띄울 중간 이벤트 종류("" = 일반 드래프트). wave EVENT_FROM_WAVE+ 부터(온보딩 보호).
+## 끝자리4 = 원소 균열. (v1.95 제단=끝자리2, v1.96 갈림길=보스후 추가 예정 — 상점6·보스0·중간보스3/5/7·보너스8과 안 겹침)
+func _event_for_wave(index: int) -> String:
+	if index + 1 < EVENT_FROM_WAVE:
+		return ""
+	if (index + 1) % 10 == 4:
+		return "rift"  # 원소 균열
+	return ""
+
+## 중간 이벤트 패널 표시(드래프트 자리 대체). 일시정지 후 선택 → _on_event_choice → 다음 웨이브.
+func _open_event(kind: String) -> void:
+	$Player.skills_paused = true  # 이벤트 중 스킬 쿨 정지(상점·드래프트와 동일)
+	_event_kind = kind
+	var panel = EVENT_SELECT.new()
+	$HUD.add_child(panel)
+	_active_event = panel
+	panel.chosen.connect(_on_event_choice)
+	if kind == "rift":
+		var choices: Array = []
+		for elem in ["wood", "fire", "earth", "metal", "water"]:
+			choices.append({
+				"label": "%s 균열" % ElementLib.display_name(elem),
+				"desc": "%s 속성 스킬 위력 +%d%% (이번 런)" % [ElementLib.display_name(elem), int(RIFT_EMPOWER * 100.0)],
+				"color": ElementLib.color(elem),
+			})
+		panel.open("원소 균열", "한 속성에 공명해 이번 런 동안 그 속성 스킬을 강화합니다.", choices)
+
+## 이벤트 선택 적용 후 다음 웨이브로
+func _on_event_choice(index: int) -> void:
+	if _event_kind == "rift":
+		var elem: String = ["wood", "fire", "earth", "metal", "water"][index]
+		var b = $Player.build
+		b.element_empower[elem] = float(b.element_empower.get(elem, 0.0)) + RIFT_EMPOWER
+	if is_instance_valid(_active_event):
+		_active_event.queue_free()
+	_active_event = null
+	_event_kind = ""
+	_start_wave(wave_index + 1)
 
 ## 보유 스킬 중 범위(meteor/barrage) 스킬이 하나라도 있나
 func _has_radius_skill() -> bool:

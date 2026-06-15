@@ -29,6 +29,8 @@ extends Resource
 @export var slow_level: int = 0   ## 서리 각인 누적 → 둔화 강도·지속 ↑
 @export var echo_level: int = 0   ## 메아리 누적 → 재시전 위력 ↑
 @export var field_level: int = 0  ## 잔류 장판 누적 → 장판 피해 ↑
+# 원소 균열(이벤트) — 이번 런 한정 속성별 스킬 위력 보너스 {원소: 보너스합}. BuildState.new()마다 새 dict(런 시작 시 초기화).
+var element_empower: Dictionary = {}  ## eff_power에서 스킬 속성 일치 시 ×(1+보너스). 균열 중복 시 누적
 
 ## 부여형 누적 스케일 — 레벨 1=기본, 이후 레벨당 증가(과누적 방지로 상한). 소비 지점에서 곱/가산해 사용.
 func burn_mult() -> float: return 1.0 + 0.6 * float(mini(maxi(burn_level - 1, 0), 8))      ## 화상 dps 배율

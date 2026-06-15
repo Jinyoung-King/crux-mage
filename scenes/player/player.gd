@@ -251,6 +251,9 @@ func eff_power(s: Dictionary) -> float:
 	var p: float = s.power * build.skill_power_mult
 	if character != null and character.base_damage > 0.0:
 		p = s.power * (build.damage / character.base_damage) * build.skill_power_mult
+	var elem: String = SkillLib.DEFS.get(s.id, {}).get("element", "")  # 원소 균열: 해당 속성 스킬 위력↑
+	if build.element_empower.has(elem):
+		p *= 1.0 + float(build.element_empower[elem])
 	return p * fire_overflow_mult(s)
 
 ## 범위 상한 — 범위 카드·진화로 광역이 화면 전체를 도배하면 렉↑·밀집타겟팅 무의미·재미↓.
