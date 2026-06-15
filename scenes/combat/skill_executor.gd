@@ -156,8 +156,9 @@ func _overload(enemy) -> void:
 		return
 	var pos: Vector2 = enemy.global_position
 	_explode(pos, player.build.damage * 2.0, enemy.element)  # 빌드 공격력 기반 광역
-	if is_instance_valid(enemy) and enemy.hp > 0.0 and not enemy.is_huge:
-		enemy.position.y -= 60.0  # 넉백(거대 면역)
+	for e in EnemyCache.all():  # 넉백 대신 광역 둔화 — 폭발 범위 적을 잠시 강하게 둔화(밀치지 않아 웨이브 안 늘어남)
+		if is_instance_valid(e) and e.hp > 0.0 and pos.distance_to(e.global_position) <= 72.0:
+			e.apply_slow(0.25, 1.5)
 
 ## 처치 폭발: 중심 주변 적에게 직접 피해(+연출). _skill_hit를 안 거쳐 재귀 폭발 방지.
 func _explode(center: Vector2, dmg: float, element: String) -> void:

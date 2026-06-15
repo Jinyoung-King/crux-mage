@@ -1479,10 +1479,24 @@ func _open_cards() -> void:
 			cards_list.add_child(_skill_stat_row(s))
 		cards_list.add_child(_section_header("획득 카드"))
 	var total := 0
-	for nm in _picked_order:
+	# 등급별 분류: 높은 등급(전설→일반) 순으로 묶고, 같은 등급 안에서는 획득 순. 등급 바뀌면 구분 헤더.
+	var rank := {"legendary": 4, "epic": 3, "rare": 2, "uncommon": 1, "common": 0}
+	var order: Array = _picked_order.duplicate()
+	order.sort_custom(func(a, b):
+		var ra: int = rank.get(_picked_rarity.get(a, "common"), 0)
+		var rb: int = rank.get(_picked_rarity.get(b, "common"), 0)
+		if ra != rb:
+			return ra > rb
+		return _picked_order.find(a) < _picked_order.find(b))
+	var cur_rarity := ""
+	for nm in order:
+		var r: String = _picked_rarity.get(nm, "common")
+		if r != cur_rarity:
+			cur_rarity = r
+			cards_list.add_child(_section_sub(RARITY_BADGE.get(r, "일반"), RARITY_COLORS.get(r, Color.WHITE)))
 		var cnt: int = _picked_count[nm]
 		total += cnt
-		cards_list.add_child(_card_row(nm, cnt, _picked_rarity.get(nm, "common")))
+		cards_list.add_child(_card_row(nm, cnt, r))
 	if _picked_order.is_empty():
 		var empty := Label.new()
 		empty.text = "아직 획득한 카드가 없습니다"
@@ -1543,7 +1557,7 @@ func _skill_stat_row(s: Dictionary) -> Label:
 	var name_txt: String = s.name + ("  [%d티어]" % tier if tier > 1 else "")
 	var fov: float = pl.fire_overflow_mult(s)
 	var fr_note: String = ("  · 연사+%d%%" % int(round((fov - 1.0) * 100.0))) if fov > 1.005 else ""
-	return _build_stat_label("%s\n   피해 %d · 쿨 %.1f초 · 사거리 %d · %s%s" % [name_txt, dmg, cd, rng, shape, fr_note])
+	return _build_stat_label("%s\n   피해 %s · 쿨 %.1f초 · 사거리 %d · %s%s" % [name_txt, NumFmt.compact(dmg), cd, rng, shape, fr_note])
 
 ## 보유 스킬 행 라벨(공통 스타일)
 func _build_stat_label(text: String) -> Label:
