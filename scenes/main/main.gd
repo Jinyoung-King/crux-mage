@@ -413,15 +413,12 @@ func _start_wave(index: int) -> void:
 		wave_label.text = "Wave %d - 보스" % (index + 1)
 		_add_shake(6.0)  # 보스 등장 예고
 		_show_boss_banner(_boss_enemy_name(index))  # 보스 이름 등장 배너
-		print("BOSS WAVE")
 	elif kind == "midboss":
 		wave_label.text = "Wave %d - 중간보스" % (index + 1)
 		_add_shake(4.0)
-		print("MIDBOSS WAVE")
 	elif kind == "bonus":
 		wave_label.text = "Wave %d - 보너스!" % (index + 1)
 		wave_label.modulate = Color(1.0, 0.85, 0.3)  # 금색 강조
-		print("BONUS WAVE")
 	else:
 		var elem := _stage_element(index)
 		wave_label.text = "Wave %d · %s 스테이지" % [index + 1, ElementLib.display_name(elem)]
@@ -429,7 +426,6 @@ func _start_wave(index: int) -> void:
 	spawn_timer.wait_time = _wave_interval(index)
 	spawn_timer.start()
 	$Player.on_wave_start()  # 패시브: 웨이브 시작 회복
-	print("WAVE %d START" % (index + 1))
 	if not _build_summary_shown and not _start_build_summary.is_empty():
 		_build_summary_shown = true
 		_show_start_build_summary()  # 시작 도약 빌드 요약(첫 진입 1회)
@@ -955,7 +951,6 @@ func _update_remaining_label() -> void:
 ## 스테이지 모드 클리어 — 마지막(보스) 웨이브 격파. 승리 화면(코인·숙련 정산).
 func _stage_cleared() -> void:
 	game_over = true
-	print("STAGE CLEAR")
 	pause_button.hide()
 	GameState.add_coins(run_coins)
 	var lvl_before: int = GameState.char_level(GameState.selected)
@@ -969,7 +964,6 @@ func _stage_cleared() -> void:
 
 func _on_player_died() -> void:
 	game_over = true
-	print("GAME OVER")
 	pause_button.hide()  # 사망 후엔 일시정지 불가(결과 요약 UI 사용)
 	var prev_best: int = GameState.best_wave
 	GameState.record_wave(wave_index + 1)  # 최고 기록 갱신·저장 (신규 해금 가능)
@@ -1522,8 +1516,8 @@ func _recycle_projectile(p) -> void:
 func _damage_number(pos: Vector2, amount: float, is_crit := false, player := false, strong := false) -> void:
 	if not GameState.show_damage_numbers:
 		return
-	if $Fx.get_child_count() > 110 and not is_crit and not player:
-		return  # FX 과부하(대량 처치 등) 시 일반 데미지 숫자 생략 — 치명/피격 숫자는 유지(렉 스파이크 완화)
+	if $Fx.get_child_count() > 70 and not is_crit and not player:
+		return  # FX 과부하 시 일반 데미지 숫자 생략(Label 폰트 렌더 비용↓) — 치명/피격 숫자는 유지
 	var dn = DAMAGE_NUMBER.new()
 	dn.position = pos
 	$Fx.add_child(dn)

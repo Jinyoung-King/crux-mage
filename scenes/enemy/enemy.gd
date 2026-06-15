@@ -251,7 +251,6 @@ func _process_charge(delta: float) -> void:
 			position.y = goal_y
 			charge_hit.emit(charge_damage)
 			charge_state = Charge.RETURNING
-			print("%s CHARGE HIT" % display_name)
 	elif charge_state == Charge.RETURNING:
 		position.y -= charge_speed * delta
 		if position.y <= charge_home_y:
@@ -313,7 +312,6 @@ func _enrage() -> void:
 	var tw := create_tween()
 	tw.tween_property($Sprite2D, "scale", Vector2(sprite_scale * 1.25, sprite_scale * 1.25), 0.15).set_trans(Tween.TRANS_BACK)
 	tw.tween_property($Sprite2D, "scale", Vector2(sprite_scale, sprite_scale), 0.2)
-	print("%s ENRAGE" % display_name)
 
 ## 사망 처리 (피격사·화상사 공통)
 func _die() -> void:
@@ -344,8 +342,6 @@ func _emit_barrage(data: EnemyData) -> void:
 	if hp <= 0.0:
 		return
 	ranged_attack.emit(data.attack_damage * dmg_scale, global_position, data.attack_count, data.attack_spread_deg, data.attack_bolt_scale)
-	if data.attack_count > 1:
-		print("%s BARRAGE x%d" % [display_name, data.attack_count])
 
 ## 돌진 타이머: 예고 후 돌진 시작(예고·돌진 진행 중이면 건너뜀)
 func _on_charge_timer() -> void:
@@ -358,7 +354,6 @@ func _start_dive() -> void:
 		return
 	charge_home_y = position.y
 	charge_state = Charge.DIVING
-	print("%s CHARGE" % display_name)
 
 ## 특수공격 예고: telegraph_time 동안 붉게 번쩍·움찔한 뒤 then 실행.
 ## 타이밍은 노드에 묶인 트윈의 finished로 — 적이 예고 중 죽으면 트윈이 자동 종료돼 then이 불리지 않음.
@@ -377,7 +372,6 @@ func _telegraph(then: Callable) -> void:
 		_telegraphing = false
 		if hp > 0.0:
 			then.call())
-	print("%s TELEGRAPH" % display_name)
 
 ## 예고·돌진이 진행 중이면 다른 특수공격을 시작하지 않도록
 func _busy() -> bool:
@@ -414,7 +408,6 @@ func _raise_shield() -> void:
 	# 팝인 (노드에 묶인 트윈이라 보호막이 곧 깨져도 안전)
 	shield_node.scale = Vector2(0.6, 0.6)
 	shield_node.create_tween().tween_property(shield_node, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	print("%s SHIELD UP (hp=%.0f)" % [display_name, shield_hp_max])
 
 ## 보호막이 시간 내 격파됨 — 본체 노출
 func _break_shield() -> void:
@@ -422,7 +415,6 @@ func _break_shield() -> void:
 	if shield_node:
 		shield_node.queue_free()
 		shield_node = null
-	print("%s SHIELD BROKEN" % display_name)
 
 ## 보호막이 시간 내 안 깨짐 — 회복하고 해제 (버스트 실패 시 압박)
 func _resolve_shield_survived() -> void:
@@ -431,7 +423,6 @@ func _resolve_shield_survived() -> void:
 		shield_node.queue_free()
 		shield_node = null
 	hp = minf(hp + shield_heal, max_hp)
-	print("%s SHIELD HELD → HEAL +%.0f" % [display_name, shield_heal])
 
 ## 보호막 잔량에 따라 투명도 갱신 (탄을 맞을수록 옅어짐)
 func _update_shield_visual() -> void:
