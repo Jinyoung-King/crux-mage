@@ -35,6 +35,8 @@ const ENDLESS_DMG_GROWTH := 0.10  # 무한 모드 단계당 적 피해 증가율
 const ENDLESS_DMG_CAP := 12.0  # 적 피해 배율 '기본' 상한 — 고정 벽이 아니라 아래 GROWTH로 무한단계마다 완화
 const ENDLESS_DMG_CAP_GROWTH := 0.4  # 무한단계당 상한 상승 — 후반 적이 점점 세짐(고정 12 벽 제거, 유저 요청)
 const MAX_ALIVE := 50  # 동시 생존 적 수 상한 — 가득이면 스폰 보류(후반 고웨이브 렉 방지, 난이도는 체력·피해로 유지)
+const MAX_PROJECTILES := 90  # 동시 발사체 상한 — 연사·다발 폭증 시 초과분 드랍(후반 렉 방지)
+const MAX_FX := 60  # 동시 FX 상한 — 가득이면 명중 스파크 등 비필수 FX 생략(후반 렉 방지)
 const COUNT_SCALE_CAP := 30  # 적 '수' 증가에 쓰는 무한 단계 상한(체력·피해 스케일은 무제한 — 수만 제한해 과밀 방지)
 const ELEMENT_ORDER := ["wood", "fire", "earth", "metal", "water"]  # 속성 스테이지 순환 순서(목→화→토→금→수)
 const WAVES_PER_STAGE := 10  # (무한모드) 스테이지당 웨이브 수(보스로 끝). 스테이지마다 속성이 바뀜
@@ -1484,6 +1486,9 @@ func _update_damage_label() -> void:
 	damage_button.text = "데미지 숫자: 켜짐" if GameState.show_damage_numbers else "데미지 숫자: 꺼짐"
 
 func _on_player_fired(projectile) -> void:
+	if $Projectiles.get_child_count() >= MAX_PROJECTILES:
+		projectile.queue_free()  # 발사체 과밀 — 초과분 드랍(후반 렉 방지)
+		return
 	$SfxShoot.play()
 	if projectile.chain_count > 0:
 		projectile.chained.connect(skill_executor._on_chain)
@@ -1521,6 +1526,8 @@ func _skill_ring(pos: Vector2, radius: float, color: Color, element := "") -> vo
 
 ## 명중·착탄 별 섬광 FX
 func _hit_spark(pos: Vector2, color: Color, size := 16.0) -> void:
+	if $Fx.get_child_count() >= MAX_FX:
+		return  # FX 과밀 — 비필수 명중 스파크 생략(후반 렉 방지)
 	var s = HIT_SPARK.new()
 	s.position = pos
 	$Fx.add_child(s)

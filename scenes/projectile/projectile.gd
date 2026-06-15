@@ -31,12 +31,14 @@ var pierce := 0  ## 관통: 이 수만큼 적을 추가로 꿰뚫고 비행 (소
 
 const TRAIL_LEN := 8  ## 꼬리 잔광 점 개수
 var _trail: Line2D  ## 비행 잔광(속성색, 머리쪽 진하고 굵게 → 끝 투명·가늘게)
+var no_trail := false  ## true면 트레일 생략 — 평타처럼 다수 발사체의 후반 렉 방지(스킬 마력탄만 트레일)
 
 func _ready() -> void:
 	rotation = direction.angle()
 	area_entered.connect(_on_area_entered)
 	$VisibleOnScreenNotifier2D.screen_exited.connect(queue_free)
-	_make_trail()
+	if not no_trail:
+		_make_trail()
 
 ## 발사체 꼬리 잔광 Line2D 생성(top_level=전역좌표라 발사체 회전과 무관하게 자취가 남음)
 func _make_trail() -> void:
@@ -59,9 +61,10 @@ func _make_trail() -> void:
 
 func _physics_process(delta: float) -> void:
 	position += direction * speed * delta
-	_trail.add_point(global_position)
-	if _trail.get_point_count() > TRAIL_LEN:
-		_trail.remove_point(0)
+	if _trail != null:
+		_trail.add_point(global_position)
+		if _trail.get_point_count() > TRAIL_LEN:
+			_trail.remove_point(0)
 
 func _on_area_entered(area) -> void:
 	if not area.is_in_group("enemies"):

@@ -389,6 +389,7 @@ func apply_card(card: CardData) -> void:
 
 func _fire_at(target, aim_offset := 0.0) -> void:
 	var p = PROJECTILE_SCENE.instantiate()
+	p.no_trail = true  # 평타는 트레일 생략(가장 많이 발사 → 후반 렉 방지). 트레일은 스킬 마력탄만.
 	if character and character.projectile_sprite:
 		p.get_node("Sprite2D").texture = character.projectile_sprite  # 캐릭터 전용 발사체 외형
 	if character:
