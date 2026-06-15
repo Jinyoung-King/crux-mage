@@ -29,6 +29,7 @@ var zig_t := 0.0
 var status := StatusEffects.new()
 var _tint := Color.WHITE  ## 상태 색조 (화상/둔화)
 var _flashing := false    ## 피격 플래시 중에는 색조 덮어쓰기 보류
+var _punch_tween: Tween   ## 피격 찌그러짐(squash) 트윈 — 적당 1개만 재사용(연사·다발 시 중복 생성 방지)
 var sprite_scale := 3.0   ## 스프라이트 표시 배율 (size/텍스처폭, 등장 연출이 참조)
 # HP바 (중간보스·보스 전용)
 const HP_BAR_W := 60.0
@@ -261,6 +262,7 @@ func take_damage(amount: float) -> void:
 	if hp <= 0.0:
 		return  # 같은 프레임에 여러 발 맞았을 때 중복 사망 처리 방지
 	_flash()
+	_punch()  # 타격 찌그러짐(로컬 연출 — 잡몹 평타에도 무게감, 히트스톱 없이 안 끊김)
 	# 보호막 활성 시: 탄을 hp 대신 보호막이 먼저 흡수, 깨지면 초과분만 본체로
 	if shield_active:
 		shield_hp_cur -= amount
@@ -315,6 +317,11 @@ func _enrage() -> void:
 
 ## 사망 처리 (피격사·화상사 공통)
 func _die() -> void:
+	# 처치 히트스톱(타격감): 보스/거대는 강하게+throttle 무시(드라마 정점), 잡몹은 가볍게(연속 처치는 throttle로 묶임)
+	if is_huge:
+		GameFeel.hit_stop(0.12, 0.9, true)
+	else:
+		GameFeel.hit_stop(0.05, 0.6)
 	# 분열: 처치로 죽을 때만 (도달로 빠지면 분열 없음). died보다 먼저 emit해야
 	# 마지막 적이 분열할 때 웨이브 클리어가 새끼 생성 전에 판정되는 것을 막는다.
 	if split_count > 0 and split_enemy != null:
@@ -446,3 +453,16 @@ func _flash() -> void:
 	var tw := create_tween()
 	tw.tween_property($Sprite2D, "modulate", _tint, 0.12)
 	tw.finished.connect(func(): _flashing = false)
+
+## 피격 찌그러짐(squash & stretch): 가로로 눌렸다 기본 배율로 복귀 → 때린 무게감.
+## 거대(보스)는 과한 출렁임 방지로 약하게. 진행 중이면 새로 안 만듦(연사·다발 시 트윈 churn 방지).
+func _punch() -> void:
+	if is_instance_valid(_punch_tween) and _punch_tween.is_running():
+		return
+	var ax := 1.10 if is_huge else 1.24
+	var ay := 0.92 if is_huge else 0.80
+	$Sprite2D.scale = Vector2(sprite_scale * ax, sprite_scale * ay)
+	_punch_tween = create_tween()
+	var tw := _punch_tween.tween_property($Sprite2D, "scale", Vector2(sprite_scale, sprite_scale), 0.12)
+	tw.set_trans(Tween.TRANS_BACK)
+	tw.set_ease(Tween.EASE_OUT)

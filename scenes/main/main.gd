@@ -325,6 +325,12 @@ func _on_skill_hold(active: bool, idx: int) -> void:
 func _add_shake(amount: float) -> void:
 	shake = minf(shake + amount, 14.0)
 
+## 치명타 임팩트(타격감) — 짧은 히트스톱 + 약한 흔들림. GameFeel throttle로 빈도 제한, 처치 멈춤보다 약해도 안전.
+## (상성 강타는 빈번해 멈추면 끊김 → 히트스톱은 치명타에만. 상성 강타는 기존 큰 스파크로 표현)
+func _crit_impact() -> void:
+	GameFeel.hit_stop(0.04, 0.45)
+	_add_shake(3.0)
+
 ## 화면 붉은 플래시 (플레이어 피격 피드백)
 func _flash_screen() -> void:
 	flash_overlay.color.a = 0.35
@@ -1540,6 +1546,8 @@ func _on_projectile_damaged(amount: float, is_crit: bool, pos: Vector2, is_stron
 	_damage_number(pos, amount, is_crit, false, is_strong)
 	var sc: Color = Color(1.0, 0.6, 0.3) if is_crit else Color(1.0, 0.95, 0.7)  # 치명타는 주황 큰 스파크
 	_hit_spark(pos, sc, 22.0 if is_crit else 15.0)
+	if is_crit:
+		_crit_impact()  # 마력탄 치명타 타격감(히트스톱+흔들림)
 
 ## 플레이어가 받는 피해 — 머리 위에 빨간 숫자
 func _on_player_took_damage(amount: float) -> void:
