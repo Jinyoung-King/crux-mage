@@ -273,6 +273,16 @@ func _stat_preview(card) -> String:
 		rows.append(_flat("다발(추가 표적)", b.extra_targets, b.extra_targets + card.extra_targets_bonus, 0))
 	if card.pierce_bonus != 0:
 		rows.append(_flat("관통", b.pierce, b.pierce + card.pierce_bonus, 0))
+	if card.explode_power_bonus != 0.0:
+		rows.append(_pctp("처치 폭발", b.explode_power, b.explode_power + card.explode_power_bonus))
+	if card.detonate_burn_bonus != 0.0:
+		rows.append(_pctp("기폭", b.detonate_burn, b.detonate_burn + card.detonate_burn_bonus))
+	if card.frostbite_bonus != 0.0:
+		rows.append(_pctp("파쇄", b.frostbite, b.frostbite + card.frostbite_bonus))
+	if card.knockback_bonus != 0.0:
+		rows.append(_flat("넉백", b.knockback, b.knockback + card.knockback_bonus, 0))
+	if card.execute_threshold_bonus != 0.0:
+		rows.append(_pctp("처형 임계", b.execute_threshold, b.execute_threshold + card.execute_threshold_bonus))
 	if card.heal != 0.0:
 		rows.append("회복 후 체력 %d/%d" % [mini(int(player.hp + card.heal), int(player.max_hp)), int(player.max_hp)])
 	return "\n".join(rows)
@@ -287,6 +297,10 @@ func _numf(v: float, dec: int) -> String:
 
 func _pct(name: String, cur: float, after: float) -> String:
 	return "%s +%d%% → +%d%%" % [name, int(round(cur * 100.0)), int(round(after * 100.0))]
+
+## 행동 비율(처치폭발·기폭·파쇄·처형 — 0에서 시작, '명중 피해의 N%' 류)은 + 없이 N% → M%로
+func _pctp(name: String, cur: float, after: float) -> String:
+	return "%s %d%% → %d%%" % [name, int(round(cur * 100.0)), int(round(after * 100.0))]
 
 ## 스킬 카드 제목 — 보유 중이면 현재 진화명(예: '연발 마력탄'), 아니면 기본명.
 ## (같은 계열 카드를 또 먹으면 그 스킬을 강화·진화시키므로, 기본명 대신 현재 이름을 보여 혼란 방지)
