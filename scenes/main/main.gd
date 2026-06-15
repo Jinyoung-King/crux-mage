@@ -35,7 +35,7 @@ const ENDLESS_HP_GROWTH := 0.15  # 무한 모드 단계당 적 체력 증가율
 const ENDLESS_DMG_GROWTH := 0.10  # 무한 모드 단계당 적 피해 증가율(체력보다 완만, 흡혈 무한지속 방지)
 const ENDLESS_DMG_CAP := 12.0  # 적 피해 배율 '기본' 상한 — 고정 벽이 아니라 아래 GROWTH로 무한단계마다 완화
 const ENDLESS_DMG_CAP_GROWTH := 0.4  # 무한단계당 상한 상승 — 후반 적이 점점 세짐(고정 12 벽 제거, 유저 요청)
-const MAX_ALIVE := 28  # 동시 생존 적 수 상한 — 가득이면 스폰 보류(후반 렉↓, 총 적 수·난이도는 유지하고 출현만 분산)
+const MAX_ALIVE := 24  # 동시 생존 적 수 상한 — 가득이면 스폰 보류(후반 렉↓, 총 적 수·난이도는 유지하고 출현만 분산). 소환·분열도 이 상한 준수(_on_summon)
 const MAX_PROJECTILES := 36  # 동시 발사체 상한 — 연사·다발 폭증 시 초과분 드랍(후반 렉↓)
 const MAX_FX := 28  # 동시 FX 상한 — 가득이면 명중 스파크 등 비필수 FX 생략(후반 렉↓)
 const COUNT_SCALE_CAP := 30  # 적 '수' 증가에 쓰는 무한 단계 상한(체력·피해 스케일은 무제한 — 수만 제한해 과밀 방지)
@@ -523,6 +523,8 @@ func _on_summon(data: EnemyData, count: int, pos: Vector2) -> void:
 	if game_over:
 		return
 	for i in count:
+		if alive >= MAX_ALIVE:
+			break  # 동시 적 상한 — 과밀 시 추가 소환/분열 보류(적34>상한 같은 초과 방지, 후반 렉↓)
 		var offset := Vector2(randf_range(-60, 60), randf_range(-10, 30))
 		var p := pos + offset
 		p.x = clampf(p.x, SPAWN_X_MIN, SPAWN_X_MAX)
