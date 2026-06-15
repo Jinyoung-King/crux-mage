@@ -170,6 +170,8 @@ var shake := 0.0  # 화면 흔들림 세기(px), 매 프레임 감쇠
 
 func _ready() -> void:
 	Music.play_battle()
+	if OS.has_feature("web"):  # 인게임에선 PWA 업데이트 배너 숨김(오탭으로 런 진행 유실 방지)
+		JavaScriptBridge.eval("window.cmOffHome&&window.cmOffHome()")
 	var ch: CharacterData = GameState.selected
 	$Player.apply_character(ch)
 	_range_ring = RANGE_RING.new()

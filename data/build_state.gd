@@ -33,9 +33,16 @@ extends Resource
 var element_empower: Dictionary = {}  ## eff_power에서 스킬 속성 일치 시 ×(1+보너스). 균열 중복 시 누적
 
 ## 부여형 누적 스케일 — 레벨 1=기본, 이후 레벨당 증가(과누적 방지로 상한). 소비 지점에서 곱/가산해 사용.
-func burn_mult() -> float: return 1.0 + 0.6 * float(mini(maxi(burn_level - 1, 0), 8))      ## 화상 dps 배율
-func burn_dur_add() -> float: return 0.6 * float(mini(maxi(burn_level - 1, 0), 8))           ## 화상 지속 가산(초)
-func slow_factor_card() -> float: return maxf(0.6 - 0.07 * float(slow_level - 1), 0.3) if slow_level > 0 else 1.0  ## 둔화 배수(낮을수록 강함)
-func slow_dur_card() -> float: return 2.0 + 0.5 * float(mini(maxi(slow_level - 1, 0), 8)) if slow_level > 0 else 0.0  ## 둔화 지속(초)
-func echo_power() -> float: return minf(0.6 + 0.2 * float(echo_level - 1), 1.2) if echo_level > 0 else 0.0  ## 메아리 재시전 위력 비율
-func field_mult() -> float: return 1.0 + 0.5 * float(mini(maxi(field_level - 1, 0), 8))      ## 장판 피해 배율
+# 임의 레벨의 효과값(_at) + 현재 레벨 래퍼(전투용). 카드 미리보기가 현재/다음 레벨 효과를 같은 식으로 표시.
+func burn_mult_at(lvl: int) -> float: return 1.0 + 0.6 * float(mini(maxi(lvl - 1, 0), 8))      ## 화상 dps 배율
+func burn_mult() -> float: return burn_mult_at(burn_level)
+func burn_dur_add_at(lvl: int) -> float: return 0.6 * float(mini(maxi(lvl - 1, 0), 8))          ## 화상 지속 가산(초)
+func burn_dur_add() -> float: return burn_dur_add_at(burn_level)
+func slow_factor_at(lvl: int) -> float: return maxf(0.6 - 0.07 * float(lvl - 1), 0.3) if lvl > 0 else 1.0  ## 둔화 배수(낮을수록 강함)
+func slow_factor_card() -> float: return slow_factor_at(slow_level)
+func slow_dur_at(lvl: int) -> float: return 2.0 + 0.5 * float(mini(maxi(lvl - 1, 0), 8)) if lvl > 0 else 0.0  ## 둔화 지속(초)
+func slow_dur_card() -> float: return slow_dur_at(slow_level)
+func echo_power_at(lvl: int) -> float: return minf(0.6 + 0.2 * float(lvl - 1), 1.2) if lvl > 0 else 0.0  ## 메아리 재시전 위력 비율
+func echo_power() -> float: return echo_power_at(echo_level)
+func field_mult_at(lvl: int) -> float: return 1.0 + 0.5 * float(mini(maxi(lvl - 1, 0), 8))      ## 장판 피해 배율
+func field_mult() -> float: return field_mult_at(field_level)

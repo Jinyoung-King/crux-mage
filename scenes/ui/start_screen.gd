@@ -48,6 +48,8 @@ const TIPS := [
 func _ready() -> void:
 	Music.play_menu()
 	$VersionLabel.text = GameState.VERSION  # 빌드 버전 표기(단일 출처)
+	if OS.has_feature("web"):  # PWA 업데이트 배너는 홈에서만 표시(인게임 오탭으로 진행 유실 방지)
+		JavaScriptBridge.eval("window.cmOnHome&&window.cmOnHome()")
 	# 업데이트 후 첫 진입: 자동 전환 대신 상단에 '새 패치' 배지(탭하면 패치노트) — _build_patch_badge
 	if GameState.best_wave > 0:
 		best_label.text = "최고 Wave %d   ·   코인 %s" % [GameState.best_wave, NumFmt.compact(GameState.coins)]

@@ -300,14 +300,14 @@ func _stat_preview(card) -> String:
 		rows.append(_flat("넉백", b.knockback, b.knockback + card.knockback_bonus, 0))
 	if card.execute_threshold_bonus != 0.0:
 		rows.append(_pctp("처형 임계", b.execute_threshold, b.execute_threshold + card.execute_threshold_bonus))
-	if card.grant_burn:
-		rows.append(_flat("화상 강화 Lv", b.burn_level, b.burn_level + 1, 0))
+	if card.grant_burn:  # 부여 카드: 레벨 대신 실효 효과 수치(현재 → 강화 후)
+		rows.append("화상 %s → %s" % [_burn_effect(b, b.burn_level), _burn_effect(b, b.burn_level + 1)])
 	if card.grant_slow:
-		rows.append(_flat("둔화 강화 Lv", b.slow_level, b.slow_level + 1, 0))
+		rows.append("둔화 %s → %s" % [_slow_effect(b, b.slow_level), _slow_effect(b, b.slow_level + 1)])
 	if card.grant_echo:
-		rows.append(_flat("메아리 Lv", b.echo_level, b.echo_level + 1, 0))
+		rows.append("재시전 위력 %s → %s" % [_echo_effect(b, b.echo_level), _echo_effect(b, b.echo_level + 1)])
 	if card.grant_ground_field:
-		rows.append(_flat("장판 Lv", b.field_level, b.field_level + 1, 0))
+		rows.append("장판 피해 %s → %s" % [_field_effect(b, b.field_level), _field_effect(b, b.field_level + 1)])
 	if card.heal != 0.0:
 		rows.append("회복 후 체력 %d/%d" % [mini(int(player.hp + card.heal), int(player.max_hp)), int(player.max_hp)])
 	return "\n".join(rows)
@@ -326,6 +326,20 @@ func _pct(name: String, cur: float, after: float) -> String:
 ## 행동 비율(처치폭발·기폭·파쇄·처형 — 0에서 시작, '명중 피해의 N%' 류)은 + 없이 N% → M%로
 func _pctp(name: String, cur: float, after: float) -> String:
 	return "%s %d%% → %d%%" % [name, int(round(cur * 100.0)), int(round(after * 100.0))]
+
+## 부여형 효과 수치 문자열(레벨 0=없음). BuildState의 _at(lvl) 식을 그대로 써서 표시-실효 일치.
+func _burn_effect(b, lvl: int) -> String:
+	if lvl <= 0: return "없음"
+	return "%ddps·%.1f초" % [roundi(RelicLib.RELIC_BURN_DPS * b.burn_mult_at(lvl)), RelicLib.RELIC_BURN_DUR + b.burn_dur_add_at(lvl)]
+func _slow_effect(b, lvl: int) -> String:
+	if lvl <= 0: return "없음"
+	return "%d%%·%.1f초" % [roundi((1.0 - b.slow_factor_at(lvl)) * 100.0), b.slow_dur_at(lvl)]
+func _echo_effect(b, lvl: int) -> String:
+	if lvl <= 0: return "없음"
+	return "%d%%" % roundi(b.echo_power_at(lvl) * 100.0)
+func _field_effect(b, lvl: int) -> String:
+	if lvl <= 0: return "없음"
+	return "×%.1f" % b.field_mult_at(lvl)
 
 ## 스킬 카드 제목 — 보유 중이면 현재 진화명(예: '연발 마력탄'), 아니면 기본명.
 ## (같은 계열 카드를 또 먹으면 그 스킬을 강화·진화시키므로, 기본명 대신 현재 이름을 보여 혼란 방지)
