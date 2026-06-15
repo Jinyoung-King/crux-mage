@@ -7,7 +7,6 @@ extends Node
 ## _add_shake(카메라)·game_over(씬 상태). 이로써 전투 로직은 이 노드가, 씬 레벨 책임은 main이 갖는다.
 ## 성능: 적 목록은 EnemyCache.all()(물리 프레임당 1회 스냅샷)로 조회 — 폭발·광역마다 O(N) 그룹 탐색을 반복하지 않음.
 
-const SKILL_NAME := preload("res://scenes/fx/skill_name_popup.gd")
 const GROUND_HAZARD := preload("res://scenes/fx/ground_hazard.gd")
 const FALLING_SKILL := preload("res://scenes/fx/falling_skill.gd")
 const DEATH_BURST_SCENE := preload("res://scenes/fx/death_burst.tscn")
@@ -34,7 +33,6 @@ func execute(s: Dictionary) -> void:
 	var element: String = s.element
 	var count: int = s.count + player.build.extra_targets  # 다발: 표적형 스킬 추가 표적
 	var col: Color = ElementLib.color(element)
-	var focus: Vector2 = player.global_position + Vector2(0, -150)  # 이름 팝업 위치(기본=마법사 위)
 	var rng: float = SkillLib.SKILL_RANGE.get(s.id, 99999.0)  # 스킬별 사거리
 	var pool := _enemies_in_range(rng)  # 사거리 내 적만 타겟
 	match s.id:
@@ -48,13 +46,11 @@ func execute(s: Dictionary) -> void:
 			var center := _densest_cluster(er, pool)
 			if center != Vector2.INF:
 				_drop_aoe(center, er, ep, element, col, true)  # 하늘에서 낙하 후 폭발
-				focus = center
 		"barrage":  # 거대한 돌 하나가 가장 밀집한 곳에 낙하(단일 강타). 다발(count)은 폭발 반경으로 환산.
 			var center := _densest_cluster(er, pool)
 			if center != Vector2.INF:
 				var giant_r: float = minf(er * (1.4 + 0.1 * float(maxi(count - 3, 0))), player.MAX_SKILL_RADIUS)
 				_drop_aoe(center, giant_r, ep * 2.0, element, col, false, 80, true, true)  # 거대 낙하체·풀FX·흔들림
-				focus = center
 		"chain":
 			_skill_chain(count, ep, element, pool)
 		"freeze":
@@ -65,7 +61,6 @@ func execute(s: Dictionary) -> void:
 			host._skill_ring(Vector2(360, 420), 460.0, Color(0.5, 0.8, 1.0), "water")  # 화면 전체 서리 폭발
 			_skill_burst(Vector2(360, 420), Color(0.5, 0.8, 1.0))
 			_snowfall()  # 화면 가득 떨어지는 눈송이
-			focus = Vector2(360, 360)
 		"thorns":  # 가시밭: 가장 밀집한 곳에 초기 광역 피해 + 지속 가시 장판(속성색=초록)
 			var tc := _densest_cluster(er, pool)
 			if tc != Vector2.INF:
@@ -74,7 +69,6 @@ func execute(s: Dictionary) -> void:
 				host._skill_ring(tc, er, col, element)
 				_skill_burst(tc, col)
 				_thorn_erupt(tc, er)  # 가시 솟구침 연출
-				focus = tc
 		"inferno":  # 불바다: 밀집 지점에 화염 작렬(광역 피해 + 화상) + 잔류 화염 장판(지속 피해)
 			var fc := _densest_cluster(er, pool)
 			if fc != Vector2.INF:
@@ -83,14 +77,12 @@ func execute(s: Dictionary) -> void:
 				host._skill_ring(fc, er, col, element)
 				_skill_burst(fc, col)
 				_scorch(fc, er)  # 그을음 자국
-				focus = fc
 		"rockfall":  # 낙석: 여러 바위가 흩어진 적 위로 분산 낙하(각 중간 폭발). count=바위 수
 			var pts := _random_enemy_points(count, pool)
 			for pt in pts:
 				_drop_aoe(pt, er, ep, element, col, false, 32, false)  # 바위당 가벼운 FX·흔들림은 1회로 묶음
 			if not pts.is_empty():
 				host._add_shake(3.0)
-				focus = pts[0]
 		"glacier":  # 빙하: 밀집 지점에 얼음 작렬 — 국지 고피해 + 강한 둔화 부여
 			var gc := _densest_cluster(er, pool)
 			if gc != Vector2.INF:
@@ -102,8 +94,6 @@ func execute(s: Dictionary) -> void:
 				host._skill_ring(gc, er, col, element)
 				_skill_burst(gc, Color(0.6, 0.85, 1.0))
 				_particle_fx(gc, Color(0.7, 0.9, 1.0), 40, 0.7, 60.0, 190.0, 120.0, 1.5, 3.5)  # 얼음 파편 비산
-				focus = gc
-	_skill_name_popup(focus, s.name, col)  # 시전 스킬 이름 표시
 	host._add_shake(4.0)
 
 ## 스킬 1회 명중 파이프라인: pre_damage(격노·치명) → 상성·분산 → 피해·흡혈 → on_hit(반응) → on_kill(폭발) → 숫자.
@@ -269,13 +259,6 @@ func _ground_field(pos: Vector2, radius: float, ep: float, element: String) -> v
 	h.position = pos
 	fx_root.add_child(h)
 	h.setup(maxf(radius, 70.0), ep * 0.5, element, ElementLib.color(element))
-
-## 시전 스킬 이름 팝업 FX (살짝 떠오르며 사라짐)
-func _skill_name_popup(pos: Vector2, txt: String, color: Color) -> void:
-	var l = SKILL_NAME.new()
-	l.position = pos + Vector2(-70, -20)  # 대략 가운데 정렬
-	fx_root.add_child(l)
-	l.setup(txt, color)
 
 ## 마법사로부터 rng 이내의 살아있는 적 (스킬 사거리 필터)
 func _enemies_in_range(rng: float) -> Array:
