@@ -297,7 +297,9 @@ func _process(delta: float) -> void:
 		_skill_icons[i].update_cd(s.name, ElementLib.color(elem), ratio, delta)
 	_update_remaining_label()  # 좌상단: 이번 웨이브 남은 적 수
 	# FPS + 엔티티 수 표시(우하단) — 실제 렌더 FPS(배속 무관) + 적/발사체 수. 후반 렉 진단용.
-	$HUD/VersionLabel.text = "%s · %d fps · 적%d 탄%d" % [GameState.VERSION, Engine.get_frames_per_second(), alive, _proj_active]
+	# 매 프레임 라벨 텍스트 재셰이핑(폰트)은 낭비 → 15프레임마다만 갱신(배속 무관, 표시는 충분히 부드러움)
+	if Engine.get_process_frames() % 15 == 0:
+		$HUD/VersionLabel.text = "%s · %d fps · 적%d 탄%d" % [GameState.VERSION, Engine.get_frames_per_second(), alive, _proj_active]
 
 ## 보유 스킬 수가 바뀌면 스킬 아이콘을 다시 만든다(이름·색·쿨은 매 프레임 update_cd로 갱신 → 진화 반영)
 func _rebuild_skill_icons(skills: Array) -> void:

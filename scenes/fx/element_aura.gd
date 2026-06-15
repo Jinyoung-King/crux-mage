@@ -24,11 +24,12 @@ func _draw() -> void:
 	var r := _radius  # 맥동은 scale, 회전은 rotation이 처리 → _draw는 1회만(setup) 실행
 	# 반투명 글로우 원 제거(모바일 fill-rate 절감 — 적 다수 시 오버드로우가 렉 주범) → 외곽선만으로 속성 표시
 	var line_col := Color(_col.r, _col.g, _col.b, 0.9)
+	# 안티에일리어싱 off + 호 분할 40→24: 적 다수 시 매 프레임 렌더되는 AA 선분 비용이 웹/GL호환에서 큼 → 외형 거의 동일하게 유지하며 렌더 절감
 	if _sides <= 0:
-		draw_arc(Vector2.ZERO, r, 0.0, TAU, 40, line_col, 3.0, true)
+		draw_arc(Vector2.ZERO, r, 0.0, TAU, 24, line_col, 3.0, false)
 	else:
 		var pts := PackedVector2Array()
 		for i in _sides + 1:
 			var a := TAU * float(i) / float(_sides) - PI / 2.0
 			pts.append(Vector2(cos(a), sin(a)) * r)
-		draw_polyline(pts, line_col, 3.0, true)
+		draw_polyline(pts, line_col, 3.0, false)
