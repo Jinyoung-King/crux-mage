@@ -231,6 +231,9 @@ func _style_card(btn: Button, card) -> void:
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	desc.add_theme_constant_override("line_spacing", 5)  # 줄간격 ↑ (가독성)
 	box.add_child(desc)
+	var preview: String = _stat_preview(card)  # 관련 능력치: 현재 → 변경 후
+	if preview != "":
+		box.add_child(_label(preview, 14, Color(0.55, 0.85, 0.72)))
 	btn.add_child(box)
 
 func _label(text: String, size: int, color: Color) -> Label:
@@ -242,6 +245,48 @@ func _label(text: String, size: int, color: Color) -> Label:
 	l.add_theme_font_size_override("font_size", size)
 	l.add_theme_color_override("font_color", color)
 	return l
+
+## 카드가 바꾸는 능력치의 '현재 → 변경 후'(여러 개면 줄바꿈). 행동·부여(불리언)·스킬 카드는 빈 문자열.
+## player.build의 실시간 값 기준 — 이 능력치를 지금 얼마 갖고 있고 고르면 얼마가 되는지 한눈에.
+func _stat_preview(card) -> String:
+	if player == null:
+		return ""
+	var b = player.build
+	var rows: Array = []
+	if card.damage_bonus != 0.0:
+		rows.append(_flat("공격력", b.damage, b.damage + card.damage_bonus, 0))
+	if card.fire_rate_bonus != 0.0:
+		rows.append(_flat("연사", b.fire_rate, b.fire_rate + card.fire_rate_bonus, 1))
+	if card.projectile_count_bonus != 0:
+		rows.append(_flat("표적 수", b.projectile_count, b.projectile_count + card.projectile_count_bonus, 0))
+	if card.damage_per_target_bonus != 0.0:
+		rows.append(_flat("표적당 추가뎀", b.damage_per_target, b.damage_per_target + card.damage_per_target_bonus, 1))
+	if card.defense_bonus != 0.0:
+		rows.append(_flat("방어", b.defense, b.defense + card.defense_bonus, 0))
+	if card.max_hp_bonus != 0.0:
+		rows.append(_flat("최대 체력", player.max_hp, maxf(player.max_hp + card.max_hp_bonus, 10.0), 0))
+	if card.skill_power_bonus != 0.0:
+		rows.append(_pct("스킬 위력", b.skill_power_mult - 1.0, b.skill_power_mult - 1.0 + card.skill_power_bonus))
+	if card.skill_radius_bonus != 0.0:
+		rows.append(_pct("스킬 범위", b.skill_radius_mult - 1.0, b.skill_radius_mult - 1.0 + card.skill_radius_bonus))
+	if card.extra_targets_bonus != 0:
+		rows.append(_flat("다발(추가 표적)", b.extra_targets, b.extra_targets + card.extra_targets_bonus, 0))
+	if card.pierce_bonus != 0:
+		rows.append(_flat("관통", b.pierce, b.pierce + card.pierce_bonus, 0))
+	if card.heal != 0.0:
+		rows.append("회복 후 체력 %d/%d" % [mini(int(player.hp + card.heal), int(player.max_hp)), int(player.max_hp)])
+	return "\n".join(rows)
+
+func _flat(name: String, cur: float, after: float, dec: int) -> String:
+	return "%s %s → %s" % [name, _numf(cur, dec), _numf(after, dec)]
+
+func _numf(v: float, dec: int) -> String:
+	if dec <= 0:
+		return NumFmt.compact(int(round(v)))
+	return ("%." + str(dec) + "f") % v
+
+func _pct(name: String, cur: float, after: float) -> String:
+	return "%s +%d%% → +%d%%" % [name, int(round(cur * 100.0)), int(round(after * 100.0))]
 
 ## 스킬 카드 제목 — 보유 중이면 현재 진화명(예: '연발 마력탄'), 아니면 기본명.
 ## (같은 계열 카드를 또 먹으면 그 스킬을 강화·진화시키므로, 기본명 대신 현재 이름을 보여 혼란 방지)
