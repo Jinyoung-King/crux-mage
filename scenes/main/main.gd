@@ -213,7 +213,8 @@ func _ready() -> void:
 	_on_player_hp_changed($Player.hp, $Player.max_hp)  # HP 초기 표시
 	_update_best_label()
 	_update_coin_label()
-	$HUD/VersionLabel.text = GameState.VERSION  # 빌드 버전 표기(단일 출처)
+	$HUD/VersionLabel.text = GameState.VERSION  # 빌드 버전 표기(단일 출처) — _process가 'vX · N fps'로 갱신
+	$HUD/VersionLabel.modulate.a = 0.9  # FPS 진단 표시 가독성 위해 밝게
 	# 테스트 편의: 웹 URL에 ?auto=1이면 카드 자동선택 (일반 유저·출시 빌드엔 비노출)
 	if OS.has_feature("web"):
 		auto_pick = str(JavaScriptBridge.eval("window.location.search")).contains("auto=1")
@@ -295,6 +296,8 @@ func _process(delta: float) -> void:
 		var ratio: float = 1.0 if s.id == "barrier_droid" else pl.cd_ratio(s)  # 비행체는 지속형 → 항상 활성 표시
 		_skill_icons[i].update_cd(s.name, ElementLib.color(elem), ratio, delta)
 	_update_remaining_label()  # 좌상단: 이번 웨이브 남은 적 수
+	# FPS 표시(우하단 버전 옆) — 실제 렌더 FPS(배속 무관). 후반 렉 진단용.
+	$HUD/VersionLabel.text = "%s · %d fps" % [GameState.VERSION, Engine.get_frames_per_second()]
 
 ## 보유 스킬 수가 바뀌면 스킬 아이콘을 다시 만든다(이름·색·쿨은 매 프레임 update_cd로 갱신 → 진화 반영)
 func _rebuild_skill_icons(skills: Array) -> void:
