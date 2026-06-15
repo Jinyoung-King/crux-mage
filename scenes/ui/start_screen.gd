@@ -103,7 +103,7 @@ func _ready() -> void:
 	_build_tips_help()     # 공략 팁 오버레이
 	_build_patch_badge()   # 미열람 새 패치가 있으면 상단 배지
 
-## 수동 업데이트 확인 버튼(웹) — 우하단. SW 등록 해제 + 캐시 비우고 새로고침해 확실히 최신 빌드를 받음(간헐적 미적용 대비).
+## 수동 업데이트 확인 버튼(웹) — 우하단. 새 버전이 있으면 캐시 비우고 적용(재시작), 이미 최신이면 토스트 알림만(재시작 안 함).
 func _build_update_button() -> void:
 	var ub := Button.new()
 	ub.text = "업데이트 확인"
@@ -116,7 +116,7 @@ func _build_update_button() -> void:
 	ub.offset_top = -144.0
 	ub.offset_right = -10.0
 	ub.offset_bottom = -116.0
-	ub.pressed.connect(func() -> void: JavaScriptBridge.eval("window.cmForceUpdate&&window.cmForceUpdate()"))
+	ub.pressed.connect(func() -> void: JavaScriptBridge.eval("window.cmCheckUpdate&&window.cmCheckUpdate()"))  # 최신이면 토스트만, 새 버전이면 적용
 	add_child(ub)
 
 ## 업데이트 후 첫 진입: 미열람 새 버전이면 제목 아래 '새 패치' 배지(탭 → 패치노트, 열람 시 mark_version_seen으로 사라짐).
