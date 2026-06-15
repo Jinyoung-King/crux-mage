@@ -715,6 +715,8 @@ func _is_card_useful(card: CardData) -> bool:
 		return false  # 범위 스킬(메테오/융단폭격)이 없으면 범위 강화·장판 무의미
 	if card.skill_radius_bonus > 0.0 and _radius_all_capped():
 		return false  # 모든 범위 스킬이 이미 범위 상한 도달 → 범위 강화 무의미(중복=낭비)
+	if card.fire_rate_bonus > 0.0 and $Player.fire_rate_all_capped():
+		return false  # 모든 스킬이 초과연사 위력 환산 상한(+75%) 도달 → 연사 강화 무의미(인게임 연사는 쿨·초과위력에만 작용)
 	if card.execute_threshold_bonus > 0.0 and $Player.build.execute_threshold > 0.0:
 		return false  # 처형(수확자) 카드는 1회면 충분 — 중복 가치 미미·과도한 즉사 누적 방지(설명도 '20%' 고정)
 	if card.extra_targets_bonus > 0 and not _has_count_skill():

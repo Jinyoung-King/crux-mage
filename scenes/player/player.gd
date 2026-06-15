@@ -236,6 +236,16 @@ func fire_overflow_mult(s: Dictionary) -> float:
 		return 1.0  # 아직 하한 미달 — 연사가 쿨 단축에 쓰이는 중
 	return 1.0 + minf((floor_cd / raw - 1.0) * OVERFLOW_TO_DMG, OVERFLOW_DMG_CAP)
 
+## 보유한 모든 스킬이 이미 '초과 연사 → 위력' 환산 상한(+75%)에 도달했나 — 그러면 연사 카드는 무의미.
+## (인게임 연사 카드는 쿨 단축+초과위력에만 쓰임 — 평타 속도는 캐릭터 셋업 고정이라 카드론 영향 없음)
+func fire_rate_all_capped() -> bool:
+	if skills.is_empty():
+		return false
+	for s in skills:
+		if fire_overflow_mult(s) < 1.0 + OVERFLOW_DMG_CAP - 0.001:
+			return false  # 아직 연사가 쿨 단축/위력 환산으로 더 기여할 스킬 존재
+	return true
+
 ## 실효 위력 = 기본위력 × (현재공격력/기본공격력) × 강화% × 초과연사보너스 — 공격력·강화·숙련·초과연사가 모든 스킬을 키움
 func eff_power(s: Dictionary) -> float:
 	var p: float = s.power * build.skill_power_mult
