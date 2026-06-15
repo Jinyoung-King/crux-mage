@@ -49,19 +49,19 @@ layout_mode = 2
 theme_override_constants/separation = 20
 
 [node name="Card1" type="Button" parent="Center/Cards"]
-custom_minimum_size = Vector2(200, 420)
+custom_minimum_size = Vector2(200, 460)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_fonts/font = ExtResource("2")
 
 [node name="Card2" type="Button" parent="Center/Cards"]
-custom_minimum_size = Vector2(200, 420)
+custom_minimum_size = Vector2(200, 460)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_fonts/font = ExtResource("2")
 
 [node name="Card3" type="Button" parent="Center/Cards"]
-custom_minimum_size = Vector2(200, 420)
+custom_minimum_size = Vector2(200, 460)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_fonts/font = ExtResource("2")

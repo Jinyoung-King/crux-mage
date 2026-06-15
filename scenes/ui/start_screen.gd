@@ -48,8 +48,9 @@ const TIPS := [
 func _ready() -> void:
 	Music.play_menu()
 	$VersionLabel.text = GameState.VERSION  # 빌드 버전 표기(단일 출처)
-	if OS.has_feature("web"):  # PWA 업데이트 배너는 홈에서만 표시(인게임 오탭으로 진행 유실 방지)
+	if OS.has_feature("web"):  # PWA 업데이트 배너는 홈에서만 표시(인게임 오탭으로 진행 유실 방지) + 수동 확인 버튼
 		JavaScriptBridge.eval("window.cmOnHome&&window.cmOnHome()")
+		_build_update_button()
 	# 업데이트 후 첫 진입: 자동 전환 대신 상단에 '새 패치' 배지(탭하면 패치노트) — _build_patch_badge
 	if GameState.best_wave > 0:
 		best_label.text = "최고 Wave %d   ·   코인 %s" % [GameState.best_wave, NumFmt.compact(GameState.coins)]
@@ -98,6 +99,22 @@ func _ready() -> void:
 	_build_counter_help()  # 상성 오버레이(최상단으로 마지막에 추가)
 	_build_tips_help()     # 공략 팁 오버레이
 	_build_patch_badge()   # 미열람 새 패치가 있으면 상단 배지
+
+## 수동 업데이트 확인 버튼(웹) — 우하단. SW 등록 해제 + 캐시 비우고 새로고침해 확실히 최신 빌드를 받음(간헐적 미적용 대비).
+func _build_update_button() -> void:
+	var ub := Button.new()
+	ub.text = "업데이트 확인"
+	ub.flat = true
+	ub.add_theme_font_override("font", FONT)
+	ub.add_theme_font_size_override("font_size", 14)
+	ub.add_theme_color_override("font_color", Color(0.62, 0.72, 0.95))
+	ub.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	ub.offset_left = -160.0
+	ub.offset_top = -144.0
+	ub.offset_right = -10.0
+	ub.offset_bottom = -116.0
+	ub.pressed.connect(func() -> void: JavaScriptBridge.eval("window.cmForceUpdate&&window.cmForceUpdate()"))
+	add_child(ub)
 
 ## 업데이트 후 첫 진입: 미열람 새 버전이면 제목 아래 '새 패치' 배지(탭 → 패치노트, 열람 시 mark_version_seen으로 사라짐).
 ## 자동 전환(이전 방식) 대신 — 강제로 끌고 가지 않고 눈에 띄게만(피드백 반영).

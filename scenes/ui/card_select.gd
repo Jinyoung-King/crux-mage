@@ -395,34 +395,30 @@ func _skill_detail(id: String) -> String:
 	var d: Dictionary = SkillLib.DEFS.get(id, {})
 	if d.is_empty():
 		return ""
-	if id == "barrier_droid":  # 지속형 동반자 — 캐스트 수치 대신 동작 설명
-		var bl: PackedStringArray = []
-		if _skill_owned_evolvable(id):
-			bl.append("진화 진행 %d/%d — 모으면 비행체가 강화됩니다." % [_skill_stacks(id), player.EVOLVE_COST])
-		else:
-			bl.append("수호 비행체를 획득합니다(지속형).")
-		bl.append("마법사 주위를 도는 비행체 %d기." % int(d.get("count", 2)))
-		bl.append("적의 탄환에 닿으면 소멸시킵니다.")
-		bl.append("공전 반경 안의 적에게 지속 피해.")
-		bl.append("모으면 비행체 수·위력이 늘어납니다.")
-		return "\n".join(bl)
+	var owned: bool = _skill_owned_evolvable(id)
 	var lines: PackedStringArray = []
-	if _skill_owned_evolvable(id):
-		lines.append("진화 진행 %d/%d — 모으면 진화 분기를 선택합니다." % [_skill_stacks(id), player.EVOLVE_COST])
+	if id == "barrier_droid":  # 지속형 동반자 — 동작 요약(짧게)
+		if owned:
+			lines.append("진화 %d/%d" % [_skill_stacks(id), player.EVOLVE_COST])
+		else:
+			lines.append("수호 비행체 획득(지속형)")
+		lines.append("비행체 %d기 · 적 탄막 소멸" % int(d.get("count", 2)))
+		lines.append("공전 반경 내 적 지속 피해")
+		return "\n".join(lines)
+	if owned:
+		lines.append("진화 %d/%d" % [_skill_stacks(id), player.EVOLVE_COST])
 	else:
-		lines.append("%s 스킬을 획득합니다." % d.get("name", "스킬"))
-	lines.append("적에게 데미지 %d의 피해를 줍니다." % int(d.get("power", 0)))
-	lines.append("%s초의 쿨타임마다 발동됩니다." % _fmt_cd(d.get("cooldown", 0.0)))
+		lines.append("%s 획득" % d.get("name", "스킬"))
+	lines.append("데미지 %d · 쿨 %s초" % [int(d.get("power", 0)), _fmt_cd(d.get("cooldown", 0.0))])
 	var cnt := int(d.get("count", 0))
 	var rad := int(d.get("radius", 0))
 	match id:
-		"bolts": lines.append("가까운 적 %d명에게 마력탄을 날립니다." % cnt)
-		"chain": lines.append("최대 %d명에게 번개가 연쇄됩니다." % cnt)
-		"barrage": lines.append("거대한 돌 하나가 가장 밀집한 곳에 떨어집니다(반경 %d↑·다발=반경↑)." % rad)
-		"meteor": lines.append("가장 밀집한 곳에 반경 %d 광역 피해." % rad)
-		"freeze": lines.append("화면의 모든 적을 둔화시킵니다.")
-		"thorns": lines.append("가장 밀집한 곳에 반경 %d 가시 장판(지속 피해)." % rad)
-	lines.append("같은 스킬을 모으면 진화 분기를 선택합니다.")
+		"bolts": lines.append("가까운 %d명 마력탄" % cnt)
+		"chain": lines.append("%d명 번개 연쇄" % cnt)
+		"barrage": lines.append("거대 돌 낙하 · 반경 %d(다발=반경↑)" % rad)
+		"meteor": lines.append("반경 %d 광역 피해" % rad)
+		"freeze": lines.append("화면 전체 둔화")
+		"thorns": lines.append("반경 %d 가시 장판" % rad)
 	return "\n".join(lines)
 
 ## 쿨타임 표기: 정수면 정수로, 소수면 한 자리(4.5초 등)
