@@ -155,12 +155,12 @@ func evolve_branch(id: String, branch: Dictionary) -> void:
 			s.radius *= float(branch.get("radius_mult", 1.0))
 			match branch.get("kind", ""):
 				"element":
-					if branch.get("grant", "") == "burn": build.apply_burn = true
-					elif branch.get("grant", "") == "slow": build.apply_slow = true
+					if branch.get("grant", "") == "burn": build.apply_burn = true; build.burn_level += 1
+					elif branch.get("grant", "") == "slow": build.apply_slow = true; build.slow_level += 1
 				"behavior":
 					match branch.get("behavior", ""):
 						"pierce": build.pierce += int(branch.get("amount", 1))
-						"ground_field": build.ground_field = true
+						"ground_field": build.ground_field = true; build.field_level += 1
 						"extra_targets": build.extra_targets += int(branch.get("amount", 1))
 						"explode": build.explode_power += float(branch.get("amount", 0.3))
 			rebuild_hit_modifiers()
@@ -207,9 +207,9 @@ func _cast_skill(s: Dictionary) -> void:
 		"element": SkillLib.DEFS.get(s.id, {}).get("element", character.element if character else ""),  # 스킬 자체 속성(시전자 속성 아님) — 색·상성 통일
 	}
 	skill_cast.emit(data)
-	if build.echo:  # 메아리: 0.25초 뒤 60% 위력으로 한 번 더(재귀 없음 — _cast_skill 안 거침)
+	if build.echo:  # 메아리: 0.25초 뒤 재시전(누적 시 위력↑, 재귀 없음 — _cast_skill 안 거침)
 		var echo_data := data.duplicate()
-		echo_data["power"] = data["power"] * 0.6
+		echo_data["power"] = data["power"] * build.echo_power()
 		get_tree().create_timer(0.25).timeout.connect(func() -> void:
 			if hp > 0.0:
 				skill_cast.emit(echo_data))
@@ -297,11 +297,11 @@ func fire_skill_bolt(target, dmg: float, elem: String) -> void:
 	p.damage = dmg
 	p.lifesteal = lifesteal  # 흡혈은 acquire에서 dealt→_on_lifesteal 1회 연결됨(방출은 lifesteal>0일 때만)
 	if build.apply_burn:
-		p.burn_dps = maxf(p.burn_dps, RelicLib.RELIC_BURN_DPS)  # 부여: 화상
-		p.burn_duration = maxf(p.burn_duration, RelicLib.RELIC_BURN_DUR)
+		p.burn_dps = maxf(p.burn_dps, RelicLib.RELIC_BURN_DPS * build.burn_mult())  # 부여: 화상(누적 강화)
+		p.burn_duration = maxf(p.burn_duration, RelicLib.RELIC_BURN_DUR + build.burn_dur_add())
 	if build.apply_slow:
-		p.slow_factor = 0.6  # 부여: 둔화
-		p.slow_duration = 2.0
+		p.slow_factor = build.slow_factor_card()  # 부여: 둔화(누적 강화)
+		p.slow_duration = build.slow_dur_card()
 	_apply_relics_to(p)  # 수확·연쇄·점화의 룬을 발사체에 적용
 	if build.execute_threshold > 0.0:
 		p.execute_threshold = maxf(p.execute_threshold, build.execute_threshold)  # 수확자 카드
@@ -377,15 +377,19 @@ func apply_card(card: CardData) -> void:
 	build.extra_targets += card.extra_targets_bonus   # 다발(추가 표적)
 	if card.grant_burn:
 		build.apply_burn = true   # 부여: 화상
+		build.burn_level += 1     # 누적: 중복할수록 화상 강화
 	if card.grant_slow:
 		build.apply_slow = true   # 부여: 둔화
+		build.slow_level += 1     # 누적: 중복할수록 둔화 강화
 	build.detonate_burn += card.detonate_burn_bonus  # 격발: 기폭
 	build.frostbite += card.frostbite_bonus          # 격발: 파쇄
 	if card.grant_echo:
 		build.echo = true   # 메아리
+		build.echo_level += 1  # 누적: 중복할수록 재시전 위력↑
 	build.knockback += card.knockback_bonus  # 넉백
 	if card.grant_ground_field:
 		build.ground_field = true  # 잔류 장판
+		build.field_level += 1     # 누적: 중복할수록 장판 피해↑
 	build.execute_threshold += card.execute_threshold_bonus  # 수확자(즉사)
 	build.pierce += card.pierce_bonus  # 관통(마력탄 꿰뚫기)
 	if card.max_hp_bonus != 0.0:

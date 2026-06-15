@@ -43,15 +43,15 @@ class Detonate extends Base:
 			ctx.enemy.consume_burn()
 			ctx.executor._explode(ctx.pos, ctx.dealt * p.build.detonate_burn, ctx.element)
 
-## 부여: 화상(카드)
+## 부여: 화상(카드) — 누적 레벨로 dps·지속 강화
 class ApplyBurn extends Base:
 	func on_hit(ctx) -> void:
-		ctx.enemy.apply_burn(RelicLib.RELIC_BURN_DPS, RelicLib.RELIC_BURN_DUR)
+		ctx.enemy.apply_burn(RelicLib.RELIC_BURN_DPS * p.build.burn_mult(), RelicLib.RELIC_BURN_DUR + p.build.burn_dur_add())
 
-## 부여: 둔화(카드)
+## 부여: 둔화(카드) — 누적 레벨로 강도·지속 강화
 class ApplySlow extends Base:
 	func on_hit(ctx) -> void:
-		ctx.enemy.apply_slow(0.6, 2.0)
+		ctx.enemy.apply_slow(p.build.slow_factor_card(), p.build.slow_dur_card())
 
 ## 점화의 룬(유물): 명중 시 레벨별 화상
 class Ignite extends Base:

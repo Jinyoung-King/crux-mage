@@ -733,32 +733,8 @@ func _is_card_useful(card: CardData) -> bool:
 		return false  # 만피에 회복 카드 금지
 	if card.max_hp_bonus < 0.0 and $Player.max_hp + card.max_hp_bonus < 30.0:
 		return false  # 트레이드오프로 체력이 너무 낮아지면 제외
-	# 1회성 '순수 부여' 카드 — 새로 켤 불리언 플래그가 하나도 없으면 제외(중복=낭비).
-	# 부여+수치 혼합 카드(예: 공명=부여+기폭/파쇄)는 수치가 누적되므로 제외하지 않는다.
-	if _is_pure_grant(card) and not _grants_new_flag(card):
-		return false
+	# (v1.89) 부여형 카드(화염/서리 각인·메아리·장판)는 중복 시 누적(레벨↑)되도록 바뀜 → 더는 제외하지 않음(다시 등장해 스택).
 	return true
-
-## 효과가 불리언 부여뿐인 1회성 카드인지(다른 수치/스킬/회복이 전혀 없음)
-func _is_pure_grant(card: CardData) -> bool:
-	if not (card.grant_burn or card.grant_slow or card.grant_echo or card.grant_ground_field):
-		return false
-	if card.damage_bonus != 0.0 or card.fire_rate_bonus != 0.0 or card.projectile_count_bonus != 0: return false
-	if card.damage_per_target_bonus != 0.0 or card.max_hp_bonus != 0.0 or card.defense_bonus != 0.0: return false
-	if card.skill_power_bonus != 0.0 or card.skill_radius_bonus != 0.0 or card.grant_skill_id != "": return false
-	if card.explode_power_bonus != 0.0 or card.extra_targets_bonus != 0 or card.detonate_burn_bonus != 0.0: return false
-	if card.frostbite_bonus != 0.0 or card.knockback_bonus != 0.0 or card.execute_threshold_bonus != 0.0: return false
-	if card.pierce_bonus != 0 or card.heal != 0.0: return false
-	return true
-
-## 이 부여 카드가 아직 안 켜진 플래그를 새로 켜는지(하나라도 새로 켜면 유효)
-func _grants_new_flag(card: CardData) -> bool:
-	var b = $Player.build
-	if card.grant_burn and not b.apply_burn: return true
-	if card.grant_slow and not b.apply_slow: return true
-	if card.grant_echo and not b.echo: return true
-	if card.grant_ground_field and not b.ground_field: return true
-	return false
 
 ## 풀에서 희귀도 가중치로 count장 중복 없이 뽑기. rare_only면 희귀 카드만.
 func _draw_cards(count: int, rare_only: bool = false, exclude: Array = []) -> Array:

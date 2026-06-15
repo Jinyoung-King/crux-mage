@@ -240,7 +240,7 @@ func _drop_aoe(center: Vector2, radius: float, ep: float, element: String, col: 
 			elif element == "earth":  # 융단폭격: 먼지 기둥(위로 떠오름)
 				_particle_fx(center, Color(0.72, 0.6, 0.42), sub, 0.95, 25.0, 110.0, -50.0, 4.0, 8.0)
 			if player.build.ground_field:
-				_ground_field(center, radius, ep, element)
+				_ground_field(center, radius, ep * player.build.field_mult(), element)  # 누적 시 장판 피해↑
 			if do_shake:
 				host._add_shake(4.0)
 		m.queue_free())

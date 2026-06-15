@@ -283,6 +283,14 @@ func _stat_preview(card) -> String:
 		rows.append(_flat("넉백", b.knockback, b.knockback + card.knockback_bonus, 0))
 	if card.execute_threshold_bonus != 0.0:
 		rows.append(_pctp("처형 임계", b.execute_threshold, b.execute_threshold + card.execute_threshold_bonus))
+	if card.grant_burn:
+		rows.append(_flat("화상 강화 Lv", b.burn_level, b.burn_level + 1, 0))
+	if card.grant_slow:
+		rows.append(_flat("둔화 강화 Lv", b.slow_level, b.slow_level + 1, 0))
+	if card.grant_echo:
+		rows.append(_flat("메아리 Lv", b.echo_level, b.echo_level + 1, 0))
+	if card.grant_ground_field:
+		rows.append(_flat("장판 Lv", b.field_level, b.field_level + 1, 0))
 	if card.heal != 0.0:
 		rows.append("회복 후 체력 %d/%d" % [mini(int(player.hp + card.heal), int(player.max_hp)), int(player.max_hp)])
 	return "\n".join(rows)
