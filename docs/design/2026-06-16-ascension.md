@@ -31,6 +31,9 @@
 - 코인 +15%/계층. 인게임 상단 "상승 N"(>0일 때). 클리어 요약 "상승 N 클리어 — 다음 계층 해금!".
 
 ## 분할·검증
-- **v2.1**: 상태·해금·6규칙·선택기·코인보상·표시.
-- **v2.2**: 속도 등 추가 규칙·연출.
-- 헤드리스: 계층별 mult 합산, 클리어 시 해금(+1, 최고일 때만), 선택기 범위(0~해금), 모디파이어 적용(hp/dmg/시작체력/선택지/엘리트), 코인 배율.
+- **v2.1 (완료, 2026-06-16)**: 상태·해금·6규칙·선택기·코인보상·표시 전부 구현·배포.
+  - GameState: `ascension`/`run_ascension` + `ASCENSIONS`(6) + 헬퍼 + `try_unlock_ascension` + 저장(meta.ascension).
+  - main.gd: `_start_wave` hp/dmg ×배율, `_ready` 시작체력 ×배율, `_roll_elite` +엘리트, 처치·클리어 코인 ×배율, 카드 드래프트 선택지 −, `_stage_cleared` 해금 호출+요약 안내, wave_label에 '상승 N'.
+  - start_screen: `_build_ascension_selector`(◀ 상승 N ▶ + 규칙·코인% 요약, 해금>0일 때만), `_on_stage`가 `run_ascension` 설정 / `_on_play`는 0.
+  - 헤드리스: 배율 합산(asc0~6, >MAX 클램프)·max=6·rules 범위·해금(+1, 최고일 때만)·상한·선택기 빌드 전부 통과.
+- **v2.2 (예정)**: 적 이동속도(+enemy.setup 속도 훅)·보스 광폭 가속 등 추가 규칙, 해금/계층 진입 연출.

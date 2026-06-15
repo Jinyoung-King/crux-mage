@@ -250,7 +250,9 @@ func _style_card(btn: Button, card) -> void:
 	if card.grant_skill_id != "":
 		preview = _next_evolve_delta(card.grant_skill_id)  # 스킬 카드: 다음 진화 능력치 향상(중복 픽 효과)
 	if preview != "":
-		box.add_child(_label(preview, 14, Color(0.55, 0.85, 0.72)))
+		var pl := _label(preview, 14, Color(0.55, 0.85, 0.72))
+		pl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART  # 긴 한 줄이 카드 폭을 넘지 않게 줄바꿈(미설정 시 box가 텍스트 폭만큼 커져 카드 침범)
+		box.add_child(pl)
 	btn.add_child(box)
 
 func _label(text: String, size: int, color: Color) -> Label:
