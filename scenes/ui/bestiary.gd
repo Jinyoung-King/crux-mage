@@ -67,6 +67,8 @@ func _make_entry(ed) -> Control:
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if not seen:
 		icon.modulate = Color(0, 0, 0, 0.85)  # 미발견 실루엣
+	elif ed.element != "" and ed.sprite != null and ed.sprite.resource_path.ends_with("enemy_basic.png"):
+		icon.modulate = ElementLib.color(ed.element)  # 졸개(흑백 공용 스프라이트)는 인게임처럼 속성색 틴트(v1.84)
 	box.add_child(icon)
 
 	var info := VBoxContainer.new()
