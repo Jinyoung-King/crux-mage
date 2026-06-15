@@ -22,6 +22,9 @@ var next_btn: Button
 var counter_panel: Control   # 오행 상성 도움말 오버레이
 var goal_lbl: Label          # 다음 목표(도전 과제) 안내 — 플레이 버튼 직전
 var tips_panel: Control      # 공략 팁 오버레이
+var _asc_sel := 0            # 선택된 상승 계층(0~GameState.ascension)
+var _asc_value_label: Label  # "상승 N / 해금" 표시
+var _asc_rules_label: Label  # 선택 계층의 변형 규칙 요약
 
 # 공략 팁 (도움말 오버레이) — 친구 피드백: 30웨이브 벽·상성/메커니즘 안내
 const TIPS := [
@@ -419,18 +422,59 @@ func _update_mastery() -> void:
 
 func _on_play() -> void:  # 무한모드 (속성 순환, 끝없음)
 	GameState.game_mode = "endless"
+	GameState.run_ascension = 0  # 무한모드는 상승 계층 무관
 	get_tree().change_scene_to_file("res://scenes/main/main.tscn")
 
-## 속성 스테이지(유한 클리어 모드) 시작 — 고른 속성으로
+## 속성 스테이지(유한 클리어 모드) 시작 — 고른 속성 + 선택한 상승 계층으로
 func _on_stage(elem: String) -> void:
 	GameState.game_mode = "stage"
 	GameState.stage_element = elem
+	GameState.run_ascension = clampi(_asc_sel, 0, GameState.ascension)
 	get_tree().change_scene_to_file("res://scenes/main/main.tscn")
+
+## 상승 계층 선택기 — ◀ 상승 N ▶ + 규칙 요약. 해금(ascension>0) 시에만 표시.
+func _build_ascension_selector() -> void:
+	_asc_sel = clampi(_asc_sel, 0, GameState.ascension)  # 가능 범위로 클램프
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 10)
+	$Center.add_child(row)
+	var left := _arrow("◀")
+	left.custom_minimum_size = Vector2(44, 44)
+	left.add_theme_font_size_override("font_size", 24)
+	row.add_child(left)
+	left.pressed.connect(_on_asc_step.bind(-1))
+	_asc_value_label = _label("", 20, Color(1.0, 0.82, 0.4))
+	_asc_value_label.custom_minimum_size = Vector2(140, 0)
+	row.add_child(_asc_value_label)
+	var right := _arrow("▶")
+	right.custom_minimum_size = Vector2(44, 44)
+	right.add_theme_font_size_override("font_size", 24)
+	row.add_child(right)
+	right.pressed.connect(_on_asc_step.bind(1))
+	_asc_rules_label = _label("", 13, Color(0.78, 0.78, 0.84))
+	_asc_rules_label.custom_minimum_size = Vector2(420, 0)
+	_asc_rules_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	$Center.add_child(_asc_rules_label)
+	_update_asc_labels()
+
+func _on_asc_step(d: int) -> void:
+	_asc_sel = clampi(_asc_sel + d, 0, GameState.ascension)
+	_update_asc_labels()
+
+func _update_asc_labels() -> void:
+	_asc_value_label.text = "상승 %d / %d" % [_asc_sel, GameState.ascension]
+	if _asc_sel <= 0:
+		_asc_rules_label.text = "변형 없음 (기본 난이도) · 클리어 시 다음 계층 해금"
+	else:
+		_asc_rules_label.text = "  ·  ".join(GameState.ascension_rules(_asc_sel)) + "   (코인 +%d%%)" % int(round(GameState.ASC_COIN_PER * _asc_sel * 100.0))
 
 ## 속성 스테이지 선택 버튼 5개(목·화·토·금·수) 생성
 func _build_stage_buttons() -> void:
 	var lbl := _label("─ 속성 스테이지 (유한 클리어) ─", 15, Color(0.72, 0.72, 0.78))
 	$Center.add_child(lbl)
+	if GameState.ascension > 0:  # 첫 클리어 전엔 선택기 숨김
+		_build_ascension_selector()
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 8)

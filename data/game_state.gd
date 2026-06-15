@@ -3,10 +3,11 @@ extends Node
 ## 씬을 새로 로드해도 유지되며, 최고 기록은 user://에 영속 저장된다.
 
 const SAVE_PATH := "user://save.cfg"
-const VERSION := "v2.0"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
+const VERSION := "v2.1"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
 
 # 패치노트 (최신이 위). 새 버전 추가 시 맨 앞에 한 항목 추가. 시작 화면 "패치노트" + 업데이트 시 자동 안내.
 const CHANGELOG := [
+	{"v": "v2.1", "notes": ["상승 계층(Ascension) — 엔드게임 사다리 추가. 속성 스테이지를 클리어하면 '상승 계층'이 한 단계씩 해금됩니다. 시작 화면 '속성 스테이지' 위에서 ◀ 상승 N ▶ 으로 계층(0~해금치)을 고른 뒤 시작 — 계층이 오를수록 누적으로 강해집니다: 1 적 체력+20% / 2 적 피해+20% / 3 카드 선택지−1 / 4 시작 체력−15% / 5 엘리트 출현↑ / 6 적 체력·피해+25%. 보상은 계층당 코인 +15%. 현재 최고 계층을 클리어하면 다음 계층이 열리고(클리어 요약에 안내), 인게임 상단에 '상승 N'이 표시됩니다. 무한모드는 영향 없음. (다음: 적 이동속도·보스 광폭 등 추가 규칙과 연출)"]},
 	{"v": "v2.0", "notes": ["스킬 카드 텍스트 정리 + 수동 업데이트 버튼. ① 스킬 카드 설명이 카드를 침범하던 문제 — 설명을 3줄로 요약(데미지·쿨 한 줄로, 중복 줄 제거)하고 카드 세로 길이를 살짝 늘렸습니다(420→460). ② 시작 화면 우하단에 '업데이트 확인' 버튼 추가 — 간헐적으로 최신 버전이 안 잡힐 때 누르면 캐시를 비우고 확실히 최신으로 새로고침합니다."]},
 	{"v": "v1.99", "notes": ["중간 이벤트 3단계(완성) — '갈림길' 추가. 보스를 클리어할 때마다 선택지가 뜹니다: '안전'(체력 40% 회복 + 희귀 보상) vs '도전'(다음 2웨이브 적 +30% 강해지는 대신 전설 확정 보상). 위험을 감수하고 더 좋은 카드를 노릴지 고르세요. 10초 미선택 시 자동 '안전'. 이로써 중간 이벤트 3종(원소 균열·제물 제단·갈림길)이 완성돼 매 판이 더 다양하게 갈립니다."]},
 	{"v": "v1.98", "notes": ["피드백 3종 — ① 부여 카드(화염/서리 각인·메아리·잔류 장판)에 '강화 레벨' 대신 실제 효과 수치 표시: '화상 5dps·2.5초', '둔화 40%·2.0초', '재시전 위력 60%' 식으로 현재→강화 후. ② 업데이트 알림 배너를 '홈 화면에서만' 뜨게 변경 — 인게임 중엔 안 떠서 잘못 눌러 진행이 날아가는 일 방지(인게임에서 새 버전이 잡혀도 홈에 가면 그때 표시). ③ 특성 최대치 30→50으로 확장 + 새 특성 2종 추가: '주문력'(스킬 위력↑)·'광역'(스킬 범위↑)."]},
@@ -286,6 +287,8 @@ var lifetime_coins := 0  ## 누적 획득 코인(통계)
 var seen_version := ""  ## 마지막으로 패치노트를 본 버전 — 다르면 시작 시 자동 안내
 var relic_levels := {}  ## 유물 id별 보유 레벨 {id: level} — 뽑기로 모음, 중복은 레벨↑. 보유분 전부 적용
 var last_free_roll_date := ""  ## 마지막 '일일 무료 뽑기' 수령 날짜(YYYY-MM-DD) — 하루 1회 무료 룬
+var ascension := 0        ## 해금된 최고 상승 계층(스테이지 모드, 영속) — 최고 계층 클리어 시 +1
+var run_ascension := 0    ## 이번 스테이지 런에서 고른 계층(0~ascension, 인메모리)
 
 func _ready() -> void:
 	_load()
@@ -568,6 +571,48 @@ func trait_fire_rate_add() -> float: return trait_value("haste")
 func roll_discount_mult() -> float: return maxf(0.3, 1.0 - trait_value("thrift"))
 func trait_lifesteal_add() -> float: return trait_value("leech")
 
+## --- 상승 계층 (스테이지 모드 엔드게임 사다리) ---
+## 누적 변형 규칙: run_ascension = N 이면 규칙 1..N 을 모두 적용. 전역 하나의 사다리(속성 무관).
+const ASCENSIONS := [
+	{"desc": "적 체력 +20%", "hp": 0.20},
+	{"desc": "적 피해 +20%", "dmg": 0.20},
+	{"desc": "카드 선택지 −1", "choices": -1},
+	{"desc": "시작 체력 −15%", "start_hp": -0.15},
+	{"desc": "엘리트 출현률 ↑", "elite": 0.12},
+	{"desc": "적 체력·피해 +25%", "hp": 0.25, "dmg": 0.25},
+]
+const ASC_COIN_PER := 0.15  ## 계층당 코인 보상 배율 +15%
+
+func max_ascension() -> int: return ASCENSIONS.size()
+
+func _asc_sum(key: String) -> float:
+	var t := 0.0
+	for i in mini(run_ascension, ASCENSIONS.size()):  # 0..run_ascension-1 → 앞 N개 규칙 합산
+		t += float(ASCENSIONS[i].get(key, 0.0))
+	return t
+
+func asc_hp_mult() -> float: return 1.0 + _asc_sum("hp")
+func asc_dmg_mult() -> float: return 1.0 + _asc_sum("dmg")
+func asc_start_hp_mult() -> float: return maxf(1.0 + _asc_sum("start_hp"), 0.4)
+func asc_choices_delta() -> int: return int(_asc_sum("choices"))
+func asc_elite_bonus() -> float: return _asc_sum("elite")
+func asc_coin_mult() -> float: return 1.0 + ASC_COIN_PER * float(run_ascension)
+
+## 특정 계층(level)까지의 규칙 설명 목록(선택 UI 요약용).
+func ascension_rules(level: int) -> Array:
+	var out: Array = []
+	for i in mini(level, ASCENSIONS.size()):
+		out.append(ASCENSIONS[i].desc)
+	return out
+
+## 스테이지 클리어 시 호출: 방금 깬 계층이 현재 최고면 다음 계층 해금(+1, 상한 MAX). 해금되면 true.
+func try_unlock_ascension(cleared_level: int) -> bool:
+	if cleared_level >= ascension and ascension < max_ascension():
+		ascension += 1
+		_save()
+		return true
+	return false
+
 ## --- 유물 (코인 랜덤 뽑기 → 모은 유물 전부 적용, 중복은 레벨↑로 강화) ---
 ## 지금까지 뽑은 총 횟수(= 모든 유물 레벨 합)만큼 비싸짐: ROLL_BASE × ROLL_GROWTH^총뽑기수, 단 ROLL_COST_CAP에서 평탄화.
 func current_roll_cost() -> int:
@@ -640,6 +685,7 @@ func _load() -> void:
 		seen_version = cf.get_value("meta", "seen_version", "")
 		relic_levels = cf.get_value("meta", "relic_levels", {})
 		last_free_roll_date = cf.get_value("meta", "last_free_roll_date", "")
+		ascension = cf.get_value("meta", "ascension", 0)
 		if relic_levels.is_empty():  # 구형 세이브(해금 유물) → 레벨 1로 마이그레이션
 			for rid in cf.get_value("meta", "unlocked_relics", []):
 				relic_levels[rid] = 1
@@ -672,6 +718,7 @@ func _save() -> void:
 	cf.set_value("meta", "seen_version", seen_version)
 	cf.set_value("meta", "relic_levels", relic_levels)
 	cf.set_value("meta", "last_free_roll_date", last_free_roll_date)
+	cf.set_value("meta", "ascension", ascension)
 	cf.set_value("record", "char_best", char_best)
 	cf.set_value("record", "kills", kills)
 	cf.set_value("record", "total_runs", total_runs)

@@ -143,6 +143,7 @@ var _shop_active := false  # 상점 드래프트 진행 중
 var _active_event = null    # 표시 중인 중간 이벤트 패널(없으면 null)
 var _event_kind := ""       # 현재 이벤트 종류("rift"/"altar"/"crossroads")
 var _challenge_left := 0    # 갈림길 '도전' 잔여 강화 웨이브 수(>0이면 적 ×CHALLENGE_MULT)
+var _asc_clear_msg := ""    # 스테이지 클리어 시 표시할 상승 계층 메시지(해금 안내 포함)
 var _shop_cards: Array = []
 var _shop_cost: Array = []
 var start_drafts_left := 0  # 웨이브 전 시작 드래프트 남은 횟수 (1 + 추가 시작 카드 레벨)
@@ -178,6 +179,9 @@ func _ready() -> void:
 		JavaScriptBridge.eval("window.cmOffHome&&window.cmOffHome()")
 	var ch: CharacterData = GameState.selected
 	$Player.apply_character(ch)
+	if GameState.run_ascension > 0:  # 상승 계층: 시작 체력 감소(asc 4단계~) — 배율 1.0이면 무영향
+		$Player.max_hp *= GameState.asc_start_hp_mult()
+		$Player.hp = $Player.max_hp
 	_range_ring = RANGE_RING.new()
 	_range_ring.visible = false
 	$Player.add_child(_range_ring)  # 마법사 중심 사거리 링(아이콘 누를 때만 표시)
@@ -406,7 +410,8 @@ func _roll_elite() -> Dictionary:
 	var lvl := _endless_level(wave_index)
 	if lvl <= 0:
 		return {}
-	if randf() < minf(0.12 + 0.04 * lvl, 0.5):
+	var bonus := GameState.asc_elite_bonus()  # 상승 계층(5단계~): 엘리트 출현률↑ (0이면 무영향)
+	if randf() < minf(0.12 + 0.04 * lvl + bonus, 0.5 + bonus):
 		return MODIFIERS[randi() % MODIFIERS.size()]
 	return {}
 
@@ -421,6 +426,8 @@ func _start_wave(index: int) -> void:
 	endless_hp_scale = pow(1.0 + ENDLESS_HP_GROWTH, _endless_level(index))  # 복리: 후반 빌드 성장을 따라잡도록
 	var dmg_cap: float = ENDLESS_DMG_CAP + ENDLESS_DMG_CAP_GROWTH * _endless_level(index)  # 단계 비례 완화 상한
 	endless_dmg_scale = minf(pow(1.0 + ENDLESS_DMG_GROWTH, _endless_level(index)), dmg_cap)  # 적 피해 상승(상한도 단계마다 상승)
+	endless_hp_scale *= GameState.asc_hp_mult()    # 상승 계층(스테이지): 배율 1.0이면 무영향
+	endless_dmg_scale *= GameState.asc_dmg_mult()
 	if _challenge_left > 0:  # 갈림길 '도전': 다음 N웨이브 적 체력·피해 강화
 		endless_hp_scale *= CHALLENGE_MULT
 		endless_dmg_scale *= CHALLENGE_MULT
@@ -444,6 +451,8 @@ func _start_wave(index: int) -> void:
 		var elem := _stage_element(index)
 		wave_label.text = "Wave %d · %s 스테이지" % [index + 1, ElementLib.display_name(elem)]
 		wave_label.modulate = ElementLib.color(elem)  # 스테이지 속성 색
+	if GameState.run_ascension > 0:  # 상승 계층 진행 중 표시(웨이브 종류와 무관하게 접미)
+		wave_label.text += "  ·  상승 %d" % GameState.run_ascension
 	spawn_timer.wait_time = _wave_interval(index)
 	spawn_timer.start()
 	$Player.on_wave_start()  # 패시브: 웨이브 시작 회복
@@ -609,6 +618,8 @@ func _on_enemy_died(pos: Vector2, color: Color, size: float, tex: Texture2D, coi
 	var gain := coins  # 처치 코인 (엘리트 보너스 포함, 도달한 적은 _unregister만)
 	if $Player.relic_levels.has("greed"):
 		gain = int(round(gain * RelicLib.greed_mult($Player.relic_levels["greed"])))  # 황금의 룬(레벨별)
+	if GameState.run_ascension > 0:
+		gain = int(round(gain * GameState.asc_coin_mult()))  # 상승 계층 코인 보너스(+15%/계층)
 	run_coins += gain
 	_update_coin_label()
 	_unregister_enemy()
@@ -650,6 +661,8 @@ func _on_wave_cleared() -> void:
 	var bonus := wave_index + 1  # 웨이브 클리어 보너스 = 웨이브 번호
 	if $Player.relic_levels.has("greed"):
 		bonus = int(round(bonus * RelicLib.greed_mult($Player.relic_levels["greed"])))
+	if GameState.run_ascension > 0:
+		bonus = int(round(bonus * GameState.asc_coin_mult()))  # 상승 계층 코인 보너스(+15%/계층)
 	run_coins += bonus
 	_update_coin_label()
 	# 스테이지 모드: 마지막(보스) 웨이브를 깨면 클리어(다음 웨이브 없음)
@@ -917,7 +930,8 @@ func _card_synergy(card: CardData) -> float:
 func _open_draft(rare: bool = false, legendary: bool = false) -> void:
 	$Player.skills_paused = true  # 드래프트 중 스킬 쿨타임 정지
 	_draft_rare = rare or legendary  # 리롤도 최소 희귀+ 유지
-	var cards := _draw_cards(CHOICES_PER_CLEAR, rare, [], legendary)
+	var n := maxi(CHOICES_PER_CLEAR + GameState.asc_choices_delta(), 2)  # 상승 계층(3단계~): 선택지 −1(하한 2)
+	var cards := _draw_cards(n, rare, [], legendary)
 	card_select.open(cards)
 	if auto_pick and not cards.is_empty():
 		get_tree().create_timer(0.25).timeout.connect(card_select.pick_random)
@@ -1057,6 +1071,15 @@ func _update_remaining_label() -> void:
 func _stage_cleared() -> void:
 	game_over = true
 	pause_button.hide()
+	var run_asc: int = GameState.run_ascension  # 이번 런 상승 계층(해금 판정 전 값)
+	var newly: bool = GameState.try_unlock_ascension(run_asc)  # 최고 계층 클리어면 다음 계층 해금
+	if newly:
+		_asc_clear_msg = ("★ 상승 1 해금! — 더 강한 적에 도전하세요" if run_asc == 0
+			else "★ 상승 %d 클리어 — 상승 %d 해금!" % [run_asc, run_asc + 1])
+	elif run_asc > 0:
+		_asc_clear_msg = "상승 %d 클리어" % run_asc
+	else:
+		_asc_clear_msg = ""
 	GameState.add_coins(run_coins)
 	var lvl_before: int = GameState.char_level(GameState.selected)
 	GameState.add_xp(GameState.selected, wave_index + 1)
@@ -1187,6 +1210,8 @@ func _show_result(is_clear: bool, reached: int, leveled_name: String, new_best: 
 		lines.append("★ 최고 기록 Wave %d!" % reached)
 	for tname in unlocked_tabs:
 		lines.append("★ %s 해금!" % tname)  # 이번 런으로 새로 열린 메타 탭
+	if is_clear and _asc_clear_msg != "":
+		lines.append(_asc_clear_msg)  # 상승 계층 클리어/해금 안내
 	# 목표(도전 과제) 정산 — 이번 런으로 달성된 목표에 코인 지급, 요약에 표시 + 다음 목표 안내
 	var goals_done: Array = GameState.claim_goals(total_cards)
 	for g in goals_done:
