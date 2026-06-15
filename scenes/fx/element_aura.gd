@@ -22,11 +22,8 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	var r := _radius  # 맥동은 scale, 회전은 rotation이 처리 → _draw는 1회만(setup) 실행
-	# 부드러운 글로우(여러 겹 반투명 원) — 네모 대신 은은한 후광
-	draw_circle(Vector2.ZERO, r * 1.05, Color(_col.r, _col.g, _col.b, 0.10))
-	draw_circle(Vector2.ZERO, r * 0.82, Color(_col.r, _col.g, _col.b, 0.10))
-	# 속성별 외곽선(원 또는 정다각형)
-	var line_col := Color(_col.r, _col.g, _col.b, 0.82)
+	# 반투명 글로우 원 제거(모바일 fill-rate 절감 — 적 다수 시 오버드로우가 렉 주범) → 외곽선만으로 속성 표시
+	var line_col := Color(_col.r, _col.g, _col.b, 0.9)
 	if _sides <= 0:
 		draw_arc(Vector2.ZERO, r, 0.0, TAU, 40, line_col, 3.0, true)
 	else:
