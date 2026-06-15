@@ -3,10 +3,11 @@ extends Node
 ## 씬을 새로 로드해도 유지되며, 최고 기록은 user://에 영속 저장된다.
 
 const SAVE_PATH := "user://save.cfg"
-const VERSION := "v2.9"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
+const VERSION := "v3.0"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
 
 # 패치노트 (최신이 위). 새 버전 추가 시 맨 앞에 한 항목 추가. 시작 화면 "패치노트" + 업데이트 시 자동 안내.
 const CHANGELOG := [
+	{"v": "v3.0", "notes": ["세이브 안전장치 — 진행 보호(자동 + 백업 코드). ① 자동(무조작): 브라우저에 '영구 저장' 요청(브라우저가 데이터를 함부로 비우지 않도록) + 저장할 때마다 별도 보관소(localStorage)에 미러 + 직전 세이브를 .bak로 1벌 보관해, 한쪽이 손상돼도 자동 복구합니다. ② 백업 코드: 시작 화면 우하단 '세이브 백업'에서 현재 진행을 '코드'로 내보내(복사) 메모장 등에 보관하고, 코드를 붙여넣어 어디서든 복원합니다. 브라우저 데이터를 지우거나 기기를 바꿔도(특히 iOS는 미사용 시 데이터를 지움) 코드만 있으면 안전합니다. 잘못된 코드는 거부하고 적용 전 현재 진행을 .bak로 백업합니다."]},
 	{"v": "v2.9", "notes": ["스킬 시전 시 뜨던 스킬 이름 글자(유성!·전격! 등)도 제거 — v2.7의 반응 텍스트 제거에 이어, 시전마다 새로 그리던 이름 팝업까지 없애 렌더 부하를 더 덜었습니다. 스킬 연출(낙하·폭발·번개·서리 등)은 그대로라 무엇을 썼는지 색·모양으로 구분됩니다. 동작·피해는 변화 없음."]},
 	{"v": "v2.8", "notes": ["3종 개선 — ① 과부하(화상+둔화 중첩 폭발)의 '넉백'을 '광역 둔화'로 교체: 적을 뒤로 밀어 웨이브가 길어지던 효과 대신, 폭발 범위 안의 적을 잠시 강하게 둔화시킵니다(밀치지 않아 진행이 늘어지지 않고, 주변 적까지 묶는 군중제어로). ② '내 빌드'(내 카드) 창의 스킬 피해값에 만·억 단위 적용 — 후반 큰 수치가 '5만'처럼 짧게 표시돼 카드를 안 넘칩니다. ③ '획득 카드' 목록을 등급별로 분류 — 전설→영웅→희귀→고급→일반 순으로 묶고 각 등급 헤더를 붙여 한눈에 보입니다(같은 등급은 획득 순)."]},
 	{"v": "v2.7", "notes": ["원소 반응 이름 텍스트(증발!·빙결파쇄!·과부하!) 제거 — 후반 프레임 드랍 완화(피드백). 반응이 터질 때마다 떠오르던 글자 팝업이 후반에 적이 많고 화상·둔화가 깔리면 적 수만큼 매번 새 Label로 생성돼(폰트 재배치 비용) 렉의 원인이 됐습니다. 텍스트만 제거하고 반응 효과(증발 광역폭발·빙결파쇄 추가타·과부하 폭발+넉백)는 그대로 유지 — 손해 없이 부하만 덜었습니다."]},
@@ -300,6 +301,8 @@ var run_ascension := 0    ## 이번 스테이지 런에서 고른 계층(0~ascen
 
 func _ready() -> void:
 	_load()
+	if OS.has_feature("web"):  # 브라우저가 저장소를 함부로 비우지 않도록 영구저장 요청(자동 안전)
+		JavaScriptBridge.eval("navigator.storage&&navigator.storage.persist&&navigator.storage.persist()")
 	apply_audio()  # 저장된 음량·음소거를 마스터 버스에 적용(게임 전체)
 	if selected == null:
 		selected = characters[0]
@@ -678,8 +681,8 @@ func relic_level(id: String) -> int:
 	return int(relic_levels.get(id, 0))
 
 func _load() -> void:
-	var cf := ConfigFile.new()
-	if cf.load(SAVE_PATH) == OK:
+	var cf := _load_config()  # 주 파일 → .bak → 웹 localStorage 미러 폴백
+	if cf != null:
 		best_wave = cf.get_value("record", "best_wave", 0)
 		game_speed = cf.get_value("settings", "game_speed", 1.0)
 		sfx_volume = cf.get_value("settings", "sfx_volume", 1.0)
@@ -712,6 +715,7 @@ func _load() -> void:
 		_save()  # 플래그 즉시 영속화 → 다음 부팅부터 재지급 안 됨
 
 func _save() -> void:
+	_backup_save()  # 직전 세이브를 .bak로 (손상·실수 덮어쓰기 복구)
 	var cf := ConfigFile.new()
 	cf.set_value("record", "best_wave", best_wave)
 	cf.set_value("settings", "game_speed", game_speed)
@@ -734,6 +738,81 @@ func _save() -> void:
 	cf.set_value("meta", "test_coin_granted", test_coin_granted)
 	cf.set_value("record", "completed_goals", completed_goals)
 	cf.save(SAVE_PATH)
+	_mirror_save()  # 웹: localStorage 미러(브라우저 저장소 중복 안전)
+
+## --- 세이브 안전장치 (P0): 백업·미러·내보내기/불러오기 ---
+const SAVE_CODE_PREFIX := "CM1:"  ## 백업 코드 접두어(형식 검증·버전)
+
+## 직전 세이브를 .bak로 보관 — 손상·실수 덮어쓰기·잘못된 불러오기 복구용
+func _backup_save() -> void:
+	if not FileAccess.file_exists(SAVE_PATH):
+		return
+	var txt := FileAccess.get_file_as_string(SAVE_PATH)
+	if txt == "":
+		return
+	var f := FileAccess.open(SAVE_PATH + ".bak", FileAccess.WRITE)
+	if f:
+		f.store_string(txt)
+		f.close()
+
+## 웹: 세이브를 localStorage에도 미러(IndexedDB와 별개 보관 → 한쪽 손상 시 복구). base64로 안전 전달.
+func _mirror_save() -> void:
+	if not OS.has_feature("web"):
+		return
+	var txt := FileAccess.get_file_as_string(SAVE_PATH)
+	if txt == "":
+		return
+	JavaScriptBridge.eval("try{localStorage.setItem('cm_save','%s')}catch(e){}" % Marshalls.utf8_to_base64(txt))
+
+## 세이브 소스 폴백: 주 파일 → .bak → 웹 localStorage 미러. 성공한 ConfigFile(없으면 null).
+func _load_config() -> ConfigFile:
+	var cf := ConfigFile.new()
+	if cf.load(SAVE_PATH) == OK:
+		return cf
+	var bak := ConfigFile.new()  # 주 파일 손상/유실 → .bak 복구
+	if bak.load(SAVE_PATH + ".bak") == OK:
+		bak.save(SAVE_PATH)
+		return bak
+	if OS.has_feature("web"):  # 웹: localStorage 미러에서 복구
+		var b64 := str(JavaScriptBridge.eval("localStorage.getItem('cm_save')||''", true))
+		if b64 != "":
+			var txt := Marshalls.base64_to_utf8(b64)
+			var m := ConfigFile.new()
+			if txt != "" and m.parse(txt) == OK:
+				m.save(SAVE_PATH)
+				return m
+	return null
+
+## 현재 세이브를 백업 코드 문자열로 — 내보내기(복사해 외부 보관). 최신 상태 반영 후 인코딩.
+func export_code() -> String:
+	_save()
+	var txt := FileAccess.get_file_as_string(SAVE_PATH)
+	return SAVE_CODE_PREFIX + Marshalls.utf8_to_base64(txt)
+
+## 백업 코드 적용 — 불러오기. 형식·파싱·구조 검증 통과 시에만 덮어쓰고 메모리 갱신. 성공=true.
+func import_code(code: String) -> bool:
+	var c := code.strip_edges()
+	if not c.begins_with(SAVE_CODE_PREFIX):
+		return false
+	var txt := Marshalls.base64_to_utf8(c.substr(SAVE_CODE_PREFIX.length()))
+	if txt == "":
+		return false
+	var test := ConfigFile.new()
+	if test.parse(txt) != OK or not (test.has_section("meta") or test.has_section("record")):
+		return false  # 손상·다른 코드 → 세이브 건드리지 않음
+	_backup_save()  # 적용 전 현재 세이브 .bak 보관(되돌릴 여지)
+	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	if f == null:
+		return false
+	f.store_string(txt)
+	f.close()
+	_mirror_save()
+	reload_from_disk()
+	return true
+
+## 디스크에서 메모리 상태 재적용(불러오기 후 UI 갱신용)
+func reload_from_disk() -> void:
+	_load()
 
 ## 현재 버전의 패치노트를 본 것으로 기록(자동 안내 1회용)
 func mark_version_seen() -> void:

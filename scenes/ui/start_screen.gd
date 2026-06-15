@@ -102,6 +102,7 @@ func _ready() -> void:
 	_build_counter_help()  # 상성 오버레이(최상단으로 마지막에 추가)
 	_build_tips_help()     # 공략 팁 오버레이
 	_build_patch_badge()   # 미열람 새 패치가 있으면 상단 배지
+	_build_save_button()   # 세이브 백업(내보내기/불러오기) 진입 — 전 플랫폼
 
 ## 수동 업데이트 확인 버튼(웹) — 우하단. 새 버전이 있으면 캐시 비우고 적용(재시작), 이미 최신이면 토스트 알림만(재시작 안 함).
 func _build_update_button() -> void:
@@ -118,6 +119,97 @@ func _build_update_button() -> void:
 	ub.offset_bottom = -116.0
 	ub.pressed.connect(func() -> void: JavaScriptBridge.eval("window.cmCheckUpdate&&window.cmCheckUpdate()"))  # 최신이면 토스트만, 새 버전이면 적용
 	add_child(ub)
+
+## 세이브 백업 버튼(우하단, '업데이트 확인' 위) — 모든 플랫폼. 백업 코드 패널 진입.
+func _build_save_button() -> void:
+	var sb := Button.new()
+	sb.text = "세이브 백업"
+	sb.flat = true
+	sb.add_theme_font_override("font", FONT)
+	sb.add_theme_font_size_override("font_size", 14)
+	sb.add_theme_color_override("font_color", Color(0.6, 0.85, 0.7))
+	sb.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	sb.offset_left = -160.0
+	sb.offset_top = -176.0
+	sb.offset_right = -10.0
+	sb.offset_bottom = -148.0
+	sb.pressed.connect(_open_save_panel)
+	add_child(sb)
+
+func _panel_button(text: String) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.add_theme_font_override("font", FONT)
+	b.add_theme_font_size_override("font_size", 18)
+	b.custom_minimum_size = Vector2(0, 44)
+	return b
+
+## 세이브 백업 패널 — 열 때마다 최신 코드로 구성. 내보내기(코드+복사) / 불러오기(붙여넣기+적용).
+func _open_save_panel() -> void:
+	var panel := Control.new()
+	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.72)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP  # 뒤 입력 차단
+	panel.add_child(dim)
+	var cc := CenterContainer.new()
+	cc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	panel.add_child(cc)
+	var box := VBoxContainer.new()
+	box.custom_minimum_size = Vector2(580, 0)
+	box.add_theme_constant_override("separation", 9)
+	cc.add_child(box)
+	box.add_child(_label("세이브 백업", 26, Color(0.7, 0.9, 0.78)))
+	var note := Label.new()
+	note.text = "코드를 복사해 메모장 등에 보관하세요. 기기를 바꾸거나 브라우저 데이터를 지워도 코드로 복원됩니다."
+	note.add_theme_font_override("font", FONT)
+	note.add_theme_font_size_override("font_size", 14)
+	note.add_theme_color_override("font_color", Color(0.74, 0.76, 0.82))
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	note.custom_minimum_size = Vector2(560, 0)
+	box.add_child(note)
+	var status := _label("", 16, Color(0.7, 0.95, 0.7))
+	# 내보내기
+	box.add_child(_label("내보내기 — 이 코드를 복사", 17, Color(0.85, 0.88, 0.95)))
+	var out := TextEdit.new()
+	out.text = GameState.export_code()
+	out.editable = false
+	out.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
+	out.custom_minimum_size = Vector2(560, 86)
+	out.add_theme_font_override("font", FONT)
+	out.add_theme_font_size_override("font_size", 12)
+	box.add_child(out)
+	var copy := _panel_button("복사")
+	copy.pressed.connect(func() -> void:
+		DisplayServer.clipboard_set(out.text)
+		if OS.has_feature("web"):
+			JavaScriptBridge.eval("navigator.clipboard&&navigator.clipboard.writeText('%s')" % out.text)
+		status.add_theme_color_override("font_color", Color(0.7, 0.95, 0.7))
+		status.text = "복사됨 ✓")
+	box.add_child(copy)
+	# 불러오기
+	box.add_child(_label("불러오기 — 코드 붙여넣기", 17, Color(0.85, 0.88, 0.95)))
+	var inp := TextEdit.new()
+	inp.placeholder_text = "여기에 백업 코드 붙여넣기"
+	inp.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
+	inp.custom_minimum_size = Vector2(560, 66)
+	inp.add_theme_font_override("font", FONT)
+	inp.add_theme_font_size_override("font_size", 12)
+	box.add_child(inp)
+	var apply := _panel_button("적용 (현재 진행을 덮어씀)")
+	apply.pressed.connect(func() -> void:
+		if GameState.import_code(inp.text):
+			get_tree().reload_current_scene()  # 복원된 코인·기록·해금 즉시 반영
+		else:
+			status.add_theme_color_override("font_color", Color(0.95, 0.5, 0.5))
+			status.text = "코드가 올바르지 않습니다")
+	box.add_child(apply)
+	box.add_child(status)
+	var close := _panel_button("닫기")
+	close.pressed.connect(panel.queue_free)
+	box.add_child(close)
+	add_child(panel)
 
 ## 업데이트 후 첫 진입: 미열람 새 버전이면 제목 아래 '새 패치' 배지(탭 → 패치노트, 열람 시 mark_version_seen으로 사라짐).
 ## 자동 전환(이전 방식) 대신 — 강제로 끌고 가지 않고 눈에 띄게만(피드백 반영).
