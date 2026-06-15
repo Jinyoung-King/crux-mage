@@ -363,8 +363,15 @@ func _update_mastery() -> void:
 	var c: CharacterData = GameState.selected
 	mastery_box.show()
 	var st: Array = GameState._xp_state(c)  # [레벨, 레벨 내 경험치, 다음 레벨 필요치]
-	var bonus := int(round((GameState.mastery_mult(c) - 1.0) * 100.0))
-	mastery_label.text = "%s 숙련 Lv %d · 전투력 +%d%%" % [c.display_name, st[0], bonus]
+	var mm := GameState.mastery_mult(c)
+	var bonus := int(round((mm - 1.0) * 100.0))
+	# 전투력 상세 — 숙련 배율(공격력·체력 동일 적용)을 실효값으로 표기. player.apply_character와 동일 식.
+	var dmg := (c.base_damage + GameState.upgrade_value("damage", c) + GameState.kill_bonus_damage()) * mm * GameState.trait_damage_mult()
+	var hp := (100.0 + GameState.upgrade_value("max_hp", c) + GameState.kill_bonus_hp()) * mm * GameState.trait_hp_mult()
+	mastery_label.text = "%s 숙련 Lv %d · 전투력 +%d%%\n공격력 %s · 체력 %s · 레벨당 +%d%%" % [
+		c.display_name, st[0], bonus,
+		NumFmt.compact(int(round(dmg))), NumFmt.compact(int(round(hp))),
+		int(round(GameState.MASTERY_PER_LEVEL * 100.0))]
 	mastery_bar.max_value = st[2]
 	mastery_bar.value = st[1]
 	_xp_fill.bg_color = ElementLib.color(c.element)
