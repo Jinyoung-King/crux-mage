@@ -11,8 +11,8 @@ extends Node2D
 const BLOCK_POP := preload("res://scenes/fx/block_pop.gd")  ## 적탄 차단 보호막 링(직관적 표시)
 const CLEAR_RADIUS := 28.0   ## 드론이 적탄을 소멸시키는 근접 반경(px)
 const TICK_INTERVAL := 0.4   ## 적 지속 피해 주기(s)
-const TICK_RADIUS := 48.0    ## 드론 주변 피해 반경(px)
-const DPS_FACTOR := 0.45     ## tick 피해 = build.damage × DPS_FACTOR × (power/10) — 빌드·스킬투자 비례(후반 유효)
+const TICK_RADIUS := 60.0    ## 드론 주변 피해 반경(px) — 적이 더 잘 닿도록 확대(v2.4)
+const DPS_FACTOR := 0.6      ## tick 피해 = build.damage × DPS_FACTOR × (power/10) × skill_power_mult — 빌드·스킬위력 비례
 
 var _player
 var _count: int = 2
@@ -73,9 +73,10 @@ func _block_fx(pos: Vector2) -> void:
 	get_tree().current_scene.add_child(pop)
 	pop.global_position = pos
 
-## 드론 반경 안의 적에게 주기당 피해(상성 적용). build.damage 비례라 후반에도 유효.
+## 드론 반경 안의 적에게 주기당 피해(상성 적용). build.damage × 스킬위력 비례 → 스킬 빌드 후반에도 유효.
 func _damage_enemies() -> void:
-	var per_tick: float = _player.build.damage * DPS_FACTOR * (_power / 10.0) * TICK_INTERVAL
+	# v2.4: skill_power_mult 반영 — 스킬 위력 카드·특성(주문력)·유물 투자가 비행체에도 적용(다른 스킬과 동일).
+	var per_tick: float = _player.build.damage * DPS_FACTOR * (_power / 10.0) * _player.build.skill_power_mult * TICK_INTERVAL
 	if per_tick <= 0.0:
 		return
 	var elem: String = _player.character.element if _player.character else ""

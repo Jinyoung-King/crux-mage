@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+card_name = "불바다 습득"
+description = "불바다 — 없으면 습득, 있으면 진화(겁화→업화)"
+rarity = "rare"
+grant_skill_id = "inferno"

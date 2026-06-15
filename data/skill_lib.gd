@@ -11,9 +11,12 @@ const DEFS := {
 	"chain":   {"name": "전격", "cooldown": 8.0, "power": 13.0, "radius": 0.0, "count": 4, "element": "metal"},
 	"freeze":  {"name": "서리바람", "cooldown": 12.0, "power": 9.0, "radius": 0.0, "count": 0, "element": "water"},
 	"thorns":  {"name": "가시밭", "cooldown": 9.0, "power": 9.0, "radius": 88.0, "count": 0, "element": "wood"},
+	"inferno": {"name": "불바다", "cooldown": 8.0, "power": 9.0, "radius": 64.0, "count": 0, "element": "fire"},   # 화염 작렬+화상+잔류 장판(DoT)
+	"rockfall": {"name": "낙석", "cooldown": 8.5, "power": 8.0, "radius": 50.0, "count": 3, "element": "earth"},   # 여러 바위 분산 낙하(count=바위 수)
+	"glacier": {"name": "빙하", "cooldown": 7.0, "power": 13.0, "radius": 70.0, "count": 0, "element": "water"},   # 국지 고피해+강한 둔화
 	# 방어형 비행체 — 지속형 동반자(쿨캐스트 아님). cooldown은 쓰이지 않음(player가 캐스트 루프에서 제외).
 	# power=tick 피해 기준(build.damage 비례), radius=공전 반경, count=비행체 수.
-	"barrier_droid": {"name": "수호 비행체", "cooldown": 99.0, "power": 10.0, "radius": 95.0, "count": 2, "element": "metal"},
+	"barrier_droid": {"name": "수호 비행체", "cooldown": 99.0, "power": 10.0, "radius": 95.0, "count": 3, "element": "metal"},
 }
 
 ## 스킬 시전 사거리(마법사로부터). 이 거리 안의 적만 타겟 — 스킬별 차등(기지 y≈1150 기준).
@@ -25,6 +28,9 @@ const SKILL_RANGE := {
 	"barrage": 1100.0,
 	"freeze": 850.0,
 	"thorns": 900.0,
+	"inferno": 1000.0,
+	"rockfall": 1100.0,
+	"glacier": 900.0,
 	"barrier_droid": 99999.0,  # 쿨캐스트 아님(사거리 무의미) — 안전값
 }
 
@@ -55,6 +61,21 @@ const EVOLVE := {
 		{"name": "집중포화", "count": 1, "radius_mult": 1.2, "power_mult": 1.3},
 		{"name": "궤도 포격", "count": 2, "radius_mult": 1.4, "power_mult": 1.7},
 		{"name": "행성 붕괴", "count": 3, "radius_mult": 1.4, "power_mult": 1.9},
+	],
+	"inferno": [
+		{"name": "겁화", "radius_mult": 1.2, "power_mult": 1.35},
+		{"name": "업화", "radius_mult": 1.4, "power_mult": 1.7},
+		{"name": "지옥불", "radius_mult": 1.4, "power_mult": 1.9},
+	],
+	"rockfall": [
+		{"name": "암석 강우", "count": 1, "power_mult": 1.25},
+		{"name": "유성 낙석", "count": 1, "power_mult": 1.5},
+		{"name": "대붕괴", "count": 1, "power_mult": 1.7},
+	],
+	"glacier": [
+		{"name": "빙벽", "radius_mult": 1.2, "power_mult": 1.4},
+		{"name": "빙하기", "radius_mult": 1.4, "power_mult": 1.85},
+		{"name": "절대 빙하", "radius_mult": 1.4, "power_mult": 2.0},
 	],
 	"barrier_droid": [  # 비행체 수·위력 증가(진화 횟수 상한=3). 실제 분기 효과는 EVOLVE_BRANCHES 참조.
 		{"name": "수호 비행체 II", "count": 1, "power_mult": 1.25},
@@ -96,6 +117,21 @@ const EVOLVE_BRANCHES := {
 		{"kind": "power",    "name": "가시 숲",      "desc": "범위 +25% · 위력 +35%", "radius_mult": 1.25, "power_mult": 1.35},
 		{"kind": "element",  "name": "옭아매는 덩굴", "desc": "명중 시 둔화 부여 · 위력 +10%", "grant": "slow", "power_mult": 1.1},
 		{"kind": "behavior", "name": "독가시",        "desc": "처치 시 폭발(처치 폭발 부여) · 위력 +15%", "behavior": "explode", "amount": 0.3, "power_mult": 1.15},
+	],
+	"inferno": [
+		{"kind": "power",    "name": "겁화",      "desc": "위력 +35% · 반경 +25%", "power_mult": 1.35, "radius_mult": 1.25},
+		{"kind": "element",  "name": "맹독 화염",  "desc": "화상 강화(중첩) · 위력 +15%", "grant": "burn", "power_mult": 1.15},
+		{"kind": "behavior", "name": "연쇄 폭발",  "desc": "처치 시 폭발(처치 폭발 부여) · 위력 +15%", "behavior": "explode", "amount": 0.3, "power_mult": 1.15},
+	],
+	"rockfall": [
+		{"kind": "power",    "name": "암석 강우", "desc": "바위 +1 · 위력 +30%", "count_add": 1, "power_mult": 1.3},
+		{"kind": "behavior", "name": "여진",      "desc": "명중 지점에 잔류 장판 · 위력 +15%", "behavior": "ground_field", "power_mult": 1.15},
+		{"kind": "behavior", "name": "산사태",    "desc": "표적 수 +1(다발 강화) · 위력 +15%", "behavior": "extra_targets", "amount": 1, "power_mult": 1.15},
+	],
+	"glacier": [
+		{"kind": "power",    "name": "빙벽",      "desc": "위력 +40% · 반경 +20%", "power_mult": 1.4, "radius_mult": 1.2},
+		{"kind": "element",  "name": "혹한 빙하",  "desc": "둔화 강화(중첩) · 위력 +15%", "grant": "slow", "power_mult": 1.15},
+		{"kind": "behavior", "name": "빙결 파편",  "desc": "처치 시 폭발(처치 폭발 부여) · 위력 +15%", "behavior": "explode", "amount": 0.3, "power_mult": 1.15},
 	],
 	"barrier_droid": [  # 전부 power 계열(부여/행동 플래그 없음) — count/radius/power만 강화
 		{"kind": "power", "name": "수호 군단",   "desc": "비행체 +1 · 위력 +25%", "count_add": 1, "power_mult": 1.25},

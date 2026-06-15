@@ -75,6 +75,34 @@ func execute(s: Dictionary) -> void:
 				_skill_burst(tc, col)
 				_thorn_erupt(tc, er)  # 가시 솟구침 연출
 				focus = tc
+		"inferno":  # 불바다: 밀집 지점에 화염 작렬(광역 피해 + 화상) + 잔류 화염 장판(지속 피해)
+			var fc := _densest_cluster(er, pool)
+			if fc != Vector2.INF:
+				_skill_aoe(fc, er, ep, true, element)   # 광역 피해 + 화상 부여
+				_ground_field(fc, er, ep, element)       # 잔류 화염 장판(DoT)
+				host._skill_ring(fc, er, col, element)
+				_skill_burst(fc, col)
+				_scorch(fc, er)  # 그을음 자국
+				focus = fc
+		"rockfall":  # 낙석: 여러 바위가 흩어진 적 위로 분산 낙하(각 중간 폭발). count=바위 수
+			var pts := _random_enemy_points(count, pool)
+			for pt in pts:
+				_drop_aoe(pt, er, ep, element, col, false, 32, false)  # 바위당 가벼운 FX·흔들림은 1회로 묶음
+			if not pts.is_empty():
+				host._add_shake(3.0)
+				focus = pts[0]
+		"glacier":  # 빙하: 밀집 지점에 얼음 작렬 — 국지 고피해 + 강한 둔화 부여
+			var gc := _densest_cluster(er, pool)
+			if gc != Vector2.INF:
+				for e in EnemyCache.all():
+					if is_instance_valid(e) and gc.distance_to(e.global_position) <= er:
+						_skill_hit(e, ep, element)
+						if is_instance_valid(e) and e.hp > 0.0:
+							e.apply_slow(0.3, 3.0)  # 강한 둔화(국지·서리바람보다 길게)
+				host._skill_ring(gc, er, col, element)
+				_skill_burst(gc, Color(0.6, 0.85, 1.0))
+				_particle_fx(gc, Color(0.7, 0.9, 1.0), 40, 0.7, 60.0, 190.0, 120.0, 1.5, 3.5)  # 얼음 파편 비산
+				focus = gc
 	_skill_name_popup(focus, s.name, col)  # 시전 스킬 이름 표시
 	host._add_shake(4.0)
 

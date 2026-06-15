@@ -421,6 +421,9 @@ func _skill_detail(id: String) -> String:
 		"meteor": lines.append("반경 %d 광역 피해" % rad)
 		"freeze": lines.append("화면 전체 둔화")
 		"thorns": lines.append("반경 %d 가시 장판" % rad)
+		"inferno": lines.append("반경 %d 화염 + 잔류 장판" % rad)
+		"rockfall": lines.append("바위 %d개 낙하 · 반경 %d" % [cnt, rad])
+		"glacier": lines.append("반경 %d 광역 + 강한 둔화" % rad)
 	return "\n".join(lines)
 
 ## 쿨타임 표기: 정수면 정수로, 소수면 한 자리(4.5초 등)
