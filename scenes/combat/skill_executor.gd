@@ -96,12 +96,9 @@ func _skill_hit(e, dmg: float, element: String) -> void:
 		for m in p.hit_modifiers:
 			m.on_hit(_hit_ctx)   # 파쇄·기폭·화상·둔화·점화·즉사·넉백 (순서 보존)
 	_apply_element_reactions(e, element)  # 증발·빙결파쇄 (속성×상태 베이스라인 반응)
-	var killed: bool = is_instance_valid(e) and e.hp <= 0.0
-	if killed:
+	if is_instance_valid(e) and e.hp <= 0.0:
 		for m in p.hit_modifiers:
 			m.on_kill(_hit_ctx)  # 처치 폭발
-	elif _hit_ctx.is_crit:
-		host._crit_impact()  # 비처치 치명타 타격감(처치 시 멈춤은 enemy._die가 담당)
 	host._damage_number(_hit_ctx.pos, d, _hit_ctx.is_crit, false, _hit_ctx.mult > 1.0)
 
 # --- 원소 반응(Element Reaction) — Phase 2 ---
