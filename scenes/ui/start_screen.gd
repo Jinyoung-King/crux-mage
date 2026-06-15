@@ -4,6 +4,7 @@ extends Control
 
 const FONT := preload("res://assets/fonts/NotoSansKR.ttf")
 const ELEMENT_AURA := preload("res://scenes/fx/element_aura.gd")
+const NAV_BAR := preload("res://scenes/ui/nav_bar.gd")  # 공용 하단 네비(가운데 집 아이콘) — 모든 화면 일관
 
 var view_chars: Array = []   # 해금된 캐릭터(◀▶ 순환 대상)
 var view_pos: int = 0
@@ -37,7 +38,6 @@ const TIPS := [
 @onready var char_view: VBoxContainer = $Center/CharView
 @onready var play_button: Button = $Center/PlayButton
 @onready var best_label: Label = $Center/BestLabel
-@onready var upgrade_button: Button = $NavBar/Row/UpgradeButton
 @onready var start_wave_box: VBoxContainer = $Center/StartWaveBox
 @onready var start_wave_label: Label = $Center/StartWaveBox/StartWaveLabel
 @onready var start_wave_slider: HSlider = $Center/StartWaveBox/StartWaveSlider
@@ -66,12 +66,9 @@ func _ready() -> void:
 	view_pos = maxi(view_chars.find(GameState.selected), 0)
 	_build_char_view()
 	play_button.pressed.connect(_on_play)
-	upgrade_button.pressed.connect(_on_upgrade)
-	$NavBar/Row/PatchButton.pressed.connect(_on_patch)
-	$NavBar/Row/RelicButton.pressed.connect(_on_relics)
-	$NavBar/Row/BestiaryButton.pressed.connect(_on_bestiary)
-	$NavBar/Row/TraitButton.pressed.connect(_on_traits)
-	_apply_tab_unlocks()  # 메타 탭 점진 공개 — best_wave 단계로 도감·특성·룬 노출(신규 압도 방지)
+	var nav = NAV_BAR.new()  # 공용 하단 네비(가운데 집 아이콘) — 모든 화면 일관
+	add_child(nav)
+	nav.setup("home")  # 홈 화면이므로 집 아이콘이 현재 탭(금색·비활성)
 	# 시작 웨이브 다이얼: 1 ~ 최고 기록(1단위). 기록이 2 미만이면 숨김.
 	if GameState.best_wave < 2:
 		start_wave_box.hide()
@@ -151,13 +148,6 @@ func _build_char_view() -> void:
 	tips_btn.add_theme_color_override("font_color", Color(0.72, 0.78, 0.9))
 	tips_btn.pressed.connect(_show_tips_help)
 	char_view.add_child(tips_btn)
-
-## 메타 탭 점진 공개 — best_wave가 임계 이상인 탭만 노출. 강화·패치노트는 항상.
-## 해금 '알림' 토스트는 런 종료 요약에서 처리(실제로 넘긴 런에만) → 여기선 표시 여부만.
-func _apply_tab_unlocks() -> void:
-	for t in GameState.TAB_UNLOCKS:
-		var btn: Button = $NavBar/Row.get_node(t.node)
-		btn.visible = GameState.best_wave >= int(t.wave)
 
 ## ▶ 다음 목표 라벨 — $Center에서 플레이 버튼 바로 앞에 배치('한 판 더'의 동기)
 func _build_goal_label() -> void:
@@ -406,18 +396,3 @@ func _build_stage_buttons() -> void:
 		b.add_theme_color_override("font_color", ElementLib.color(elem))
 		row.add_child(b)
 		b.pressed.connect(_on_stage.bind(elem))
-
-func _on_upgrade() -> void:
-	get_tree().change_scene_to_file("res://scenes/ui/meta_upgrade.tscn")
-
-func _on_patch() -> void:
-	get_tree().change_scene_to_file("res://scenes/ui/patch_notes.tscn")
-
-func _on_relics() -> void:
-	get_tree().change_scene_to_file("res://scenes/ui/relic_manage.tscn")
-
-func _on_bestiary() -> void:
-	get_tree().change_scene_to_file("res://scenes/ui/bestiary.tscn")
-
-func _on_traits() -> void:
-	get_tree().change_scene_to_file("res://scenes/ui/traits.tscn")
