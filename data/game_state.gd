@@ -3,10 +3,11 @@ extends Node
 ## 씬을 새로 로드해도 유지되며, 최고 기록은 user://에 영속 저장된다.
 
 const SAVE_PATH := "user://save.cfg"
-const VERSION := "v1.91"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
+const VERSION := "v1.92"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
 
 # 패치노트 (최신이 위). 새 버전 추가 시 맨 앞에 한 항목 추가. 시작 화면 "패치노트" + 업데이트 시 자동 안내.
 const CHANGELOG := [
+	{"v": "v1.92", "notes": ["룬 뽑기 — 비용 곡선 상향 + 일일 무료 뽑기. ① 상한 2000이 너무 싸다는 피드백 → 평탄 상한 대신 '18뽑까지 기하급수, 이후 뽑기당 +800 선형'으로 변경. 후반에도 계속 오르되(30뽑 1.2만·40뽑 2만) 폭주(예전 14.7만)는 없음. ② 하루 1회 '무료 뽑기' 추가 — 룬 화면 초록 버튼, 코인과 무관하게 매일 룬 1개. 코인이 비싸진 후반에도 매일 꾸준히 모을 수 있는 길. (날짜는 기기 기준)"]},
 	{"v": "v1.91", "notes": ["룬 뽑기 비용 상한 — 후반 획득 난이도 완화(피드백). 뽑기 비용이 기하급수(×1.2^누적뽑기)라 30뽑이면 2만 코인, 40뽑이면 14만 코인으로 사실상 불가능했음 → 2000코인 상한을 둬서 ~20뽑부터 평탄. 초반엔 그대로 비싸져 스팸은 막고(100→249→619→…), 후반에도 몇 판이면 룬을 계속 모을 수 있습니다. (새 재화·일일 시스템 없이 곡선만 조정)"]},
 	{"v": "v1.90", "notes": ["새 패치 알림을 '배지'로 — 업데이트 후 홈에 들어가면 패치노트로 강제 전환되던 것을, 시작 화면 제목 아래 '★ 새 패치 — 보기' 배지로 바꿨습니다. 탭하면 패치노트가 열리고(열람하면 배지 사라짐), 보기 싫으면 그냥 플레이하면 됩니다. 덜 강제적이고 새 패치가 있다는 건 확실히 보이게."]},
 	{"v": "v1.89", "notes": ["부여형 카드 중복 = 누적 강화(피드백 반영) — 화염 각인·서리 각인·메아리·잔류 장판이 그동안 '켜고 끄는' 1회성이라 중복하면 0이었는데, 이제 **중복할수록 강해집니다**: 화염=화상 피해·지속↑, 서리=둔화 강도·지속↑, 메아리=재시전 위력↑(60%→80%→…), 장판=장판 피해↑. 그래서 이 카드들이 보유 후에도 다시 등장합니다(한 효과에 깊게 투자하는 빌드 가능). 카드에 '화상 강화 Lv 2 → 3'처럼 누적이 보입니다. (관통·기폭·파쇄·폭발·공명은 원래 누적됐고 v1.88에서 표시 추가됨)"]},
@@ -184,7 +185,8 @@ const XP_STEP := 25
 const MASTERY_PER_LEVEL := 0.02  ## 숙련 레벨당 공격력·체력 +2%
 const ROLL_BASE := 100   ## 유물 뽑기 기본 비용(코인)
 const ROLL_GROWTH := 1.2  ## 뽑을 때마다 비용 배수(오버파워 방지 — 누적 뽑기수만큼 ×ROLL_GROWTH)
-const ROLL_COST_CAP := 2000  ## 뽑기 비용 상한 — 기하급수가 끝없이 치솟아 후반 룬 획득이 사실상 불가하던 것 완화(누적 ~16뽑에서 도달 후 평탄)
+const ROLL_LINEAR_FROM := 18    ## 누적 이 뽑기수까지는 기하급수(×1.2 스팸 억제), 이후는 선형 증가로 전환(끝없는 폭주는 막되 계속 오름 — 후반도 '안 싸게')
+const ROLL_LINEAR_STEP := 800   ## 선형 구간 뽑기당 비용 증가(코인)
 
 # 처치 업적: 누적 처치가 마일스톤을 넘을 때마다 영구 고정 보너스(공격력·체력). 마일스톤은 높게(기하급수).
 const KILL_MILESTONES := [10, 25, 50, 100, 200, 400, 800]  ## (종류별) 각 적 종류 처치 수가 이 값을 넘을 때마다 보너스 단계 +1
@@ -275,6 +277,7 @@ var total_runs := 0  ## 누적 플레이 횟수(통계)
 var lifetime_coins := 0  ## 누적 획득 코인(통계)
 var seen_version := ""  ## 마지막으로 패치노트를 본 버전 — 다르면 시작 시 자동 안내
 var relic_levels := {}  ## 유물 id별 보유 레벨 {id: level} — 뽑기로 모음, 중복은 레벨↑. 보유분 전부 적용
+var last_free_roll_date := ""  ## 마지막 '일일 무료 뽑기' 수령 날짜(YYYY-MM-DD) — 하루 1회 무료 룬
 
 func _ready() -> void:
 	_load()
@@ -561,7 +564,11 @@ func current_roll_cost() -> int:
 	var rolls := 0
 	for v in relic_levels.values():
 		rolls += int(v)
-	var raw: float = minf(ROLL_BASE * pow(ROLL_GROWTH, rolls), float(ROLL_COST_CAP))  # 상한으로 후반 평탄(끝없는 폭등 방지)
+	var raw: float
+	if rolls <= ROLL_LINEAR_FROM:
+		raw = ROLL_BASE * pow(ROLL_GROWTH, rolls)  # 초반: 기하급수(스팸 억제)
+	else:
+		raw = ROLL_BASE * pow(ROLL_GROWTH, ROLL_LINEAR_FROM) + float(rolls - ROLL_LINEAR_FROM) * ROLL_LINEAR_STEP  # 후반: 선형(계속 오르되 폭주 없음)
 	return int(round(raw * roll_discount_mult()))  # 절약 특성 할인
 
 func can_roll_relic() -> bool:
@@ -573,12 +580,35 @@ func roll_relic() -> Dictionary:
 	if coins < cost:
 		return {}
 	coins -= cost
+	var res := _grant_random_relic()
+	_save()
+	return res
+
+## 랜덤 유물 1레벨 부여(코인/날짜 무관 공통). 반환 {id, level, is_new}
+func _grant_random_relic() -> Dictionary:
 	var r: Dictionary = RelicLib.RELICS[randi() % RelicLib.RELICS.size()]
 	var id: String = r.id
 	var was: int = int(relic_levels.get(id, 0))
 	relic_levels[id] = was + 1
-	_save()
 	return {"id": id, "level": was + 1, "is_new": was == 0}
+
+## 오늘 날짜 문자열(기기 로컬). 일일 무료 뽑기 1회 판정용.
+func _today_str() -> String:
+	var d := Time.get_date_dict_from_system()
+	return "%04d-%02d-%02d" % [int(d.year), int(d.month), int(d.day)]
+
+## 오늘의 무료 뽑기를 아직 안 받았나(하루 1회)
+func can_free_roll() -> bool:
+	return last_free_roll_date != _today_str()
+
+## 일일 무료 뽑기 — 코인 무관, 하루 1회. 이미 받았으면 {}
+func free_roll_relic() -> Dictionary:
+	if not can_free_roll():
+		return {}
+	last_free_roll_date = _today_str()
+	var res := _grant_random_relic()
+	_save()
+	return res
 
 ## 유물 보유 레벨 (0=미보유)
 func relic_level(id: String) -> int:
@@ -599,6 +629,7 @@ func _load() -> void:
 		trait_levels = cf.get_value("meta", "trait_levels", {})
 		seen_version = cf.get_value("meta", "seen_version", "")
 		relic_levels = cf.get_value("meta", "relic_levels", {})
+		last_free_roll_date = cf.get_value("meta", "last_free_roll_date", "")
 		if relic_levels.is_empty():  # 구형 세이브(해금 유물) → 레벨 1로 마이그레이션
 			for rid in cf.get_value("meta", "unlocked_relics", []):
 				relic_levels[rid] = 1
@@ -630,6 +661,7 @@ func _save() -> void:
 	cf.set_value("meta", "trait_levels", trait_levels)
 	cf.set_value("meta", "seen_version", seen_version)
 	cf.set_value("meta", "relic_levels", relic_levels)
+	cf.set_value("meta", "last_free_roll_date", last_free_roll_date)
 	cf.set_value("record", "char_best", char_best)
 	cf.set_value("record", "kills", kills)
 	cf.set_value("record", "total_runs", total_runs)

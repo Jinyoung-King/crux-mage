@@ -14,12 +14,32 @@ const ICON_PX := 64.0  # 룬 아이콘 크기(확대)
 
 var grid: GridContainer  # 룬 그리드(3열)
 var row_cells := {}      # id → {name, eff, icon}
+var free_button: Button  # 일일 무료 뽑기 버튼(코드 생성, 뽑기 버튼 아래)
 
 func _ready() -> void:
 	Music.play_menu()
 	$Center/Title.text = "룬 뽑기"
 	back_button.hide()  # 뒤로 제거 — 하단 nav '홈'으로 복귀
 	roll_button.pressed.connect(_on_roll)
+	# 일일 무료 뽑기 버튼(초록 강조) — 코인 비싸진 후반에도 매일 1회 무료로 룬 획득
+	free_button = Button.new()
+	free_button.add_theme_font_override("font", FONT)
+	free_button.add_theme_font_size_override("font_size", 20)
+	free_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	free_button.custom_minimum_size = Vector2(260, 50)
+	var fst := StyleBoxFlat.new()
+	fst.bg_color = Color(0.3, 0.7, 0.4, 0.28)
+	fst.set_corner_radius_all(10)
+	fst.set_border_width_all(2)
+	fst.border_color = Color(0.5, 0.85, 0.55)
+	fst.set_content_margin_all(8)
+	free_button.add_theme_stylebox_override("normal", fst)
+	free_button.add_theme_stylebox_override("hover", fst)
+	free_button.add_theme_stylebox_override("pressed", fst)
+	free_button.add_theme_color_override("font_color", Color(0.7, 1.0, 0.78))
+	free_button.pressed.connect(_on_free_roll)
+	$Center.add_child(free_button)
+	$Center.move_child(free_button, roll_button.get_index() + 1)  # 뽑기 버튼 바로 아래
 	grid = GridContainer.new()
 	grid.columns = 3
 	grid.add_theme_constant_override("h_separation", 14)
@@ -68,10 +88,25 @@ func _on_roll() -> void:
 	result_label.text = ("%s 획득! (Lv %d)" % [nm, res.level]) if res.is_new else ("%s 강화! (Lv %d)" % [nm, res.level])
 	_refresh()
 
+func _on_free_roll() -> void:
+	var res := GameState.free_roll_relic()
+	if res.is_empty():
+		result_label.text = "오늘의 무료 뽑기는 이미 받았어요 — 내일 다시!"
+		return
+	var nm: String = RelicLib.relic_def(res.id).name
+	result_label.text = ("★ 무료 뽑기: %s 획득! (Lv %d)" % [nm, res.level]) if res.is_new else ("★ 무료 뽑기: %s 강화! (Lv %d)" % [nm, res.level])
+	_refresh()
+
 func _refresh() -> void:
 	coin_label.text = "보유 코인 %s" % NumFmt.compact(GameState.coins)
 	roll_button.text = "룬 뽑기 (%s코인)" % NumFmt.compact(GameState.current_roll_cost())
 	roll_button.disabled = not GameState.can_roll_relic()
+	if GameState.can_free_roll():
+		free_button.text = "★ 오늘의 무료 뽑기"
+		free_button.disabled = false
+	else:
+		free_button.text = "무료 뽑기 완료 · 내일 다시"
+		free_button.disabled = true
 	for r in RelicLib.RELICS:
 		var lv := GameState.relic_level(r.id)
 		var c = row_cells[r.id]
