@@ -1343,6 +1343,7 @@ func _open_cards() -> void:
 		cards_list.add_child(_section_header("보유 스킬"))
 		var elem: String = $Player.character.element
 		cards_list.add_child(_section_sub("%s 속성으로 적중 — 극하면 ×1.5 / 당하면 ×0.7" % ElementLib.display_name(elem), ElementLib.color(elem)))
+		cards_list.add_child(_section_sub("연사·쿨이 최대치에 닿으면 초과분은 위력으로 전환 — 아래 '연사+N%' 표시", Color(0.7, 0.85, 1.0)))
 		for s in $Player.skills:
 			cards_list.add_child(_skill_stat_row(s))
 		cards_list.add_child(_section_header("획득 카드"))
@@ -1393,16 +1394,20 @@ func _skill_stat_row(s: Dictionary) -> Label:
 	var cd: float = pl.eff_cooldown(s)
 	var rng := int(SkillLib.SKILL_RANGE.get(s.id, 0))
 	var cnt := int(s.get("count", 0))
+	var ext: int = pl.build.extra_targets  # 다발: 표적형 스킬 추가 표적(실제 시전에 반영됨 → 표시도 합산)
+	var eff_cnt := cnt + ext
 	var rad := int(round(pl.eff_radius(s)))
+	# 융단폭격(v1.66~)은 단일 거대 돌 — count·다발은 폭발 반경으로 환산(executor와 동일 식)
+	var barrage_r := int(minf(pl.eff_radius(s) * (1.4 + 0.1 * float(maxi(eff_cnt - 3, 0))), pl.MAX_SKILL_RADIUS))
 	var shape := ""
 	match s.id:
-		"bolts":   shape = "가까운 %d명" % cnt
-		"chain":   shape = "%d명 연쇄" % cnt
-		"barrage": shape = "%d곳·반경 %d" % [cnt, rad]
+		"bolts":   shape = "가까운 %d명%s" % [eff_cnt, ("(+다발%d)" % ext) if ext > 0 else ""]
+		"chain":   shape = "%d명 연쇄%s" % [eff_cnt, ("(+다발%d)" % ext) if ext > 0 else ""]
+		"barrage": shape = "거대 돌·반경 %d" % barrage_r
 		"meteor":  shape = "반경 %d 광역" % rad
 		"freeze":  shape = "전체 둔화"
 		"thorns":  shape = "반경 %d 장판" % rad
-		_:         shape = ("%d발" % cnt) if cnt > 0 else (("반경 %d" % rad) if rad > 0 else "광역")
+		_:         shape = ("%d발" % eff_cnt) if cnt > 0 else (("반경 %d" % rad) if rad > 0 else "광역")
 	var tier := int(s.get("tier", 1))
 	var name_txt: String = s.name + ("  [%d티어]" % tier if tier > 1 else "")
 	var fov: float = pl.fire_overflow_mult(s)

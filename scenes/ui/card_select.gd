@@ -294,7 +294,7 @@ func _skill_detail(id: String) -> String:
 	match id:
 		"bolts": lines.append("가까운 적 %d명에게 마력탄을 날립니다." % cnt)
 		"chain": lines.append("최대 %d명에게 번개가 연쇄됩니다." % cnt)
-		"barrage": lines.append("%d곳에 반경 %d의 폭격이 떨어집니다." % [cnt, rad])
+		"barrage": lines.append("거대한 돌 하나가 가장 밀집한 곳에 떨어집니다(반경 %d↑·다발=반경↑)." % rad)
 		"meteor": lines.append("가장 밀집한 곳에 반경 %d 광역 피해." % rad)
 		"freeze": lines.append("화면의 모든 적을 둔화시킵니다.")
 		"thorns": lines.append("가장 밀집한 곳에 반경 %d 가시 장판(지속 피해)." % rad)
