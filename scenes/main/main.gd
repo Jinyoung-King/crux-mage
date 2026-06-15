@@ -680,7 +680,24 @@ func _open_event(kind: String) -> void:
 				"desc": "%s 속성 스킬 위력 +%d%% (이번 런)" % [ElementLib.display_name(elem), int(RIFT_EMPOWER * 100.0)],
 				"color": ElementLib.color(elem),
 			})
-		panel.open("원소 균열", "한 속성에 공명해 이번 런 동안 그 속성 스킬을 강화합니다.", choices)
+		panel.open("원소 균열", "한 속성에 공명해 이번 런 동안 그 속성 스킬을 강화합니다.", choices, _rift_auto_index())
+
+## 원소 균열 자동선택 인덱스(10초 미선택 시) — 보유 스킬 속성이 가장 많은 원소. 없으면 무작위.
+func _rift_auto_index() -> int:
+	var order := ["wood", "fire", "earth", "metal", "water"]
+	var counts := {}
+	for s in $Player.skills:
+		var e: String = SkillLib.DEFS.get(s.id, {}).get("element", "")
+		if e != "":
+			counts[e] = int(counts.get(e, 0)) + 1
+	var best_i := -1
+	var best_c := 0
+	for i in order.size():
+		var c: int = int(counts.get(order[i], 0))
+		if c > best_c:
+			best_c = c
+			best_i = i
+	return best_i if best_i >= 0 else randi() % order.size()
 
 ## 이벤트 선택 적용 후 다음 웨이브로
 func _on_event_choice(index: int) -> void:

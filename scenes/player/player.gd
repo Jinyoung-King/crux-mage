@@ -11,7 +11,7 @@ const BARRIER_DROID := preload("res://scenes/fx/barrier_droid.gd")  ## 방어형
 const SKILL_BOLT_TEX := preload("res://assets/sprites/bolt_skill.png")  ## 마력탄 스킬 전용 발사체(평타와 구분)
 const FOCUS_SPREAD := PI / 90.0  ## 표적보다 발사 수가 많을 때 같은 표적에 겹쳐 쏘는 발사의 부채 각(≈2°)
 const BASIC_ATTACK_MULT := 0.04  ## 평타 피해 = effective_damage()의 이 비율(약한 베이스라인 — 스킬 쿨과 별개로 연사 주기마다)
-const MAX_SKILL_SLOTS := 4  ## 스킬 슬롯 제한(캐릭터 고유 1 포함) — 다 쓰기 방지, 슬롯 차면 진화 유도
+const MAX_SKILL_SLOTS := 5  ## 스킬 슬롯 제한(캐릭터 고유 1 포함) — 다 쓰기 방지·슬롯 차면 진화 유도. v1.95 4→5(원소 균열 몰빵 여유, 성능은 발사체/FX 상한이 보장)
 const EVOLVE_COST := 3  ## 같은 스킬 카드를 이만큼 모으면 1단계 진화(분기 선택)
 
 @export var max_hp: float = 100.0
