@@ -6,11 +6,11 @@ extends RefCounted
 ## element = 카드에 표시할 대표 오행 속성(불/물/나무/쇠/흙). 실제 시전 상성은 시전 캐릭터 속성을 따름.
 const DEFS := {
 	"bolts":   {"name": "마력탄", "cooldown": 5.5, "power": 10.0, "radius": 0.0, "count": 3, "element": "wood"},
-	"meteor":  {"name": "유성", "cooldown": 10.5, "power": 18.0, "radius": 90.0, "count": 0, "element": "fire"},
-	"barrage": {"name": "융단폭격", "cooldown": 9.5, "power": 13.0, "radius": 65.0, "count": 3, "element": "earth"},
+	"meteor":  {"name": "유성", "cooldown": 10.5, "power": 18.0, "radius": 72.0, "count": 0, "element": "fire"},
+	"barrage": {"name": "융단폭격", "cooldown": 9.5, "power": 13.0, "radius": 52.0, "count": 3, "element": "earth"},
 	"chain":   {"name": "전격", "cooldown": 8.0, "power": 13.0, "radius": 0.0, "count": 4, "element": "metal"},
 	"freeze":  {"name": "서리바람", "cooldown": 12.0, "power": 9.0, "radius": 0.0, "count": 0, "element": "water"},
-	"thorns":  {"name": "가시밭", "cooldown": 9.0, "power": 9.0, "radius": 110.0, "count": 0, "element": "wood"},
+	"thorns":  {"name": "가시밭", "cooldown": 9.0, "power": 9.0, "radius": 88.0, "count": 0, "element": "wood"},
 	# 방어형 비행체 — 지속형 동반자(쿨캐스트 아님). cooldown은 쓰이지 않음(player가 캐스트 루프에서 제외).
 	# power=tick 피해 기준(build.damage 비례), radius=공전 반경, count=비행체 수.
 	"barrier_droid": {"name": "수호 비행체", "cooldown": 99.0, "power": 10.0, "radius": 95.0, "count": 2, "element": "metal"},

@@ -245,7 +245,7 @@ func eff_power(s: Dictionary) -> float:
 
 ## 범위 상한 — 범위 카드·진화로 광역이 화면 전체를 도배하면 렉↑·밀집타겟팅 무의미·재미↓.
 ## 이 선까지만 커지게 제한(반경 0인 스킬=마력탄·전격·서리는 영향 없음).
-const MAX_SKILL_RADIUS := 260.0
+const MAX_SKILL_RADIUS := 200.0
 
 func eff_radius(s: Dictionary) -> float:
 	return minf(s.radius * build.skill_radius_mult, MAX_SKILL_RADIUS)
