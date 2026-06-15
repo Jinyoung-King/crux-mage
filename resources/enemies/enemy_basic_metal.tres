@@ -5,11 +5,11 @@
 
 [resource]
 script = ExtResource("1")
-display_name = "불 졸개"
+display_name = "쇠 졸개"
 hp = 30.0
 speed = 60.0
 contact_damage = 10.0
 size = 36.0
 sprite = ExtResource("2")
-effect_color = Color(0.95, 0.45, 0.35, 1)
-element = "fire"
+effect_color = Color(0.92, 0.93, 0.97, 1)
+element = "metal"

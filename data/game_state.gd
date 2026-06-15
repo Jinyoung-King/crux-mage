@@ -3,10 +3,11 @@ extends Node
 ## 씬을 새로 로드해도 유지되며, 최고 기록은 user://에 영속 저장된다.
 
 const SAVE_PATH := "user://save.cfg"
-const VERSION := "v1.70"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
+const VERSION := "v1.71"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
 
 # 패치노트 (최신이 위). 새 버전 추가 시 맨 앞에 한 항목 추가. 시작 화면 "패치노트" + 업데이트 시 자동 안내.
 const CHANGELOG := [
+	{"v": "v1.71", "notes": ["기본병 → '불 졸개'로 개명 + 오방색 졸개 4종 추가 — 같은 졸개를 속성만 바꿔 숲(목)·흙(토)·쇠(금)·물(수) 졸개로 추가했습니다. 5속성 스테이지마다 해당 속성 졸개가 등장하고, 속성 오라 색·모양·상성이 각기 다릅니다(도감에도 추가). 능력치는 동일."]},
 	{"v": "v1.70", "notes": ["후반 렉 최적화(소스 레벨) — 적마다 붙는 '속성 오라'가 매 프레임 다시 그려져(적 50마리면 초당 ~3000회 그리기) 후반 렌더 부하의 큰 원인이었습니다. 오라의 회전·맥동을 '다시 그리기' 대신 노드 변형(rotation·scale)으로 처리해 오라당 단 1회만 그리도록 변경(겉보기 동일, 부하 대폭↓). 헤드리스 검증: 오라 그리기 횟수가 '오라수×프레임'→'오라당 1회'로 감소 확인."]},
 	{"v": "v1.69", "notes": ["후반 렉 개선 — 연사·다발이 쌓이면 발사체·이펙트가 무한정 늘어나 렉을 유발하던 문제를 상한으로 해결. ① 동시 발사체 상한(90, 초과분 드랍) ② 평타 발사체는 꼬리 트레일 생략(가장 많이 발사돼 부하 큼 → 트레일은 스킬 마력탄만 유지) ③ FX 과밀 시 명중 스파크 등 비필수 연출 생략. 적 동시 수 상한(50)과 함께 후반 화면 부하를 모든 축에서 제한(헤드리스 검증: 발사체 332+→~90 바운드)."]},
 	{"v": "v1.68", "notes": ["범위형 스킬 범위 축소 — 유성·융단폭격·가시밭의 폭발 반경을 더 줄였습니다(기본 반경 약 20%↓: 유성 90→72·융단 65→52·가시밭 110→88, 범위 상한 260→200). 광역이 화면을 덜 덮어 밀집 타겟팅·위치 선정이 더 의미 있게."]},
@@ -204,6 +205,10 @@ var characters: Array = [
 # 몹 도감 로스터 (도감 표시 순서: 약→강). 종류 키 = .tres 파일명
 var enemies: Array = [
 	preload("res://resources/enemies/enemy_basic.tres"),
+	preload("res://resources/enemies/enemy_basic_wood.tres"),
+	preload("res://resources/enemies/enemy_basic_earth.tres"),
+	preload("res://resources/enemies/enemy_basic_metal.tres"),
+	preload("res://resources/enemies/enemy_basic_water.tres"),
 	preload("res://resources/enemies/enemy_fast.tres"),
 	preload("res://resources/enemies/enemy_rusher.tres"),
 	preload("res://resources/enemies/enemy_slime_big.tres"),
