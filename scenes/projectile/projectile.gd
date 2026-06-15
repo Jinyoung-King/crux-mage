@@ -6,6 +6,7 @@ extends Area2D
 signal dealt(heal: float)  ## 적에 피해를 입힐 때 흡혈 회복량(피해×흡혈률)을 알림
 signal chained(from: Vector2, to: Vector2)  ## 뇌전 연쇄 시각용 (시작점→도착점)
 signal damaged(amount: float, is_crit: bool, pos: Vector2, is_strong: bool)  ## 직격 피해 수치(플로팅 숫자용, is_strong=상성 강타)
+signal returned  ## 수명 종료 — 풀(main)로 반환 요청(파괴 대신 재사용)
 
 @export var speed: float = 600.0
 
@@ -30,27 +31,29 @@ var element := ""  ## 오행 속성 (적 속성과 상성 판정 — ElementLib)
 var pierce := 0  ## 관통: 이 수만큼 적을 추가로 꿰뚫고 비행 (소진 시 소멸)
 
 const TRAIL_LEN := 8  ## 꼬리 잔광 점 개수
-var _trail: Line2D  ## 비행 잔광(속성색, 머리쪽 진하고 굵게 → 끝 투명·가늘게)
-var no_trail := false  ## true면 트레일 생략 — 평타처럼 다수 발사체의 후반 렉 방지(스킬 마력탄만 트레일)
+var _trail: Line2D  ## 비행 잔광(스킬 마력탄만 visible — 평타는 숨김). 노드는 1회 생성 후 재사용
+var _trail_grad: Gradient  ## 트레일 색 갱신용(재사용 시 속성색 변경)
+var active := false  ## 비행 중(true) / 풀 대기(false) — 중복 반환·오발 방지
+var pooled := false  ## 풀 관리 대상(main.acquire가 설정) — _die가 파괴 대신 returned 방출
+var _base_scale := Vector2.ONE  ## 스프라이트 기본 배율(재사용 시 복원 — 마력탄 1.5배 누적 방지)
+var _base_texture: Texture2D    ## 스프라이트 기본 텍스처(재사용 시 복원)
 
 func _ready() -> void:
-	rotation = direction.angle()
 	area_entered.connect(_on_area_entered)
-	$VisibleOnScreenNotifier2D.screen_exited.connect(queue_free)
-	if not no_trail:
-		_make_trail()
+	$VisibleOnScreenNotifier2D.screen_exited.connect(_die)
+	_base_scale = $Sprite2D.scale
+	_base_texture = $Sprite2D.texture
+	_make_trail()
+	_trail.visible = false
 
-## 발사체 꼬리 잔광 Line2D 생성(top_level=전역좌표라 발사체 회전과 무관하게 자취가 남음)
+## 꼬리 잔광 Line2D 1회 생성(top_level=전역좌표). 색은 enable_trail에서 속성색으로 갱신.
 func _make_trail() -> void:
 	_trail = Line2D.new()
 	_trail.top_level = true
 	_trail.width = 6.0
 	_trail.z_index = -1  # 발사체 스프라이트 아래
-	var col := ElementLib.color(element) if element != "" else Color(1.0, 0.95, 0.7)
-	var grad := Gradient.new()
-	grad.set_color(0, Color(col.r, col.g, col.b, 0.0))  # 꼬리 끝 투명
-	grad.set_color(1, Color(col.r, col.g, col.b, 0.55))  # 머리 쪽 진함
-	_trail.gradient = grad
+	_trail_grad = Gradient.new()
+	_trail.gradient = _trail_grad
 	var wc := Curve.new()
 	wc.add_point(Vector2(0, 0.1))  # 끝 가늘게
 	wc.add_point(Vector2(1, 1.0))  # 머리 굵게
@@ -59,9 +62,56 @@ func _make_trail() -> void:
 	_trail.end_cap_mode = Line2D.LINE_CAP_ROUND
 	add_child(_trail)
 
+## 스킬 마력탄용 트레일 켜기(속성색). 평타는 호출하지 않아 숨김 유지.
+func enable_trail() -> void:
+	var col := ElementLib.color(element) if element != "" else Color(1.0, 0.95, 0.7)
+	_trail_grad.set_color(0, Color(col.r, col.g, col.b, 0.0))  # 꼬리 끝 투명
+	_trail_grad.set_color(1, Color(col.r, col.g, col.b, 0.55))  # 머리 쪽 진함
+	_trail.clear_points()
+	_trail.visible = true
+
+## 발사 직전 상태 초기화(풀 재사용 시 이전 값 누수 방지) — 이후 player가 필요한 값만 덮어씀.
+func reset_for_reuse() -> void:
+	damage = 10.0; lifesteal = 0.0
+	crit_chance = 0.0; crit_mult = 1.0
+	burn_dps = 0.0; burn_duration = 0.0
+	slow_factor = 1.0; slow_duration = 0.0
+	chain_count = 0; chain_factor = 0.0; chain_range = 220.0
+	execute_threshold = 0.0
+	splash_factor = 0.0; splash_radius = 90.0
+	element = ""; pierce = 0
+	var spr: Sprite2D = $Sprite2D
+	spr.texture = _base_texture
+	spr.modulate = Color.WHITE
+	spr.scale = _base_scale
+	_trail.clear_points()
+	_trail.visible = false
+	active = true
+	visible = true
+	set_physics_process(true)
+	set_deferred("monitoring", true)
+
+## 풀 대기 상태로 — 처리·충돌·표시 끄고 화면 밖으로(노티파이어 오발 방지).
+func deactivate() -> void:
+	active = false
+	visible = false
+	set_physics_process(false)
+	set_deferred("monitoring", false)
+	position = Vector2(-9999, -9999)
+	_trail.clear_points()
+
+## 수명 종료: 풀 대상이면 반환 요청(재사용), 아니면 파괴. active 가드로 중복 방지.
+func _die() -> void:
+	if not active:
+		return
+	if pooled:
+		returned.emit()
+	else:
+		queue_free()
+
 func _physics_process(delta: float) -> void:
 	position += direction * speed * delta
-	if _trail != null:
+	if _trail.visible:
 		_trail.add_point(global_position)
 		if _trail.get_point_count() > TRAIL_LEN:
 			_trail.remove_point(0)
@@ -93,7 +143,7 @@ func _on_area_entered(area) -> void:
 	if pierce > 0:
 		pierce -= 1  # 관통: 적을 꿰뚫고 계속 비행 (같은 적은 area_entered가 재발화 안 함)
 	else:
-		queue_free()
+		_die()
 
 ## 뇌전 연쇄: 명중한 적 주변의 가까운 적들에게 연쇄 피해 + 시각 신호.
 ## take_damage는 일반 명중과 같은 경로(사망 시 died→main FX)라 물리 콜백에서 안전.

@@ -7,6 +7,7 @@ const DEATH_REMAINS := preload("res://scenes/fx/death_remains.gd")
 const DAMAGE_NUMBER := preload("res://scenes/fx/damage_number.gd")
 const SKILL_RING := preload("res://scenes/fx/skill_ring.gd")  # 광역 스킬 범위 링 (적 사망 연출 등 공용)
 const HIT_SPARK := preload("res://scenes/fx/hit_spark.gd")  # 명중·착탄 별 섬광
+const PROJECTILE_SCENE := preload("res://scenes/projectile/projectile.tscn")  # 발사체 풀 생성용
 const FONT := preload("res://assets/fonts/NotoSansKR.ttf")
 const SKILL_ICON := preload("res://scenes/ui/skill_icon.gd")  # 스킬 쿨타임 아이콘
 const RANGE_RING := preload("res://scenes/fx/range_ring.gd")  # 스킬 사거리 표시 링(아이콘 누름)
@@ -109,6 +110,8 @@ var card_pool: Array = [
 
 var wave_index := 0
 var spawn_list: Array = []  # 이번 웨이브에서 스폰할 EnemyData 순서
+var _proj_pool: Array = []  # 발사체 풀(재사용 대기 — 비활성, $Projectiles 자식으로 유지)
+var _proj_active := 0       # 현재 비행 중 발사체 수(동시 상한 MAX_PROJECTILES 판정용)
 var endless_hp_scale := 1.0  # 이번 웨이브의 적 체력 배율 (무한 모드에서 상승)
 var endless_dmg_scale := 1.0  # 이번 웨이브의 적 피해 배율 (무한 모드에서 상승)
 var spawned := 0
@@ -169,6 +172,7 @@ func _ready() -> void:
 	for id in GameState.relic_levels:  # 모은 유물 전부 적용(런 시작, 레벨=강화)
 		$Player.grant_relic(id, GameState.relic_levels[id])
 	$SfxShoot.stream = ch.shoot_sound  # 캐릭터 전용 발사음
+	$Player.host = self  # 발사체 풀(acquire_projectile) 사용을 위해 main 주입
 	$Player.fired.connect(_on_player_fired)
 	$Player.hp_changed.connect(_on_player_hp_changed)
 	$Player.died.connect(_on_player_died)
@@ -1484,15 +1488,35 @@ func _on_damage_toggle() -> void:
 func _update_damage_label() -> void:
 	damage_button.text = "데미지 숫자: 켜짐" if GameState.show_damage_numbers else "데미지 숫자: 꺼짐"
 
-func _on_player_fired(projectile) -> void:
-	if $Projectiles.get_child_count() >= MAX_PROJECTILES:
-		projectile.queue_free()  # 발사체 과밀 — 초과분 드랍(후반 렉 방지)
-		return
-	$SfxShoot.play()
-	if projectile.chain_count > 0:
-		projectile.chained.connect(skill_executor._on_chain)
-	projectile.damaged.connect(_on_projectile_damaged)
-	$Projectiles.add_child(projectile)
+func _on_player_fired(_projectile) -> void:
+	$SfxShoot.play()  # 발사체 추가·시그널 연결은 acquire_projectile이 처리(풀링) → 여기선 발사음만
+
+## 발사체 풀: 재사용 대기분이 있으면 꺼내 쓰고, 없으면 1회 생성(시그널 1회 연결). 활성 캡 초과면 null(드랍).
+## player._fire_at / fire_skill_bolt가 호출 → 반환된 발사체에 값을 세팅 후 fired.emit.
+func acquire_projectile():
+	if _proj_active >= MAX_PROJECTILES:
+		return null  # 동시 발사체 상한 — 드랍(후반 렉 방지)
+	var p
+	if _proj_pool.is_empty():
+		p = PROJECTILE_SCENE.instantiate()
+		p.pooled = true
+		$Projectiles.add_child(p)  # _ready: area_entered·screen_exited 연결 + 트레일 1회 생성
+		# 발사체 시그널 1회 연결(재사용 동안 유지 — 방출은 해당 스탯/조건일 때만이라 항상 연결해도 안전)
+		p.damaged.connect(_on_projectile_damaged)
+		p.chained.connect(skill_executor._on_chain)
+		p.dealt.connect($Player._on_lifesteal)
+		p.returned.connect(_recycle_projectile.bind(p))
+	else:
+		p = _proj_pool.pop_back()
+	p.reset_for_reuse()  # 이전 값 초기화(상태 누수 방지) + 활성화
+	_proj_active += 1
+	return p
+
+## 수명 종료한 발사체를 풀로 반환(파괴 대신 재사용 대기)
+func _recycle_projectile(p) -> void:
+	p.deactivate()
+	_proj_active = maxi(_proj_active - 1, 0)
+	_proj_pool.push_back(p)
 
 ## 플로팅 데미지 숫자 생성 (설정에서 끄면 표시 안 함). 비물리 FX라 충돌 콜백 중 즉시 추가 안전.
 func _damage_number(pos: Vector2, amount: float, is_crit := false, player := false, strong := false) -> void:

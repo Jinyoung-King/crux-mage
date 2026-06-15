@@ -7,7 +7,6 @@ signal died
 signal skill_cast(data: Dictionary)  ## 액티브 스킬 발동 — {id,power,radius,count,element} (main이 효과 처리)
 signal took_damage(amount: float)  ## 받는 피해 (빨간 데미지 숫자 표시용)
 
-const PROJECTILE_SCENE := preload("res://scenes/projectile/projectile.tscn")
 const BARRIER_DROID := preload("res://scenes/fx/barrier_droid.gd")  ## 방어형 비행체(지속형 동반자)
 const SKILL_BOLT_TEX := preload("res://assets/sprites/bolt_skill.png")  ## 마력탄 스킬 전용 발사체(평타와 구분)
 const FOCUS_SPREAD := PI / 90.0  ## 표적보다 발사 수가 많을 때 같은 표적에 겹쳐 쏘는 발사의 부채 각(≈2°)
@@ -26,6 +25,7 @@ var skills: Array = []  ## 보유 스킬 목록(각 dict: id/name/cooldown/power
 var skills_paused := false  ## 카드 선택(드래프트/상점) 중 스킬 쿨타임 정지
 var _barrier_droid: Node2D  ## 방어형 비행체 동반자(barrier_droid 스킬 보유 시 생성) — 쿨캐스트 아님
 var hit_modifiers: Array = []  ## 활성 적중 전략(HitModifierLib) — 빌드/유물/캐릭터 변경 시 rebuild_hit_modifiers()로 재구성
+var host  ## main 참조(발사체 풀 acquire_projectile 호출용) — main._ready에서 주입
 
 ## 빌드·유물·캐릭터가 바뀔 때마다 활성 적중 전략 목록을 다시 구성(매 적중이 아닌 변경 시 1회)
 func rebuild_hit_modifiers() -> void:
@@ -264,12 +264,15 @@ func cd_ratio(s: Dictionary) -> float:
 ## 스킬 발사체 1발: 예측 조준으로 target에 마력탄을 쏨(위력=dmg). 평타 패시브/유물 미적용 — 순수 스킬.
 ## fired 신호로 main이 사운드·데미지숫자 연결 + Projectiles에 추가. 상성/사망연출은 발사체가 자체 처리.
 func fire_skill_bolt(target, dmg: float, elem: String) -> void:
-	var p = PROJECTILE_SCENE.instantiate()
+	var p = host.acquire_projectile()
+	if p == null:
+		return  # 발사체 풀/캡 초과 — 드랍
 	var spr: Sprite2D = p.get_node("Sprite2D")
 	spr.texture = SKILL_BOLT_TEX  # 평타와 구분되는 '간지' 마법 별
 	spr.modulate = ElementLib.color(elem)  # 스킬 자체 속성색으로 틴트(오방색)
 	spr.scale *= 1.5  # 평타보다 크게(강조)
 	p.element = elem  # 스킬 속성으로 상성 판정(시전자 속성 아님)
+	p.enable_trail()  # 스킬 마력탄: 속성색 꼬리 잔광(평타는 없음)
 	if character:
 		p.crit_chance = character.passive_crit_chance
 		p.crit_mult = character.passive_crit_mult
@@ -278,12 +281,11 @@ func fire_skill_bolt(target, dmg: float, elem: String) -> void:
 	var flight_time: float = global_position.distance_to(target.global_position) / p.speed
 	var predicted: Vector2 = target.global_position + Vector2.DOWN * target.speed * flight_time
 	p.direction = (predicted - global_position).normalized()
+	p.rotation = p.direction.angle()
 	if relic_levels.has("berserk") and hp < max_hp * RelicLib.BERSERK_HP_RATIO:
 		dmg *= RelicLib.berserk_mult(relic_levels["berserk"])  # 격노의 룬(레벨별)
 	p.damage = dmg
-	p.lifesteal = lifesteal
-	if lifesteal > 0.0:
-		p.dealt.connect(_on_lifesteal)  # 명중 시 흡혈 회복
+	p.lifesteal = lifesteal  # 흡혈은 acquire에서 dealt→_on_lifesteal 1회 연결됨(방출은 lifesteal>0일 때만)
 	if build.apply_burn:
 		p.burn_dps = maxf(p.burn_dps, RelicLib.RELIC_BURN_DPS)  # 부여: 화상
 		p.burn_duration = maxf(p.burn_duration, RelicLib.RELIC_BURN_DUR)
@@ -388,8 +390,9 @@ func apply_card(card: CardData) -> void:
 	attack_timer.wait_time = 1.0 / maxf(build.fire_rate, 0.1)  # 연사 변동 → 평타 주기 갱신(다음 주기부터)
 
 func _fire_at(target, aim_offset := 0.0) -> void:
-	var p = PROJECTILE_SCENE.instantiate()
-	p.no_trail = true  # 평타는 트레일 생략(가장 많이 발사 → 후반 렉 방지). 트레일은 스킬 마력탄만.
+	var p = host.acquire_projectile()
+	if p == null:
+		return  # 발사체 풀/캡 초과 — 드랍(평타는 가장 많이 발사 → 여기서 자주 컷)
 	if character and character.projectile_sprite:
 		p.get_node("Sprite2D").texture = character.projectile_sprite  # 캐릭터 전용 발사체 외형
 	if character:
@@ -413,10 +416,9 @@ func _fire_at(target, aim_offset := 0.0) -> void:
 	p.direction = (predicted - global_position).normalized()
 	if aim_offset != 0.0:
 		p.direction = p.direction.rotated(aim_offset)  # 집중사격 부채 흩뿌림
+	p.rotation = p.direction.angle()
 	p.damage = effective_damage() * BASIC_ATTACK_MULT  # 평타 = 공격력의 일부(약한 베이스라인). 스킬은 별도(eff_power)
-	p.lifesteal = lifesteal
-	if lifesteal > 0.0:
-		p.dealt.connect(_on_lifesteal)  # 명중 시 흡혈 회복
+	p.lifesteal = lifesteal  # dealt→_on_lifesteal는 acquire에서 1회 연결(방출은 lifesteal>0일 때만)
 	_apply_relics_to(p)
 	fired.emit(p)
 
