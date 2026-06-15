@@ -686,7 +686,7 @@ func _open_event(kind: String) -> void:
 		panel.open("원소 균열", "한 속성에 공명해 이번 런 동안 그 속성 스킬을 강화합니다.", choices, _rift_auto_index())
 	elif kind == "altar":
 		var choices: Array = [
-			{"label": "제물 바치기", "desc": "최대 체력 −%d → 희귀+ 카드 1장" % ALTAR_HP_COST, "color": Color(0.95, 0.55, 0.55)},
+			{"label": "제물 바치기", "desc": "최대 체력 −%d → 희귀 카드 3장 중 택1" % ALTAR_HP_COST, "color": Color(0.95, 0.55, 0.55)},
 			{"label": "거절", "desc": "그냥 지나간다", "color": Color(0.82, 0.84, 0.92)},
 		]
 		panel.open("제물 제단", "기지 내구도를 바쳐 강한 카드를 얻습니다. 거절해도 됩니다.", choices, 1)  # 자동=거절(안전)
@@ -710,32 +710,28 @@ func _rift_auto_index() -> int:
 
 ## 이벤트 선택 적용 후 다음 웨이브로
 func _on_event_choice(index: int) -> void:
-	if _event_kind == "rift":
-		var elem: String = ["wood", "fire", "earth", "metal", "water"][index]
-		var b = $Player.build
-		b.element_empower[elem] = float(b.element_empower.get(elem, 0.0)) + RIFT_EMPOWER
-	elif _event_kind == "altar" and index == 0:  # 제물 바치기(거절=index1은 무처리)
-		var pl = $Player
-		pl.max_hp = maxf(pl.max_hp - float(ALTAR_HP_COST), 30.0)  # 최대 체력 대가(하한 30)
-		pl.hp = minf(pl.hp, pl.max_hp)
-		pl.hp_changed.emit(pl.hp, pl.max_hp)  # 기지 내구도 바 갱신
-		# 희귀+ 보상 — 체력 깎는 카드는 제물 보상으로 부적합(이중 체력 손실 방지)이라 비-페널티 우선
-		var cards := _draw_cards(3, true)
-		var reward = null
-		for c in cards:
-			if c.max_hp_bonus >= 0.0:
-				reward = c
-				break
-		if reward == null and not cards.is_empty():
-			reward = cards[0]
-		if reward != null:
-			pl.apply_card(reward)
-			_record_card(reward)
+	var kind := _event_kind
 	if is_instance_valid(_active_event):
 		_active_event.queue_free()
 	_active_event = null
 	_event_kind = ""
-	_start_wave(wave_index + 1)
+	match kind:
+		"rift":
+			var elem: String = ["wood", "fire", "earth", "metal", "water"][index]
+			var b = $Player.build
+			b.element_empower[elem] = float(b.element_empower.get(elem, 0.0)) + RIFT_EMPOWER
+			_start_wave(wave_index + 1)
+		"altar":
+			if index == 0:  # 제물 바치기 → 체력 지불 후 '희귀 확정 드래프트'(무엇을 얻는지 보고 택1)
+				var pl = $Player
+				pl.max_hp = maxf(pl.max_hp - float(ALTAR_HP_COST), 30.0)  # 최대 체력 대가(하한 30)
+				pl.hp = minf(pl.hp, pl.max_hp)
+				pl.hp_changed.emit(pl.hp, pl.max_hp)  # 기지 내구도 바 갱신
+				_open_draft(true)  # 희귀 드래프트 — card_select가 카드·효과를 보여주고 택1, 이후 다음 웨이브
+			else:  # 거절
+				_start_wave(wave_index + 1)
+		_:
+			_start_wave(wave_index + 1)
 
 ## 보유 스킬 중 범위(meteor/barrage) 스킬이 하나라도 있나
 func _has_radius_skill() -> bool:

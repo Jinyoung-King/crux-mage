@@ -246,7 +246,9 @@ func _style_card(btn: Button, card) -> void:
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	desc.add_theme_constant_override("line_spacing", 5)  # 줄간격 ↑ (가독성)
 	box.add_child(desc)
-	var preview: String = _stat_preview(card)  # 관련 능력치: 현재 → 변경 후
+	var preview: String = _stat_preview(card)  # 일반 카드: 관련 능력치 현재 → 변경 후
+	if card.grant_skill_id != "":
+		preview = _next_evolve_delta(card.grant_skill_id)  # 스킬 카드: 다음 진화 능력치 향상(중복 픽 효과)
 	if preview != "":
 		box.add_child(_label(preview, 14, Color(0.55, 0.85, 0.72)))
 	btn.add_child(box)
@@ -349,6 +351,32 @@ func _skill_stacks(id: String) -> int:
 	return 0
 
 ## 스킬 획득 카드: SkillLib.DEFS 수치로 자세한 다줄 설명(데미지·쿨타임·특성·진화 안내)
+## 보유 중인 진화 가능 스킬 카드의 '다음 진화 능력치 향상' 요약(신규/최고단계/미보유는 "").
+## 중복 픽으로 무엇이 좋아지는지 보여줌(피드백 반영). 다음 진화 = SkillLib.EVOLVE[id][tier-1].
+func _next_evolve_delta(id: String) -> String:
+	if player == null or not _skill_owned_evolvable(id):
+		return ""
+	var tier := 1
+	for s in player.skills:
+		if s.id == id:
+			tier = int(s.get("tier", 1))
+	var arr: Array = SkillLib.EVOLVE.get(id, [])
+	if tier - 1 < 0 or tier - 1 >= arr.size():
+		return ""
+	var e: Dictionary = arr[tier - 1]
+	var parts: PackedStringArray = []
+	if e.has("power_mult"):
+		parts.append("위력 +%d%%" % int(round((float(e.power_mult) - 1.0) * 100.0)))
+	if e.has("cd_mult"):
+		parts.append("쿨 −%d%%" % int(round((1.0 - float(e.cd_mult)) * 100.0)))
+	if int(e.get("count", 0)) > 0:
+		parts.append("표적 +%d" % int(e.count))
+	if e.has("radius_mult"):
+		parts.append("반경 +%d%%" % int(round((float(e.radius_mult) - 1.0) * 100.0)))
+	if parts.is_empty():
+		return ""
+	return "다음 진화(%s): %s" % [str(e.get("name", "진화")), " · ".join(parts)]
+
 func _skill_detail(id: String) -> String:
 	var d: Dictionary = SkillLib.DEFS.get(id, {})
 	if d.is_empty():
