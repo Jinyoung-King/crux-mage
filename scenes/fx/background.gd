@@ -7,9 +7,11 @@ const H := 1280.0
 const TOP := Color(0.05, 0.04, 0.09)   # 위(적 스폰): 더 어둡게
 const BOT := Color(0.15, 0.12, 0.22)   # 아래(마법사): 살짝 밝은 보라
 const BANDS := 48                       # 그라데이션 밴드 수
-const STAR_COUNT := 70
+const STAR_COUNT := 48                   # 별 수(매 프레임 draw 비용 — 70에서 절감)
 
 var stars: Array = []
+var _draw_every := 1  # FPS 거버너: 1=매 프레임 재드로우, 2~3=N프레임마다(저전력 모드)
+var _df := 0
 # 오행 테마(홈 화면): set_theme_color로 속성색을 주입하면 그라데이션·별빛이 그 색을 띤다.
 # 미적용 시(인게임)는 기존 보랏빛 그대로 — 인게임 룩 보존.
 var themed := false
@@ -41,7 +43,14 @@ func _process(delta: float) -> void:
 		if s.y > H:
 			s.y -= H
 			s.x = randf() * W
-	queue_redraw()
+	_df += 1
+	if _df >= _draw_every:  # 거버너 단계에 따라 재드로우 빈도 절감(별 이동 로직은 유지)
+		_df = 0
+		queue_redraw()
+
+## FPS 거버너 단계 적용 — 재드로우 간격(tier 0=매프레임, 1=2프레임, 2=3프레임마다)
+func set_perf(tier: int) -> void:
+	_draw_every = tier + 1
 
 func _draw() -> void:
 	# 테마 적용 시: 위는 거의 검정+살짝 틴트, 아래는 속성색을 어둡게(은은한 글로우)

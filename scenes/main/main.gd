@@ -147,6 +147,11 @@ var _active_event = null    # 표시 중인 중간 이벤트 패널(없으면 nu
 var _event_kind := ""       # 현재 이벤트 종류("rift"/"altar"/"crossroads")
 var _challenge_left := 0    # 갈림길 '도전' 잔여 강화 웨이브 수(>0이면 적 ×CHALLENGE_MULT)
 var _asc_clear_msg := ""    # 스테이지 클리어 시 표시할 상승 계층 메시지(해금 안내 포함)
+# FPS 거버너(50 사수) — 평균 FPS가 낮으면 비필수부터 단계적으로 끄고, 회복하면 되돌림(기기 무관 바닥 보장).
+var _perf_tier := 0         # 0=풀품질 / 1=중(데미지숫자 치명만·배경 재드로우↓) / 2=저(숫자 최소·배경 더↓·적 상한↓)
+var _fps_ema := 60.0        # 평균 FPS(지수이동평균 — 일시적 끊김에 요동 안 치게)
+var _perf_cd := 3.0         # 단계 변경 쿨다운(초). 시작 3초 워밍업(초기 FPS 측정 불안정 구간 보호)
+var _alive_cap := MAX_ALIVE # 거버너가 낮추는 동시 적 상한(런타임)
 var _shop_cards: Array = []
 var _shop_cost: Array = []
 var start_drafts_left := 0  # 웨이브 전 시작 드래프트 남은 횟수 (1 + 추가 시작 카드 레벨)
@@ -315,10 +320,36 @@ func _process(delta: float) -> void:
 		var ratio: float = 1.0 if s.id == "barrier_droid" else pl.cd_ratio(s)  # 비행체는 지속형 → 항상 활성 표시
 		_skill_icons[i].update_cd(s.name, ElementLib.color(elem), ratio, delta)
 	_update_remaining_label()  # 좌상단: 이번 웨이브 남은 적 수
+	_govern_fps(delta)  # 50 사수: 평균 FPS에 따라 품질 단계 조정
 	# 버전 + FPS 표시(우하단) — 실제 렌더 FPS(배속 무관). 적/발사체 수(후반 렉 진단용)는 성벽 체력바와
 	# 겹쳐 버전이 가려져 제거(렉 진단 완료). 매 프레임 재셰이핑은 낭비 → 15프레임마다만 갱신.
 	if Engine.get_process_frames() % 15 == 0:
 		$HUD/VersionLabel.text = "%s · %d fps" % [GameState.VERSION, Engine.get_frames_per_second()]
+
+## FPS 거버너 — 평균 FPS<47이면 한 단계 절감, >54면 한 단계 복원(히스테리시스 + 쿨다운으로 요동 방지).
+## 약한 기기에서도 50을 사수: 비필수(데미지 숫자·배경 재드로우)부터 끄고, 최후에 동시 적 상한을 낮춘다.
+func _govern_fps(delta: float) -> void:
+	if get_tree().paused or game_over:
+		return
+	_fps_ema = lerpf(_fps_ema, float(Engine.get_frames_per_second()), 0.1)
+	_perf_cd -= delta
+	if _perf_cd > 0.0:
+		return
+	var t := _perf_tier
+	if _fps_ema < 47.0 and _perf_tier < 2:
+		_perf_tier += 1
+	elif _fps_ema > 54.0 and _perf_tier > 0:
+		_perf_tier -= 1
+	if _perf_tier != t:
+		_perf_cd = 2.0  # 다음 조정까지 최소 간격(단계 요동 방지)
+		_apply_perf_tier()
+
+## 현재 단계의 절감 적용 — 동시 적 상한 + 배경 재드로우 빈도. (데미지 숫자는 _damage_number가 _perf_tier 직접 참조)
+func _apply_perf_tier() -> void:
+	_alive_cap = 18 if _perf_tier >= 2 else MAX_ALIVE
+	var bg := $Background/Bg
+	if bg.has_method("set_perf"):
+		bg.set_perf(_perf_tier)
 
 ## 보유 스킬 수가 바뀌면 스킬 아이콘을 다시 만든다(이름·색·쿨은 매 프레임 update_cd로 갱신 → 진화 반영)
 func _rebuild_skill_icons(skills: Array) -> void:
@@ -515,7 +546,7 @@ func _wave_interval(index: int) -> float:
 	return maxf(base_interval * pow(0.95, _endless_level(index)), 0.25)
 
 func _spawn_enemy() -> void:
-	if alive >= MAX_ALIVE:
+	if alive >= _alive_cap:
 		return  # 동시 적 수 상한 — 이번 틱 스폰 보류(타이머는 계속 → 적이 줄면 재개). 후반 과밀·렉 방지
 	_spawn_one(spawn_list[spawned], Vector2(randf_range(SPAWN_X_MIN, SPAWN_X_MAX), SPAWN_Y))
 	spawned += 1
@@ -551,7 +582,7 @@ func _on_summon(data: EnemyData, count: int, pos: Vector2) -> void:
 	if game_over:
 		return
 	for i in count:
-		if alive >= MAX_ALIVE:
+		if alive >= _alive_cap:
 			break  # 동시 적 상한 — 과밀 시 추가 소환/분열 보류(적34>상한 같은 초과 방지, 후반 렉↓)
 		var offset := Vector2(randf_range(-60, 60), randf_range(-10, 30))
 		var p := pos + offset
@@ -1669,8 +1700,13 @@ func _recycle_projectile(p) -> void:
 func _damage_number(pos: Vector2, amount: float, is_crit := false, player := false, strong := false) -> void:
 	if not GameState.show_damage_numbers:
 		return
-	if $Fx.get_child_count() > 70 and not is_crit and not player:
-		return  # FX 과부하 시 일반 데미지 숫자 생략(Label 폰트 렌더 비용↓) — 치명/피격 숫자는 유지
+	if not player:  # 피격(내가 받는) 숫자는 항상 — 중요 정보. 그 외 적 피해 숫자는 FPS 거버너 단계로 솎음
+		if _perf_tier >= 2:
+			return  # 저전력: 일반 데미지 숫자 전부 생략(폰트 셰이핑 비용↓)
+		if _perf_tier >= 1 and not is_crit:
+			return  # 중전력: 치명타만 표시
+		if $Fx.get_child_count() > 70 and not is_crit:
+			return  # 평소: FX 과부하 시 일반 숫자 생략
 	var dn = DAMAGE_NUMBER.new()
 	dn.position = pos
 	$Fx.add_child(dn)
