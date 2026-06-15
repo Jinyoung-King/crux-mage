@@ -16,12 +16,12 @@ func setup(col: Color, sides: int, radius: float) -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
-	rotation = _t * 0.5  # 천천히 회전(룬이 도는 느낌)
-	queue_redraw()       # 맥동 반영
+	rotation = _t * 0.5  # 천천히 회전(transform — 재그리기 없음)
+	var pulse := 1.0 + 0.07 * sin(_t * 3.0)
+	scale = Vector2(pulse, pulse)  # 맥동도 transform(scale)으로 — queue_redraw 제거(적 50마리 ×매프레임 _draw 부하 제거)
 
 func _draw() -> void:
-	var pulse := 1.0 + 0.07 * sin(_t * 3.0)
-	var r := _radius * pulse
+	var r := _radius  # 맥동은 scale, 회전은 rotation이 처리 → _draw는 1회만(setup) 실행
 	# 부드러운 글로우(여러 겹 반투명 원) — 네모 대신 은은한 후광
 	draw_circle(Vector2.ZERO, r * 1.05, Color(_col.r, _col.g, _col.b, 0.10))
 	draw_circle(Vector2.ZERO, r * 0.82, Color(_col.r, _col.g, _col.b, 0.10))
