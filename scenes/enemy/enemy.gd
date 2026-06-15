@@ -7,7 +7,6 @@ signal summon(data: EnemyData, count: int, pos: Vector2)
 signal ranged_attack(damage: float, from_pos: Vector2, count: int, spread_deg: float, bolt_scale: float)
 signal charge_hit(damage: float)  ## 보스 돌진이 플레이어에 닿을 때
 
-const ELEMENT_AURA := preload("res://scenes/fx/element_aura.gd")  ## 속성 표시 오라
 const HUGE_PCT_RESIST := 0.2  ## 거대(보스)는 %체력 피해를 이 비율로만 받음(보스전 트리비얼화 방지)
 
 @export var max_hp: float = 30.0
@@ -28,6 +27,7 @@ var zig_t := 0.0
 # 상태이상 (패시브) — StatusEffects 컴포넌트에 위임. 외부는 apply_burn/apply_slow/is_burning 등으로 접근.
 var status := StatusEffects.new()
 var _tint := Color.WHITE  ## 상태 색조 (화상/둔화)
+var _base_color := Color.WHITE  ## 몸체 기본색 — 졸개는 속성색(오방색), 그 외는 흰색. 상태 색조와 곱해짐
 var _flashing := false    ## 피격 연출(플래시+찌그러짐) 중에는 색조 덮어쓰기 보류 + 재진입 방지
 var sprite_scale := 3.0   ## 스프라이트 표시 배율 (size/텍스처폭, 등장 연출이 참조)
 # HP바 (중간보스·보스 전용)
@@ -139,8 +139,11 @@ func setup(data: EnemyData, hp_scale: float = 1.0, dscale: float = 1.0, elite: D
 	var shape := RectangleShape2D.new()
 	shape.size = Vector2(body_size, body_size)
 	$CollisionShape2D.shape = shape
-	if element != "":
-		_build_element_ring()  # 속성 색 테두리(상성 식별)
+	# 졸개(흑백 공용 스프라이트 enemy_basic)는 몸체를 속성색으로 틴트해 직관적 구분(오라 대체).
+	# 비-졸개는 고유 색 스프라이트라 흰색 유지(틴트하면 탁해짐).
+	if element != "" and data.sprite != null and data.sprite.resource_path.ends_with("enemy_basic.png"):
+		_base_color = ElementLib.color(element)
+	$Sprite2D.modulate = _base_color  # 초기 색(이후 _update_tint가 상태색조와 합성)
 	is_huge = data.show_hp_bar  # 거대 타입(보스·중간보스)
 	if data.show_hp_bar:
 		_build_hp_bar(body_size)
@@ -161,15 +164,6 @@ func _build_hp_bar(enemy_size: float) -> void:
 	hp_fill.position = Vector2(-HP_BAR_W / 2.0, top)
 	add_child(hp_fill)
 
-## 속성 색 테두리: 본체 뒤에 속성 색 사각을 본체보다 크게 깔아 가장자리가 속성 색으로 보이게(상성 식별).
-## $Sprite2D.modulate(피격 플래시·화상/둔화 색조)와 무관하게 항상 속성 색을 유지한다.
-func _build_element_ring() -> void:
-	var aura := ELEMENT_AURA.new()
-	# 오행별 외곽 모양: 불=삼각·물=원·나무=오각·쇠=마름모(4각)·흙=육각
-	var sides: int = {"fire": 3, "water": 0, "wood": 5, "metal": 4, "earth": 6}.get(element, 0)
-	aura.setup(ElementLib.color(element), sides, body_size * 0.72)
-	add_child(aura)
-	move_child(aura, 0)  # 본체 스프라이트 뒤에 그려지도록
 
 ## 엘리트 오라: 몹 스프라이트의 '모양'(알파)만 빌려 수식어 색의 단색 실루엣을 만들고,
 ## 8방향으로 살짝 밀어 본체 뒤에 깔아 몹을 감싸는 빛나는 외곽선을 만든다(은은한 맥동).
@@ -432,7 +426,7 @@ func _update_shield_visual() -> void:
 
 ## 상태이상에 따른 색조: 화상=주황 끼, 둔화=푸른 끼, 둘 다면 혼합
 func _update_tint() -> void:
-	var c := Color.WHITE
+	var c := _base_color  # 속성색(졸개) 또는 흰색(그 외)에서 시작 — 상태 색조를 곱함
 	if status.is_burning():
 		c *= Color(1.5, 0.7, 0.45)
 	if status.is_slowed():
