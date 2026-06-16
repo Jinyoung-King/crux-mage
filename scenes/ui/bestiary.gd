@@ -143,7 +143,54 @@ func _make_skill_entry(id: String, def: Dictionary) -> Control:
 		evo.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		evo.custom_minimum_size = Vector2(250, 0)
 		info.add_child(evo)
+	# '▶ 이펙트' 버튼 — 탭 시 연출 미리보기 오버레이(버튼은 STOP이라 패널 IGNORE와 무관하게 탭됨, 스크롤도 보존)
+	var fxbtn := Button.new()
+	fxbtn.text = "▶ 이펙트"
+	fxbtn.add_theme_font_override("font", FONT)
+	fxbtn.add_theme_font_size_override("font_size", 14)
+	fxbtn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	fxbtn.pressed.connect(_open_skill_preview.bind(id, def))
+	box.add_child(fxbtn)
 	return panel
+
+## 스킬 연출 미리보기 오버레이 — 중앙에서 반복 재생 + 닫기.
+func _open_skill_preview(id: String, def: Dictionary) -> void:
+	var elem: String = str(def.get("element", ""))
+	var ov := Control.new()
+	ov.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.85)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP  # 뒤(도감) 입력 차단
+	ov.add_child(dim)
+	var title := _label("%s  ·  %s 속성" % [def.get("name", "스킬"), ElementLib.display_name(elem)], 26, ElementLib.color(elem))
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.anchor_right = 1.0
+	title.offset_top = 150.0
+	title.offset_bottom = 198.0
+	ov.add_child(title)
+	var hint := _label("효과 미리보기 — 반복 재생", 15, Color(0.7, 0.72, 0.8))
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.anchor_right = 1.0
+	hint.offset_top = 204.0
+	hint.offset_bottom = 230.0
+	ov.add_child(hint)
+	var fx = preload("res://scenes/ui/skill_fx_preview.gd").new()
+	fx.position = Vector2(360, 620)  # 화면 중앙 약간 아래(제목 아래, 닫기 위)
+	fx.z_index = 5
+	ov.add_child(fx)
+	fx.setup(id, def)
+	var close := Button.new()
+	close.text = "닫기"
+	close.add_theme_font_override("font", FONT)
+	close.add_theme_font_size_override("font_size", 22)
+	close.anchor_left = 0.5; close.anchor_right = 0.5
+	close.anchor_top = 1.0; close.anchor_bottom = 1.0
+	close.offset_left = -90.0; close.offset_right = 90.0
+	close.offset_top = -150.0; close.offset_bottom = -98.0
+	close.pressed.connect(ov.queue_free)
+	ov.add_child(close)
+	add_child(ov)
 
 func _label(text: String, size: int, color: Color) -> Label:
 	var l := Label.new()
