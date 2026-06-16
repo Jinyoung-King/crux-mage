@@ -179,6 +179,15 @@ func _find_skill(id: String) -> Dictionary:
 			return s
 	return {}
 
+## 저편 로드아웃: SkillLib 정의로 스킬을 추가 장착(시그니처와 중복이면 무시).
+func grant_beyond_skill(id: String) -> void:
+	if not _find_skill(id).is_empty():
+		return  # 이미 보유(고유 스킬과 중복)
+	var d: Dictionary = SkillLib.DEFS.get(id, {})
+	if d.is_empty():
+		return
+	skills.append(_make_skill(id, d.get("name", id), d.get("cooldown", 5.0), d.get("power", 10.0), d.get("radius", 0.0), int(d.get("count", 0))))
+
 ## 방어형 비행체 동반자 생성/갱신/제거 — barrier_droid 스킬 보유 상태에 동기화(획득·진화·캐릭터 변경 시).
 func _sync_barrier_droid() -> void:
 	var s := _find_skill("barrier_droid")

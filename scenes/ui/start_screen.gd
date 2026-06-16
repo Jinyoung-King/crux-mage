@@ -525,11 +525,9 @@ func _on_stage(elem: String) -> void:
 	GameState.run_ascension = clampi(_asc_sel, 0, GameState.ascension)
 	get_tree().change_scene_to_file("res://scenes/main/main.tscn")
 
-## 저편(엔드게임) 시작 — 멀티속성 여정 + 수동 조작. 상승 계층과 무관.
+## 저편(엔드게임) — 로드아웃 준비 화면으로(거기서 정수 스킬 장착 후 '진입').
 func _on_beyond() -> void:
-	GameState.game_mode = "beyond"
-	GameState.run_ascension = 0
-	get_tree().change_scene_to_file("res://scenes/main/main.tscn")
+	get_tree().change_scene_to_file("res://scenes/ui/beyond_loadout.tscn")
 
 ## 저편 진입 섹션 — 최고 웨이브 BEYOND_WAVE 이상에서만 해금(베테랑 게이트). 미달이면 조건 안내.
 func _build_beyond_button() -> void:

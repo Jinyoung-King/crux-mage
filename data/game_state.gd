@@ -3,10 +3,11 @@ extends Node
 ## 씬을 새로 로드해도 유지되며, 최고 기록은 user://에 영속 저장된다.
 
 const SAVE_PATH := "user://save.cfg"
-const VERSION := "v3.14"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
+const VERSION := "v3.15"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
 
 # 패치노트 (최신이 위). 새 버전 추가 시 맨 앞에 한 항목 추가. 시작 화면 "패치노트" + 업데이트 시 자동 안내.
 const CHANGELOG := [
+	{"v": "v3.15", "notes": ["저편 정수·로드아웃 — 드디어 여러 스킬 장착! 저편에서 웨이브·장 보스를 깨면 전용 재화 '정수'를 얻습니다(클리어 화면에 +N 표시, 사망해도 적립분은 보존). 홈의 '저편' 버튼 → 새 '저편 준비' 화면에서 정수로 스킬을 해금하고, 캐릭터 고유 스킬 외에 최대 3개까지 골라 장착합니다(속성별 카드에서 탭 한 번, 영구 저장 → 다음 저편부터 바로 사용). 발사·범위·비행체 등 원하는 조합으로 빌드를 짜보세요. ※ 다음: 정수로 스킬을 '진화'(화상·관통·처치폭발 등 행동 강화)시키는 심화."]},
 	{"v": "v3.14", "notes": ["저편 조준 — 미사일 스킬은 '발사형'으로. 메테오·빙하처럼 *지점에 떨어뜨리는* 범위 스킬은 원형 조준(범위 미리보기 원)이 맞지만, 마력탄·비도 같은 *발사체* 스킬엔 안 어울렸습니다. 이제 미사일 스킬을 조준하면 마법사 → 조준점으로 향하는 '발사 방향선(화살표)'이 뜨고, 손을 떼면 그 방향으로 직선 발사합니다(마력탄은 부채꼴 다발). 슬로우모션 조준은 그대로. ※ 저편은 아직 캐릭터 고유 스킬 1개만 사용 — 여러 스킬을 골라 장착하는 건 다음 '정수/로드아웃' 업데이트에서 추가됩니다."]},
 	{"v": "v3.13", "notes": ["저편 모드 개편 — 조준 슬로우모션 + 쇄도 + 단일 속성. 플레이 피드백 반영: ① 진짜 '조준' 추가 — 하단 스킬 아이콘을 누르면 *시간이 느려지고*(슬로우모션) 손가락을 끌어 조준점(+범위 미리보기 레티클)을 옮긴 뒤 떼면 그 지점에 시전합니다. 빠르게 떼면 가장 가까운 적에게 자동 조준. 천천히 조준하는 전술적인 손맛을 의도했습니다. ② 쇄도 구간 — 각 장 보스 직전에 한꺼번에 많은 몹이 몰려오는 러시 웨이브를 추가(짧은 간격으로 쏟아짐). ③ 단일 속성 보장 — 각 장은 그 속성 몹만 나옵니다(보스 웨이브의 혼합 호위 몹 제거). 더불어 수동 조작에 맞춰 일반 웨이브 물량을 완화했습니다. ※ 난이도·물량은 계속 조정 예정."]},
 	{"v": "v3.12", "notes": ["새 엔드게임 모드 '저편(Beyond)' 추가 (1차) — 최고 웨이브 30 도달 시 홈에서 해금되는 베테랑 전용 모드입니다. 기존 모드와 세 가지가 다릅니다: ① 멀티속성 여정 — 5속성 중 3개가 매 런 무작위로 뽑혀 '제1장→2장→3장'으로 속성·보스가 바뀝니다(매번 다른 여정). ② 수동 스킬 조작 — 평타는 자동 그대로지만, 스킬은 쿨마다 자동 발동하는 대신 직접 조준·시전합니다: 하단 스킬 아이콘을 탭해 무장(사거리 링 표시) → 전장을 탭한 지점에 시전(무장 안 하면 준비된 첫 스킬 자동). ③ 끝이 있는 관문 — 3장 보스(서로 다른 속성)를 모두 깨면 '저편 클리어'. 인게임 카드 드래프트 없이 기본 로드아웃으로 진행합니다. ※ 다음(v3.13): 새 재화 '정수'로 스킬을 미리 진화·장착하는 로드아웃 화면."]},
@@ -314,6 +315,11 @@ var relic_levels := {}  ## 유물 id별 보유 레벨 {id: level} — 뽑기로 
 var last_free_roll_date := ""  ## 마지막 '일일 무료 뽑기' 수령 날짜(YYYY-MM-DD) — 하루 1회 무료 룬
 var ascension := 0        ## 해금된 최고 상승 계층(스테이지 모드, 영속) — 최고 계층 클리어 시 +1
 var run_ascension := 0    ## 이번 스테이지 런에서 고른 계층(0~ascension, 인메모리)
+var essence := 0          ## 저편 전용 재화 '정수' — 저편에서 획득, 스킬 해금에 사용(영속)
+var beyond_unlocked_skills: Array = []  ## 정수로 해금한 저편 스킬 id 목록(영속). 캐릭터 고유 스킬은 항상 사용 가능(불포함)
+var beyond_loadout: Array = []  ## 저편에 장착한 추가 스킬 id 목록(최대 BEYOND_SLOTS, 영속)
+const BEYOND_SLOTS := 3   ## 저편 추가 스킬 슬롯(캐릭터 고유 스킬 + 최대 이만큼 장착)
+const BEYOND_SKILL_COST := 60  ## 저편 스킬 1종 해금 정수 비용 ※밸런스 다이얼
 
 func _ready() -> void:
 	_load()
@@ -477,6 +483,35 @@ func add_coins(n: int) -> void:
 	coins += n
 	lifetime_coins += n
 	_save()
+
+## --- 저편 정수 / 로드아웃 ---
+## 정수 획득(영속).
+func add_essence(n: int) -> void:
+	if n <= 0:
+		return
+	essence += n
+	_save()
+
+## 저편 스킬 해금(정수 차감). 성공 시 true(이미 해금/잔액 부족이면 false).
+func unlock_beyond_skill(id: String) -> bool:
+	if id in beyond_unlocked_skills or essence < BEYOND_SKILL_COST:
+		return false
+	essence -= BEYOND_SKILL_COST
+	beyond_unlocked_skills.append(id)
+	_save()
+	return true
+
+## 저편 로드아웃 장착/해제 토글. 미해금이거나 슬롯 가득(장착 시)이면 false.
+func toggle_beyond_loadout(id: String) -> bool:
+	if id in beyond_loadout:
+		beyond_loadout.erase(id)
+		_save()
+		return true
+	if not (id in beyond_unlocked_skills) or beyond_loadout.size() >= BEYOND_SLOTS:
+		return false
+	beyond_loadout.append(id)
+	_save()
+	return true
 
 ## --- 처치 도감 / 처치 업적 ---
 ## 적 처치 1회 기록(메모리 누적). 저장은 런 종료(add_coins/note_run)의 _save와 함께 — 매 처치 디스크 쓰기 방지.
@@ -737,6 +772,9 @@ func _load() -> void:
 		relic_levels = cf.get_value("meta", "relic_levels", {})
 		last_free_roll_date = cf.get_value("meta", "last_free_roll_date", "")
 		ascension = cf.get_value("meta", "ascension", 0)
+		essence = cf.get_value("meta", "essence", 0)
+		beyond_unlocked_skills = cf.get_value("meta", "beyond_unlocked_skills", [])
+		beyond_loadout = cf.get_value("meta", "beyond_loadout", [])
 		if relic_levels.is_empty():  # 구형 세이브(해금 유물) → 레벨 1로 마이그레이션
 			for rid in cf.get_value("meta", "unlocked_relics", []):
 				relic_levels[rid] = 1
@@ -772,6 +810,9 @@ func _save() -> void:
 	cf.set_value("meta", "relic_levels", relic_levels)
 	cf.set_value("meta", "last_free_roll_date", last_free_roll_date)
 	cf.set_value("meta", "ascension", ascension)
+	cf.set_value("meta", "essence", essence)
+	cf.set_value("meta", "beyond_unlocked_skills", beyond_unlocked_skills)
+	cf.set_value("meta", "beyond_loadout", beyond_loadout)
 	cf.set_value("record", "char_best", char_best)
 	cf.set_value("record", "kills", kills)
 	cf.set_value("record", "total_runs", total_runs)
