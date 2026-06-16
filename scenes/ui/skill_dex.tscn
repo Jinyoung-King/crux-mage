@@ -53,12 +53,10 @@ layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="Grid" type="GridContainer" parent="Center/Scroll"]
+[node name="Grid" type="VBoxContainer" parent="Center/Scroll"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/h_separation = 12
-theme_override_constants/v_separation = 12
-columns = 2
+theme_override_constants/separation = 12
 
 [node name="BackButton" type="Button" parent="Center"]
 custom_minimum_size = Vector2(220, 56)
