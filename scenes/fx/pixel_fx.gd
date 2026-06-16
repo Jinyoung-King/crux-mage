@@ -11,16 +11,18 @@ func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # 도트 크리스프(블러 방지 — 임포트 설정과 무관하게 강제)
 	z_index = 7  # 적·발사체 위에
 
-## tex=시트, frames=프레임 수, target_px=화면상 지름(px)에 맞춰 스케일, fps=재생 속도, col=틴트(흰색=원본)
-func play(tex: Texture2D, frames: int, target_px: float, fps: float = 24.0, col: Color = Color.WHITE) -> void:
+## tex=시트, hf=가로 칸(프레임 수), target_px=화면상 지름(px)에 맞춰 스케일, fps=재생 속도, col=틴트(흰색=원본),
+## vf=세로 칸(격자 시트면 >1, 기본 1=가로 일렬). 총 프레임=hf*vf, Godot이 좌→우·상→하로 재생.
+func play(tex: Texture2D, hf: int, target_px: float, fps: float = 24.0, col: Color = Color.WHITE, vf: int = 1) -> void:
 	texture = tex
-	hframes = frames
+	hframes = hf
+	vframes = vf
 	frame = 0
-	_frames = frames
+	_frames = hf * vf
 	_fps = fps
 	_t = 0.0
 	modulate = col
-	var fw: float = float(tex.get_width()) / float(frames)  # 프레임 1장 폭
+	var fw: float = float(tex.get_width()) / float(hf)  # 프레임 한 칸 폭
 	var s: float = (target_px / fw) if fw > 0.0 else 1.0
 	scale = Vector2(s, s)
 

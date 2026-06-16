@@ -6,6 +6,7 @@ const SKILL_RING := preload("res://scenes/fx/skill_ring.gd")
 const DEATH_BURST := preload("res://scenes/fx/death_burst.tscn")
 const PIXEL_FX := preload("res://scenes/fx/pixel_fx.gd")
 const FX_EXPLOSION_FIRE := preload("res://assets/sprites/fx_explosion_fire.png")
+const FX_EXPLOSION_EXT := preload("res://assets/sprites/fx_ext_explosion.png")  # 불바다: 외부 CC0 팩(비교용)
 const FALLING_SKILL := preload("res://scenes/fx/falling_skill.gd")
 const THORN_ERUPT := preload("res://scenes/fx/thorn_erupt.gd")
 const LOOP := 1.7  ## 반복 주기(초)
@@ -31,7 +32,12 @@ func _play_once() -> void:
 	var col: Color = ElementLib.color(_elem)
 	match _id:
 		"meteor":
-			_falling(col, "fire", true)   # 운석 낙하 → 픽셀 폭발(새 아트)
+			_falling(col, "fire", true)   # 운석 낙하 → 픽셀 폭발(절차 생성)
+		"inferno":  # 외부 CC0 팩 폭발(유성=절차 생성과 비교)
+			_ring(col)
+			var xfx = PIXEL_FX.new()
+			add_child(xfx)
+			xfx.play(FX_EXPLOSION_EXT, 10, _radius * 2.2, 60.0, Color.WHITE, 5)
 		"barrage", "rockfall":
 			_falling(col, _elem, false)   # 바위 낙하 → 폭발 링
 		"thorns":

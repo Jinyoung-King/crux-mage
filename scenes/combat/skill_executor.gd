@@ -13,7 +13,8 @@ const DEATH_BURST_SCENE := preload("res://scenes/fx/death_burst.tscn")
 const SCORCH := preload("res://scenes/fx/scorch_mark.gd")  # 메테오 착탄 그을음
 const THORN_ERUPT := preload("res://scenes/fx/thorn_erupt.gd")  # 가시밭 가시 솟구침
 const PIXEL_FX := preload("res://scenes/fx/pixel_fx.gd")  # 픽셀 FX 시트 재생기(아트 업그레이드)
-const FX_EXPLOSION_FIRE := preload("res://assets/sprites/fx_explosion_fire.png")  # 유성 착탄 폭발(픽셀)
+const FX_EXPLOSION_FIRE := preload("res://assets/sprites/fx_explosion_fire.png")  # 유성 착탄 폭발(절차 생성)
+const FX_EXPLOSION_EXT := preload("res://assets/sprites/fx_ext_explosion.png")  # 불바다 폭발(외부 CC0 팩 — OpenGameArt "explosion-7", CC0/PD, 10x5=50프레임) — 비교용
 const REACTION_HP_PCT := 0.06  ## 격발 반응(증발·빙결파쇄)이 주는 추가 % 최대체력 피해 — 복리 체력 관통
 
 var player
@@ -77,8 +78,11 @@ func execute(s: Dictionary) -> void:
 				_skill_aoe(fc, er, ep, true, element)   # 광역 피해 + 화상 부여
 				_ground_field(fc, er, ep, element)       # 잔류 화염 장판(DoT)
 				host._skill_ring(fc, er, col, element)
-				_skill_burst(fc, col)
 				_scorch(fc, er)  # 그을음 자국
+				var xfx = PIXEL_FX.new()  # 외부 CC0 팩 픽셀 폭발(유성=절차 생성과 비교용 A/B)
+				xfx.position = fc
+				fx_root.add_child(xfx)
+				xfx.play(FX_EXPLOSION_EXT, 10, er * 2.2, 60.0, Color.WHITE, 5)  # 10x5=50프레임 격자
 		"rockfall":  # 낙석: 여러 바위가 흩어진 적 위로 분산 낙하(각 중간 폭발). count=바위 수
 			var pts := _random_enemy_points(count, pool)
 			for pt in pts:
