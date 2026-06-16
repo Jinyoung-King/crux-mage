@@ -296,7 +296,8 @@ func cd_ratio(s: Dictionary) -> float:
 
 ## 스킬 발사체 1발: 예측 조준으로 target에 마력탄을 쏨(위력=dmg). 평타 패시브/유물 미적용 — 순수 스킬.
 ## fired 신호로 main이 사운드·데미지숫자 연결 + Projectiles에 추가. 상성/사망연출은 발사체가 자체 처리.
-func fire_skill_bolt(target, dmg: float, elem: String) -> void:
+## target=적이면 예측 조준(자동), aim_point가 주어지면(저편 미사일 조준) 그 지점 방향으로 직선 발사.
+func fire_skill_bolt(target, dmg: float, elem: String, aim_point: Vector2 = Vector2.INF) -> void:
 	var p = host.acquire_projectile()
 	if p == null:
 		return  # 발사체 풀/캡 초과 — 드랍
@@ -310,10 +311,13 @@ func fire_skill_bolt(target, dmg: float, elem: String) -> void:
 		p.crit_chance = character.passive_crit_chance
 		p.crit_mult = character.passive_crit_mult
 	p.position = global_position
-	# 적이 아래로 이동 중이므로 비행시간만큼 앞질러 예측 조준
-	var flight_time: float = global_position.distance_to(target.global_position) / p.speed
-	var predicted: Vector2 = target.global_position + Vector2.DOWN * target.speed * flight_time
-	p.direction = (predicted - global_position).normalized()
+	if aim_point != Vector2.INF:
+		p.direction = (aim_point - global_position).normalized()  # 저편 조준: 지정 방향으로 직선 발사
+	else:
+		# 적이 아래로 이동 중이므로 비행시간만큼 앞질러 예측 조준
+		var flight_time: float = global_position.distance_to(target.global_position) / p.speed
+		var predicted: Vector2 = target.global_position + Vector2.DOWN * target.speed * flight_time
+		p.direction = (predicted - global_position).normalized()
 	p.rotation = p.direction.angle()
 	if relic_levels.has("berserk") and hp < max_hp * RelicLib.BERSERK_HP_RATIO:
 		dmg *= RelicLib.berserk_mult(relic_levels["berserk"])  # 격노의 룬(레벨별)

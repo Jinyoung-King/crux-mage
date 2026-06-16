@@ -45,11 +45,16 @@ func execute(s: Dictionary) -> void:
 	var aim: Vector2 = s.get("aim", Vector2.INF)  # 저편 수동 조준점(INF=자동 군집조준)
 	match s.id:
 		"bolts":
-			var pp: Vector2 = aim if aim != Vector2.INF else player.global_position
-			pool.sort_custom(func(a, b): return pp.distance_squared_to(a.global_position) < pp.distance_squared_to(b.global_position))
-			for e in pool.slice(0, count):
-				if is_instance_valid(e):
-					player.fire_skill_bolt(e, ep, element)  # 보이는 마력탄이 날아가 명중(스킬 속성으로 상성·틴트)
+			if aim != Vector2.INF:  # 저편 조준: 조준점 방향으로 count발 직선 발사(약간 부채꼴)
+				var base: Vector2 = aim - player.global_position
+				for i in count:
+					var ang: float = (i - (count - 1) / 2.0) * 0.14
+					player.fire_skill_bolt(null, ep, element, player.global_position + base.rotated(ang))
+			else:  # 자동(무한·스테이지): 가까운 적 예측 조준
+				pool.sort_custom(func(a, b): return player.global_position.distance_squared_to(a.global_position) < player.global_position.distance_squared_to(b.global_position))
+				for e in pool.slice(0, count):
+					if is_instance_valid(e):
+						player.fire_skill_bolt(e, ep, element)
 		"meteor":
 			var center := aim if aim != Vector2.INF else _densest_cluster(er, pool)
 			if center != Vector2.INF:
