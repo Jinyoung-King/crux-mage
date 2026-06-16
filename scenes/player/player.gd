@@ -10,6 +10,7 @@ signal took_damage(amount: float)  ## 받는 피해 (빨간 데미지 숫자 표
 const BARRIER_DROID := preload("res://scenes/fx/barrier_droid.gd")  ## 방어형 비행체(지속형 동반자)
 const SKILL_BOLT_TEX := preload("res://assets/sprites/bolt_skill.png")  ## (구) 마력탄 절차 발사체 — 가시 화살은 외부 시트로 대체
 const FX_WOOD_BOLT := preload("res://assets/sprites/fx_wood.png")  ## '가시 화살' 외부 발사체(DevWizard Plant Missle, CC0, 96x16=6프레임)
+const PLAIN_BOLT := preload("res://assets/sprites/bolt_dot.png")  ## 평타 공용 초소형 점(8px, 초경량 — 스킬 발사체와 명확히 구분)
 const FOCUS_SPREAD := PI / 90.0  ## 표적보다 발사 수가 많을 때 같은 표적에 겹쳐 쏘는 발사의 부채 각(≈2°)
 const BASIC_ATTACK_MULT := 0.04  ## 평타 피해 = effective_damage()의 이 비율(약한 베이스라인 — 스킬 쿨과 별개로 연사 주기마다)
 const MAX_SKILL_SLOTS := 5  ## 스킬 슬롯 제한(캐릭터 고유 1 포함) — 다 쓰기 방지·슬롯 차면 진화 유도. v1.95 4→5(원소 균열 몰빵 여유, 성능은 발사체/FX 상한이 보장)
@@ -444,9 +445,11 @@ func _fire_at(target, aim_offset := 0.0) -> void:
 	var p = host.acquire_projectile()
 	if p == null:
 		return  # 발사체 풀/캡 초과 — 드랍(평타는 가장 많이 발사 → 여기서 자주 컷)
-	if character and character.projectile_sprite:
-		p.get_node("Sprite2D").texture = character.projectile_sprite  # 캐릭터 전용 발사체 외형
+	var spr: Sprite2D = p.get_node("Sprite2D")
+	spr.texture = PLAIN_BOLT  # 모든 평타 = 초소형 점(스킬 발사체와 명확히 구분, 최대한 작게)
+	spr.scale = Vector2(1.25, 1.25)  # ~10px
 	if character:
+		spr.modulate = ElementLib.color(character.element)  # 평타 점에 속성색(약한 정체성)
 		# 패시브 효과를 발사체에 실어 보냄
 		p.element = character.element  # 오행 속성(상성 판정)
 		p.crit_chance = character.passive_crit_chance

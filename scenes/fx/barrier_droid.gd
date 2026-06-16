@@ -9,6 +9,7 @@ extends Node2D
 ##  - 드론 위치는 공전각 _angle 하나로 파생(노드 N개를 따로 두지 않음) — 할당/노드 비용 0.
 
 const BLOCK_POP := preload("res://scenes/fx/block_pop.gd")  ## 적탄 차단 보호막 링(직관적 표시)
+const FX_METAL := preload("res://assets/sprites/fx_metal.png")  ## 드론 외형 — 외부 금속 스프라이트(DevWizard Magic Sparks, CC0)
 const CLEAR_RADIUS := 28.0   ## 드론이 적탄을 소멸시키는 근접 반경(px)
 const TICK_INTERVAL := 0.4   ## 적 지속 피해 주기(s)
 const TICK_RADIUS := 60.0    ## 드론 주변 피해 반경(px) — 적이 더 잘 닿도록 확대(v2.4)
@@ -26,6 +27,7 @@ var _t: float = 0.0  ## 글로우 펄스용 누적 시간
 
 func _ready() -> void:
 	z_index = 6  # 적·발사체 위에 그려지도록
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # 외부 픽셀 시트 선명하게
 
 ## 보유 스킬 사전(s)으로 비행체 파라미터 갱신 — 획득/진화 시 player가 호출. 티어↑ → 공전 가속.
 func configure(player_ref, s: Dictionary) -> void:
@@ -89,16 +91,12 @@ func _damage_enemies() -> void:
 				break
 
 func _draw() -> void:
-	draw_arc(Vector2.ZERO, _radius, 0.0, TAU, 48, Color(_col.r, _col.g, _col.b, 0.12), 1.5, true)  # 공전 궤도(은은)
-	var pulse := 0.75 + 0.25 * sin(_t * 6.0)  # 글로우 맥동
+	draw_arc(Vector2.ZERO, _radius, 0.0, TAU, 48, Color(_col.r, _col.g, _col.b, 0.10), 1.5, true)  # 공전 궤도(은은)
+	# 드론 본체 — 외부 금속 스프라이트(시트의 한 프레임)
+	var fw := FX_METAL.get_width() / 6.0    # 프레임 폭(96/6=16)
+	var fh := float(FX_METAL.get_height())   # 16
+	var src := Rect2(2.0 * fw, 0.0, fw, fh)  # 형성된 금속 프레임(고정)
+	var dsz := 30.0                          # 화면상 드론 크기
 	for i in _count:
-		# 잔상: 뒤쪽 궤도 위치에 옅게 3겹(모션 블러)
-		for g in range(3, 0, -1):
-			var ga: float = _angle - _ang_speed * 0.035 * float(g) + TAU * float(i) / float(_count)
-			var goff := Vector2(cos(ga), sin(ga)) * _radius
-			draw_circle(goff, 6.0, Color(_col.r, _col.g, _col.b, 0.09 * float(g)))
 		var off := _drone_offset(i)
-		draw_circle(off, 14.0, Color(_col.r, _col.g, _col.b, 0.18 * pulse))  # 글로우(맥동)
-		draw_circle(off, 7.0, _col)
-		draw_circle(off, 3.5, Color(1, 1, 1, 0.9))
-		draw_arc(off, 11.0, 0.0, TAU, 18, Color(_col.r, _col.g, _col.b, 0.5), 2.0, true)
+		draw_texture_rect_region(FX_METAL, Rect2(off - Vector2(dsz, dsz) * 0.5, Vector2(dsz, dsz)), src)
