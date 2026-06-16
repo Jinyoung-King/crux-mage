@@ -42,19 +42,20 @@ func execute(s: Dictionary) -> void:
 	var col: Color = ElementLib.color(element)
 	var rng: float = SkillLib.SKILL_RANGE.get(s.id, 99999.0)  # 스킬별 사거리
 	var pool := _enemies_in_range(rng)  # 사거리 내 적만 타겟
+	var aim: Vector2 = s.get("aim", Vector2.INF)  # 저편 수동 조준점(INF=자동 군집조준)
 	match s.id:
 		"bolts":
-			var pp: Vector2 = player.global_position
+			var pp: Vector2 = aim if aim != Vector2.INF else player.global_position
 			pool.sort_custom(func(a, b): return pp.distance_squared_to(a.global_position) < pp.distance_squared_to(b.global_position))
 			for e in pool.slice(0, count):
 				if is_instance_valid(e):
 					player.fire_skill_bolt(e, ep, element)  # 보이는 마력탄이 날아가 명중(스킬 속성으로 상성·틴트)
 		"meteor":
-			var center := _densest_cluster(er, pool)
+			var center := aim if aim != Vector2.INF else _densest_cluster(er, pool)
 			if center != Vector2.INF:
 				_drop_aoe(center, er, ep, element, col, true)  # 하늘에서 낙하 후 폭발
 		"barrage":  # 거대한 돌 하나가 가장 밀집한 곳에 낙하(단일 강타). 다발(count)은 폭발 반경으로 환산.
-			var center := _densest_cluster(er, pool)
+			var center := aim if aim != Vector2.INF else _densest_cluster(er, pool)
 			if center != Vector2.INF:
 				var giant_r: float = minf(er * (1.4 + 0.1 * float(maxi(count - 3, 0))), player.MAX_SKILL_RADIUS)
 				_drop_aoe(center, giant_r, ep * 2.0, element, col, false, 80, true, true)  # 거대 낙하체·풀FX·흔들림
@@ -72,7 +73,7 @@ func execute(s: Dictionary) -> void:
 			fx_root.add_child(sfx)
 			sfx.play(FX_WATER, 6, 220.0, 16.0)
 		"thorns":  # 가시밭: 가장 밀집한 곳에 초기 광역 피해 + 지속 가시 장판(속성색=초록)
-			var tc := _densest_cluster(er, pool)
+			var tc := aim if aim != Vector2.INF else _densest_cluster(er, pool)
 			if tc != Vector2.INF:
 				_skill_aoe(tc, er, ep, false, element)
 				_ground_field(tc, er, ep, element)
@@ -83,7 +84,7 @@ func execute(s: Dictionary) -> void:
 				fx_root.add_child(nfx)
 				nfx.play(FX_WOOD, 6, er * 1.4, 16.0)
 		"inferno":  # 불바다: 밀집 지점에 화염 작렬(광역 피해 + 화상) + 잔류 화염 장판(지속 피해)
-			var fc := _densest_cluster(er, pool)
+			var fc := aim if aim != Vector2.INF else _densest_cluster(er, pool)
 			if fc != Vector2.INF:
 				_skill_aoe(fc, er, ep, true, element)   # 광역 피해 + 화상 부여
 				_ground_field(fc, er, ep, element)       # 잔류 화염 장판(DoT)
@@ -100,7 +101,7 @@ func execute(s: Dictionary) -> void:
 			if not pts.is_empty():
 				host._add_shake(3.0)
 		"glacier":  # 빙하: 밀집 지점에 얼음 작렬 — 국지 고피해 + 강한 둔화 부여
-			var gc := _densest_cluster(er, pool)
+			var gc := aim if aim != Vector2.INF else _densest_cluster(er, pool)
 			if gc != Vector2.INF:
 				for e in EnemyCache.all():
 					if is_instance_valid(e) and gc.distance_to(e.global_position) <= er:

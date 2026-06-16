@@ -52,12 +52,15 @@ func _process(delta: float) -> void:
 		heal(RelicLib.regen_per_sec(relic_levels["regen"]) * delta)  # 재생의 룬(레벨별)
 	# 액티브 스킬: 보유 스킬마다 독립 쿨타임으로 자동 발동 (연사 스탯이 모든 쿨타임 단축)
 	if hp > 0.0 and not skills_paused:
+		var manual: bool = GameState.game_mode == "beyond"  # 저편: 자동 시전 끄고 수동 조준·발동
 		for s in skills:
 			if s.id == "barrier_droid":
 				continue  # 지속형 동반자 — 쿨캐스트 아님(_barrier_droid 노드가 매 프레임 자동 동작)
 			s.cd_left -= delta
 			if s.cd_left <= 0.0:
-				if _has_target_in_range(s):
+				if manual:
+					s.cd_left = 0.0  # 저편: 준비 상태로 대기 — main의 탭 입력(cast_skill_manual)으로만 발동
+				elif _has_target_in_range(s):
 					_cast_skill(s)
 					s.cd_left = eff_cooldown(s)
 				else:
@@ -197,8 +200,8 @@ func _has_target_in_range(s: Dictionary) -> bool:
 			return true
 	return false
 
-## 스킬 발동: 실효 위력/범위를 풀어 main에 전달
-func _cast_skill(s: Dictionary) -> void:
+## 스킬 발동: 실효 위력/범위를 풀어 main에 전달. aim_pos가 주어지면(저편 수동) 그 좌표를 조준점으로 전달.
+func _cast_skill(s: Dictionary, aim_pos: Vector2 = Vector2.INF) -> void:
 	_skill_pose()  # 시전 포즈(위로 쭉 뻗으며 번쩍)
 	var data := {
 		"id": s.id,
@@ -208,6 +211,8 @@ func _cast_skill(s: Dictionary) -> void:
 		"count": s.count,
 		"element": SkillLib.DEFS.get(s.id, {}).get("element", character.element if character else ""),  # 스킬 자체 속성(시전자 속성 아님) — 색·상성 통일
 	}
+	if aim_pos != Vector2.INF:
+		data["aim"] = aim_pos  # 수동 조준점 — skill_executor가 군집 자동조준 대신 이 좌표를 중심으로
 	skill_cast.emit(data)
 	if build.echo:  # 메아리: 0.25초 뒤 재시전(누적 시 위력↑, 재귀 없음 — _cast_skill 안 거침)
 		var echo_data := data.duplicate()
@@ -215,6 +220,19 @@ func _cast_skill(s: Dictionary) -> void:
 		get_tree().create_timer(0.25).timeout.connect(func() -> void:
 			if hp > 0.0:
 				skill_cast.emit(echo_data))
+
+## 저편 수동 시전: 준비된 스킬(idx)을 지정 좌표에 시전. aim은 스킬 사거리로 클램프(밸런스 유지). 성공 시 true.
+func cast_skill_manual(idx: int, aim: Vector2) -> bool:
+	if idx < 0 or idx >= skills.size():
+		return false
+	var s: Dictionary = skills[idx]
+	if s.id == "barrier_droid" or s.cd_left > 0.0:
+		return false  # 지속형이거나 아직 쿨 중
+	var rng: float = SkillLib.SKILL_RANGE.get(s.id, 99999.0)
+	var clamped: Vector2 = global_position + (aim - global_position).limit_length(rng)  # 사거리 밖이면 경계로
+	_cast_skill(s, clamped)
+	s.cd_left = eff_cooldown(s)
+	return true
 
 ## 쿨 하한을 넘긴 '초과 연사'를 위력으로 환산하는 비율 / 그 보너스 상한(+75%) — 평타 없는 구조에서 연사가 죽지 않게.
 const OVERFLOW_TO_DMG := 0.5

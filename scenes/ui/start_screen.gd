@@ -98,6 +98,7 @@ func _ready() -> void:
 	play_button.add_theme_stylebox_override("hover", _play_style)
 	play_button.add_theme_stylebox_override("pressed", _play_style)
 	_build_stage_buttons()
+	_build_beyond_button()  # 저편(엔드게임) 진입 — 최고 웨이브 30+ 해금
 	_apply_char()  # 텍스처·이름·속성색·배경·오라 적용
 	_build_counter_help()  # 상성 오버레이(최상단으로 마지막에 추가)
 	_build_tips_help()     # 공략 팁 오버레이
@@ -523,6 +524,38 @@ func _on_stage(elem: String) -> void:
 	GameState.stage_element = elem
 	GameState.run_ascension = clampi(_asc_sel, 0, GameState.ascension)
 	get_tree().change_scene_to_file("res://scenes/main/main.tscn")
+
+## 저편(엔드게임) 시작 — 멀티속성 여정 + 수동 조작. 상승 계층과 무관.
+func _on_beyond() -> void:
+	GameState.game_mode = "beyond"
+	GameState.run_ascension = 0
+	get_tree().change_scene_to_file("res://scenes/main/main.tscn")
+
+## 저편 진입 섹션 — 최고 웨이브 BEYOND_WAVE 이상에서만 해금(베테랑 게이트). 미달이면 조건 안내.
+func _build_beyond_button() -> void:
+	var lbl := _label("─ 저편 (멀티속성 여정 · 수동 조작) ─", 15, Color(0.74, 0.66, 0.92))
+	$Center.add_child(lbl)
+	if GameState.best_wave >= GameState.BEYOND_WAVE:
+		var b := Button.new()
+		b.text = "⟡ 저편 진입"
+		b.custom_minimum_size = Vector2(220, 52)
+		b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		b.add_theme_font_override("font", FONT)
+		b.add_theme_font_size_override("font_size", 22)
+		b.add_theme_color_override("font_color", Color(0.92, 0.88, 1.0))
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(0.3, 0.22, 0.46)
+		sb.set_corner_radius_all(10)
+		sb.set_border_width_all(2)
+		sb.border_color = Color(0.74, 0.66, 0.92)
+		b.add_theme_stylebox_override("normal", sb)
+		b.add_theme_stylebox_override("hover", sb)
+		b.add_theme_stylebox_override("pressed", sb)
+		$Center.add_child(b)
+		b.pressed.connect(_on_beyond)
+	else:
+		var locked := _label("🔒 최고 웨이브 %d 도달 시 해금 (현재 %d)" % [GameState.BEYOND_WAVE, GameState.best_wave], 14, Color(0.6, 0.6, 0.66))
+		$Center.add_child(locked)
 
 ## 상승 계층 선택기 — ◀ 상승 N ▶ + 규칙 요약. 해금(ascension>0) 시에만 표시.
 func _build_ascension_selector() -> void:

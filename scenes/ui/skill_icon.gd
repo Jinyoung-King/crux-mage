@@ -5,6 +5,7 @@ extends Control
 const FONT := preload("res://assets/fonts/NotoSansKR.ttf")
 
 signal hold(active: bool)  ## 누르고 있는 동안 true, 떼면 false (main이 사거리 링 표시)
+signal tapped  ## 탭(아이콘 위에서 누름→뗌)으로 발생 — 저편 수동 스킬 무장용
 
 var col: Color = Color.WHITE
 var sname: String = ""
@@ -23,8 +24,12 @@ func _ready() -> void:
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		_set_held(event.pressed)
+		if not event.pressed:
+			tapped.emit()  # 아이콘에서 손 뗌 = 탭
 	elif event is InputEventScreenTouch:
 		_set_held(event.pressed)
+		if not event.pressed:
+			tapped.emit()
 
 func _release() -> void:
 	_set_held(false)
