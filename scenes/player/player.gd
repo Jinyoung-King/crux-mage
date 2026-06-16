@@ -53,15 +53,12 @@ func _process(delta: float) -> void:
 		heal(RelicLib.regen_per_sec(relic_levels["regen"]) * delta)  # 재생의 룬(레벨별)
 	# 액티브 스킬: 보유 스킬마다 독립 쿨타임으로 자동 발동 (연사 스탯이 모든 쿨타임 단축)
 	if hp > 0.0 and not skills_paused:
-		var manual: bool = GameState.game_mode == "beyond"  # 저편: 자동 시전 끄고 수동 조준·발동
-		for s in skills:
+		for s in skills:  # 모든 모드 자동 시전(저편 수동은 v3.24에서 되돌림 — 코드는 main에 보존)
 			if s.id == "barrier_droid":
 				continue  # 지속형 동반자 — 쿨캐스트 아님(_barrier_droid 노드가 매 프레임 자동 동작)
 			s.cd_left -= delta
 			if s.cd_left <= 0.0:
-				if manual:
-					s.cd_left = 0.0  # 저편: 준비 상태로 대기 — main의 탭 입력(cast_skill_manual)으로만 발동
-				elif _has_target_in_range(s):
+				if _has_target_in_range(s):
 					_cast_skill(s)
 					s.cd_left = eff_cooldown(s)
 				else:
