@@ -57,9 +57,7 @@ func _spawn_blaze() -> void:
 	fx.play(FX_FIRE, 10, radius * 0.7, 60.0, Color.WHITE, 5)
 
 func _draw() -> void:
-	# 테두리 링 없이 '채움'으로만 범위 표현(중심이 살짝 진함) + 속성 픽셀 장식
-	draw_circle(Vector2.ZERO, radius, Color(color.r, color.g, color.b, 0.20))
-	draw_circle(Vector2.ZERO, radius * 0.6, Color(color.r, color.g, color.b, 0.16))
+	# 원형 채움 제거 — 구역은 속성 픽셀 장식(+화염은 블레이즈)으로만 표현.
 	# 속성별 픽셀 장식(가시·불씨·돌). 장판은 wood(가시밭)/fire(분화구 메테오)/earth(초토화 포격)만 생성됨.
 	var n := int(clampf(radius / 14.0, 6, 12))  # 반경에 비례한 장식 개수(가시가 커져 약간 줄임)
 	var sc := clampf(radius / 90.0, 0.8, 1.6)   # 픽셀 한 칸 크기 배율

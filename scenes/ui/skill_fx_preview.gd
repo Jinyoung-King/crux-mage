@@ -35,31 +35,26 @@ func _play_once() -> void:
 	match _id:
 		"meteor":
 			_falling(col, "fire", true)   # 운석 낙하 → 픽셀 폭발(절차 생성)
-		"inferno":  # 외부 CC0 팩 폭발(유성=절차 생성과 비교)
-			_ring(col)
+		"inferno":  # 외부 픽셀 폭발
 			var xfx = PIXEL_FX.new()
 			add_child(xfx)
 			xfx.play(FX_EXPLOSION_EXT, 10, _radius * 2.2, 60.0, Color.WHITE, 5)
 		"barrage", "rockfall":
 			_falling(col, _elem, true)    # 바위 낙하 → 외부 폭발(폭격 임팩트)
 		"chain":  # 비도 — 칼날 클래시 스파크(연쇄 명중 모사)
-			_ring(col)
 			for off in [Vector2.ZERO, Vector2(60, -36), Vector2(-54, 28)]:
 				var sfx = PIXEL_FX.new(); sfx.position = off; add_child(sfx); sfx.play(FX_METAL, 6, 64.0, 22.0)
 		"glacier":  # 외부 물 FX(DevWizard CC0)
-			_ring(col)
 			var gfx = PIXEL_FX.new(); add_child(gfx); gfx.play(FX_WATER, 6, _radius * 2.0, 16.0)
 		"freeze":  # 외부 물 FX(중앙 대형)
-			_ring(col)
 			var ffx = PIXEL_FX.new(); add_child(ffx); ffx.play(FX_WATER, 6, 200.0, 16.0)
 		"thorns":  # 가시 솟구침 + 외부 자연 FX
-			_ring(col)
 			var th = THORN_ERUPT.new(); add_child(th); th.setup(_radius)
 			var nfx = PIXEL_FX.new(); add_child(nfx); nfx.play(FX_WOOD, 6, _radius * 1.4, 16.0)
 		"bolts":  # 가시 화살 — 외부 식물 발사체가 날아가는 모습(인게임 렌더와 동일)
 			_projectiles()
 		_:
-			_ring(col); _burst(col)        # 공통: 속성별 링 버스트 + 파편
+			_burst(col)        # 공통: 파편(원형 링 제거)
 
 ## 가시 화살 발사체 미리보기 — 인게임 fire_skill_bolt와 동일 스프라이트/회전으로 부채꼴 발사(아래→위)
 func _projectiles() -> void:
@@ -103,7 +98,6 @@ func _falling(col: Color, elem: String, pixel: bool) -> void:
 	var tw := m.create_tween()
 	tw.tween_property(m, "position", Vector2.ZERO, 0.42).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tw.tween_callback(func() -> void:
-		_ring(col)
 		_burst(col)
 		if pixel:
 			var fx = PIXEL_FX.new()

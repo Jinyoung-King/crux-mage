@@ -28,9 +28,7 @@ func _draw() -> void:
 			draw_line(Vector2.ZERO, -dir * 24 - perp * 13, c, 3.0)
 		draw_circle(Vector2.ZERO, 7.0, c)
 	else:
+		# 범위형 — 십자선만(AoE 원형 표시 제거). 착탄 크기는 시전 시 외부 FX로 표현.
 		draw_line(Vector2(-24, 0), Vector2(24, 0), c, 3.0)
 		draw_line(Vector2(0, -24), Vector2(0, 24), c, 3.0)
 		draw_arc(Vector2.ZERO, 13.0, 0.0, TAU, 24, c, 2.0)
-		if radius > 1.0:
-			draw_circle(Vector2.ZERO, radius, Color(col.r, col.g, col.b, 0.12))
-			draw_arc(Vector2.ZERO, radius, 0.0, TAU, 48, Color(col.r, col.g, col.b, 0.7), 2.5)
