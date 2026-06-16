@@ -89,7 +89,7 @@ func execute(s: Dictionary) -> void:
 			var fc := aim if aim != Vector2.INF else _densest_cluster(er, pool)
 			if fc != Vector2.INF:
 				_skill_aoe(fc, er, ep, true, element)   # 광역 피해 + 화상 부여
-				_ground_field(fc, er, ep, element)       # 잔류 화염 장판(DoT)
+				_ground_field(fc, er, ep, element, 5.0)  # 5초 지속 화염 구역(DoT + 타오르는 블레이즈)
 				var xfx = PIXEL_FX.new()  # 외부 픽셀 폭발
 				xfx.position = fc
 				fx_root.add_child(xfx)
@@ -268,11 +268,11 @@ func _drop_aoe(center: Vector2, radius: float, ep: float, element: String, col: 
 		m.queue_free())
 
 ## 잔류 장판: 명중 지점에 지속 피해 필드(초당 ep의 절반)
-func _ground_field(pos: Vector2, radius: float, ep: float, element: String) -> void:
+func _ground_field(pos: Vector2, radius: float, ep: float, element: String, life := 3.6) -> void:
 	var h = GROUND_HAZARD.new()
 	h.position = pos
 	fx_root.add_child(h)
-	h.setup(maxf(radius, 70.0), ep * 0.5, element, ElementLib.color(element))
+	h.setup(maxf(radius, 70.0), ep * 0.5, element, ElementLib.color(element), life)
 
 ## 마법사로부터 rng 이내의 살아있는 적 (스킬 사거리 필터)
 func _enemies_in_range(rng: float) -> Array:

@@ -1,19 +1,27 @@
 extends Node2D
 ## 잔류 장판 — 일정 시간 반경 내 적에게 주기적 피해(지속 피해 필드). 단색 도형.
-## setup(반경, 초당피해, 원소, 색) 후 배치. 직접 피해(재귀 반응 없음)라 안전·가벼움.
+## setup(반경, 초당피해, 원소, 색[, 지속]) 후 배치. 직접 피해(재귀 반응 없음)라 안전·가벼움.
+## 화염(fire) 장판은 지속시간 동안 외부 불 FX를 반복 분출해 '타오르는' 연출.
+
+const PIXEL_FX := preload("res://scenes/fx/pixel_fx.gd")  # 블레이즈용 외부 FX 재생기
+const FX_FIRE := preload("res://assets/sprites/fx_ext_explosion.png")  # 외부 불 폭발 시트(CC0)
 
 var radius := 90.0
 var dps := 10.0
 var element := ""
 var color := Color(1.0, 0.5, 0.2)
 var _life := 3.6
+var _max_life := 3.6
 var _tick := 0.0
+var _blaze_t := 0.0
 
-func setup(r: float, d: float, elem: String, col: Color) -> void:
+func setup(r: float, d: float, elem: String, col: Color, life := 3.6) -> void:
 	radius = r
 	dps = d
 	element = elem
 	color = col
+	_life = life
+	_max_life = life
 	queue_redraw()
 
 func _ready() -> void:
@@ -24,7 +32,12 @@ func _process(delta: float) -> void:
 	if _life <= 0.0:
 		queue_free()
 		return
-	modulate.a = clampf(_life / 3.6, 0.25, 1.0)  # 끝물에 옅어짐
+	modulate.a = clampf(_life / _max_life, 0.25, 1.0)  # 끝물에 옅어짐
+	if element == "fire":  # 화염 장판 — 지속 동안 불이 타오름(외부 불 FX 반복 분출)
+		_blaze_t -= delta
+		if _blaze_t <= 0.0:
+			_blaze_t = 0.4
+			_spawn_blaze()
 	_tick += delta
 	if _tick >= 0.3:  # 0.3초마다 틱 피해
 		_tick -= 0.3
@@ -32,6 +45,16 @@ func _process(delta: float) -> void:
 		for e in EnemyCache.all():
 			if is_instance_valid(e) and global_position.distance_to(e.global_position) <= radius:
 				e.take_damage(hit * ElementLib.multiplier(element, e.element))
+
+## 화염 장판 블레이즈 — 구역 내 무작위 지점에 외부 불 폭발을 짧게 분출(지속 동안 반복)
+func _spawn_blaze() -> void:
+	var par := get_parent()
+	if par == null:
+		return
+	var fx = PIXEL_FX.new()
+	fx.position = position + Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * radius * 0.6
+	par.add_child(fx)
+	fx.play(FX_FIRE, 10, radius * 0.7, 60.0, Color.WHITE, 5)
 
 func _draw() -> void:
 	# 테두리 링 없이 '채움'으로만 범위 표현(중심이 살짝 진함) + 속성 픽셀 장식
