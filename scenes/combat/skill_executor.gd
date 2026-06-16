@@ -12,6 +12,8 @@ const FALLING_SKILL := preload("res://scenes/fx/falling_skill.gd")
 const DEATH_BURST_SCENE := preload("res://scenes/fx/death_burst.tscn")
 const SCORCH := preload("res://scenes/fx/scorch_mark.gd")  # 메테오 착탄 그을음
 const THORN_ERUPT := preload("res://scenes/fx/thorn_erupt.gd")  # 가시밭 가시 솟구침
+const PIXEL_FX := preload("res://scenes/fx/pixel_fx.gd")  # 픽셀 FX 시트 재생기(아트 업그레이드)
+const FX_EXPLOSION_FIRE := preload("res://assets/sprites/fx_explosion_fire.png")  # 유성 착탄 폭발(픽셀)
 const REACTION_HP_PCT := 0.06  ## 격발 반응(증발·빙결파쇄)이 주는 추가 % 최대체력 피해 — 복리 체력 관통
 
 var player
@@ -242,9 +244,13 @@ func _drop_aoe(center: Vector2, radius: float, ep: float, element: String, col: 
 			host._skill_ring(center, radius, col, element)
 			_skill_burst_n(center, col, burst_amt)
 			var sub := maxi(5, burst_amt / 3)  # 부속 입자(잔불·먼지)도 예산에 비례
-			if element == "fire":  # 유성: 그을음 크레이터 + 잔불
+			if element == "fire":  # 유성: 그을음 크레이터 + 잔불 + 픽셀 폭발 시트(아트 업그레이드 슬라이스)
 				_scorch(center, radius)
 				_particle_fx(center, Color(1.0, 0.6, 0.2), sub, 0.8, 60.0, 200.0, 160.0, 2.0, 4.0)
+				var fx = PIXEL_FX.new()
+				fx.position = center
+				fx_root.add_child(fx)
+				fx.play(FX_EXPLOSION_FIRE, 9, radius * 2.2, 26.0)  # 착탄 지점에 확장형 픽셀 폭발
 			elif element == "earth":  # 융단폭격: 먼지 기둥(위로 떠오름)
 				_particle_fx(center, Color(0.72, 0.6, 0.42), sub, 0.95, 25.0, 110.0, -50.0, 4.0, 8.0)
 			if player.build.ground_field:
