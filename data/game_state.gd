@@ -3,10 +3,11 @@ extends Node
 ## 씬을 새로 로드해도 유지되며, 최고 기록은 user://에 영속 저장된다.
 
 const SAVE_PATH := "user://save.cfg"
-const VERSION := "v3.15"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
+const VERSION := "v3.16"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
 
 # 패치노트 (최신이 위). 새 버전 추가 시 맨 앞에 한 항목 추가. 시작 화면 "패치노트" + 업데이트 시 자동 안내.
 const CHANGELOG := [
+	{"v": "v3.16", "notes": ["저편 스킬 진화 — 정수로 '행동'을 강화. 저편 준비 화면에서 장착한(또는 고유) 스킬마다 '진화 X/3' 버튼이 생겼습니다. 정수를 써서 스킬당 최대 3단계까지 진화 분기를 골라 미리 적용합니다 — 화상·둔화·관통·잔류 장판·처치 폭발·표적 추가처럼 *수치가 아니라 스킬이 하는 일*이 바뀝니다(예: 마력탄에 관통, 메테오에 화상+장판). 진화는 영구 저장되어 다음 저편부터 적용. 비용은 단계마다 올라갑니다(50→100→150). 이걸로 정수의 장기 사용처와 '내 빌드를 키운다'는 맛을 더했습니다."]},
 	{"v": "v3.15", "notes": ["저편 정수·로드아웃 — 드디어 여러 스킬 장착! 저편에서 웨이브·장 보스를 깨면 전용 재화 '정수'를 얻습니다(클리어 화면에 +N 표시, 사망해도 적립분은 보존). 홈의 '저편' 버튼 → 새 '저편 준비' 화면에서 정수로 스킬을 해금하고, 캐릭터 고유 스킬 외에 최대 3개까지 골라 장착합니다(속성별 카드에서 탭 한 번, 영구 저장 → 다음 저편부터 바로 사용). 발사·범위·비행체 등 원하는 조합으로 빌드를 짜보세요. ※ 다음: 정수로 스킬을 '진화'(화상·관통·처치폭발 등 행동 강화)시키는 심화."]},
 	{"v": "v3.14", "notes": ["저편 조준 — 미사일 스킬은 '발사형'으로. 메테오·빙하처럼 *지점에 떨어뜨리는* 범위 스킬은 원형 조준(범위 미리보기 원)이 맞지만, 마력탄·비도 같은 *발사체* 스킬엔 안 어울렸습니다. 이제 미사일 스킬을 조준하면 마법사 → 조준점으로 향하는 '발사 방향선(화살표)'이 뜨고, 손을 떼면 그 방향으로 직선 발사합니다(마력탄은 부채꼴 다발). 슬로우모션 조준은 그대로. ※ 저편은 아직 캐릭터 고유 스킬 1개만 사용 — 여러 스킬을 골라 장착하는 건 다음 '정수/로드아웃' 업데이트에서 추가됩니다."]},
 	{"v": "v3.13", "notes": ["저편 모드 개편 — 조준 슬로우모션 + 쇄도 + 단일 속성. 플레이 피드백 반영: ① 진짜 '조준' 추가 — 하단 스킬 아이콘을 누르면 *시간이 느려지고*(슬로우모션) 손가락을 끌어 조준점(+범위 미리보기 레티클)을 옮긴 뒤 떼면 그 지점에 시전합니다. 빠르게 떼면 가장 가까운 적에게 자동 조준. 천천히 조준하는 전술적인 손맛을 의도했습니다. ② 쇄도 구간 — 각 장 보스 직전에 한꺼번에 많은 몹이 몰려오는 러시 웨이브를 추가(짧은 간격으로 쏟아짐). ③ 단일 속성 보장 — 각 장은 그 속성 몹만 나옵니다(보스 웨이브의 혼합 호위 몹 제거). 더불어 수동 조작에 맞춰 일반 웨이브 물량을 완화했습니다. ※ 난이도·물량은 계속 조정 예정."]},
@@ -318,8 +319,10 @@ var run_ascension := 0    ## 이번 스테이지 런에서 고른 계층(0~ascen
 var essence := 0          ## 저편 전용 재화 '정수' — 저편에서 획득, 스킬 해금에 사용(영속)
 var beyond_unlocked_skills: Array = []  ## 정수로 해금한 저편 스킬 id 목록(영속). 캐릭터 고유 스킬은 항상 사용 가능(불포함)
 var beyond_loadout: Array = []  ## 저편에 장착한 추가 스킬 id 목록(최대 BEYOND_SLOTS, 영속)
+var beyond_skill_evos := {}  ## 저편 스킬별 적용한 진화 분기 인덱스 목록 {skill_id: [branch_idx,...]}(최대 3, 영속)
 const BEYOND_SLOTS := 3   ## 저편 추가 스킬 슬롯(캐릭터 고유 스킬 + 최대 이만큼 장착)
 const BEYOND_SKILL_COST := 60  ## 저편 스킬 1종 해금 정수 비용 ※밸런스 다이얼
+const BEYOND_EVO_COST := 50  ## 저편 스킬 진화 1단계 기본 정수 비용(단계마다 ×단계) ※밸런스 다이얼
 
 func _ready() -> void:
 	_load()
@@ -510,6 +513,33 @@ func toggle_beyond_loadout(id: String) -> bool:
 	if not (id in beyond_unlocked_skills) or beyond_loadout.size() >= BEYOND_SLOTS:
 		return false
 	beyond_loadout.append(id)
+	_save()
+	return true
+
+## 저편 스킬 진화 가능 최대 횟수(분기 수=3, 없으면 0)
+func beyond_evo_max(id: String) -> int:
+	return SkillLib.EVOLVE_BRANCHES.get(id, []).size()
+
+## 현재까지 적용한 진화 수
+func beyond_evo_count(id: String) -> int:
+	return beyond_skill_evos.get(id, []).size()
+
+## 다음 진화 비용(단계 비례: 1·2·3단계 = ×1·2·3)
+func beyond_evo_cost(id: String) -> int:
+	return BEYOND_EVO_COST * (beyond_evo_count(id) + 1)
+
+## 저편 스킬 진화(branch_idx 분기 1단계 적용, 정수 차감). 성공 시 true.
+func evolve_beyond_skill(id: String, branch_idx: int) -> bool:
+	var maxn := beyond_evo_max(id)
+	if maxn <= 0 or beyond_evo_count(id) >= maxn or branch_idx < 0 or branch_idx >= maxn:
+		return false
+	var cost := beyond_evo_cost(id)
+	if essence < cost:
+		return false
+	essence -= cost
+	if not beyond_skill_evos.has(id):
+		beyond_skill_evos[id] = []
+	beyond_skill_evos[id].append(branch_idx)
 	_save()
 	return true
 
@@ -775,6 +805,7 @@ func _load() -> void:
 		essence = cf.get_value("meta", "essence", 0)
 		beyond_unlocked_skills = cf.get_value("meta", "beyond_unlocked_skills", [])
 		beyond_loadout = cf.get_value("meta", "beyond_loadout", [])
+		beyond_skill_evos = cf.get_value("meta", "beyond_skill_evos", {})
 		if relic_levels.is_empty():  # 구형 세이브(해금 유물) → 레벨 1로 마이그레이션
 			for rid in cf.get_value("meta", "unlocked_relics", []):
 				relic_levels[rid] = 1
@@ -813,6 +844,7 @@ func _save() -> void:
 	cf.set_value("meta", "essence", essence)
 	cf.set_value("meta", "beyond_unlocked_skills", beyond_unlocked_skills)
 	cf.set_value("meta", "beyond_loadout", beyond_loadout)
+	cf.set_value("meta", "beyond_skill_evos", beyond_skill_evos)
 	cf.set_value("record", "char_best", char_best)
 	cf.set_value("record", "kills", kills)
 	cf.set_value("record", "total_runs", total_runs)

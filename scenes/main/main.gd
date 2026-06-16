@@ -274,6 +274,11 @@ func _ready() -> void:
 		wave_index = -1
 		for sid in GameState.beyond_loadout:  # 정수로 장착한 추가 스킬을 고유 스킬에 더함
 			$Player.grant_beyond_skill(sid)
+		for s in $Player.skills:  # 정수로 산 진화 분기 적용(시그니처 포함 보유 전 스킬)
+			var branches: Array = SkillLib.EVOLVE_BRANCHES.get(s.id, [])
+			for bidx in GameState.beyond_skill_evos.get(s.id, []):
+				if bidx >= 0 and bidx < branches.size():
+					$Player.evolve_branch(s.id, branches[bidx])
 		_beyond_pick_elements()  # 장별 속성 3개 무작위 선정(매 런 다른 여정)
 		_start_wave(0)
 		return

@@ -106,6 +106,16 @@ func _make_card(id: String, sig_id: String) -> Control:
 	box.add_child(dl)
 	# 액션
 	box.add_child(_make_action(id, sig_id))
+	# 진화 버튼 — 시그니처 또는 장착 중이고 분기가 있는 스킬만
+	if (id == sig_id or id in GameState.beyond_loadout) and GameState.beyond_evo_max(id) > 0:
+		var evo := Button.new()
+		evo.add_theme_font_override("font", FONT)
+		evo.add_theme_font_size_override("font_size", 14)
+		evo.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		evo.text = "진화 %d/%d ▸" % [GameState.beyond_evo_count(id), GameState.beyond_evo_max(id)]
+		evo.add_theme_color_override("font_color", Color(0.72, 0.8, 0.96))
+		evo.pressed.connect(_open_evo_overlay.bind(id))
+		box.add_child(evo)
 	return panel
 
 func _make_action(id: String, sig_id: String) -> Control:
@@ -140,6 +150,68 @@ func _make_action(id: String, sig_id: String) -> Control:
 					GameState.toggle_beyond_loadout(id)  # 해금 즉시 장착(슬롯 있으면)
 				_rebuild())
 	return btn
+
+## 스킬 진화 오버레이 — 3분기 중 골라 정수로 진화(최대 3단계, 누적). 진화 시 새로 열어 갱신.
+func _open_evo_overlay(id: String) -> void:
+	var def: Dictionary = SkillLib.DEFS.get(id, {})
+	var elem: String = str(def.get("element", ""))
+	var branches: Array = SkillLib.EVOLVE_BRANCHES.get(id, [])
+	var ov := Control.new()
+	ov.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.82)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	ov.add_child(dim)
+	var panel := PanelContainer.new()
+	panel.anchor_left = 0.5; panel.anchor_right = 0.5; panel.anchor_top = 0.5; panel.anchor_bottom = 0.5
+	panel.offset_left = -330.0; panel.offset_right = 330.0; panel.offset_top = -400.0; panel.offset_bottom = 400.0
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.14, 0.13, 0.18, 0.98); sb.set_corner_radius_all(12); sb.set_content_margin_all(18)
+	sb.set_border_width_all(2); sb.border_color = ElementLib.color(elem)
+	panel.add_theme_stylebox_override("panel", sb)
+	ov.add_child(panel)
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 11)
+	panel.add_child(vb)
+	var cnt: int = GameState.beyond_evo_count(id)
+	var maxn: int = GameState.beyond_evo_max(id)
+	vb.add_child(_label("%s 진화  ·  %d / %d" % [def.get("name", "스킬"), cnt, maxn], 26, ElementLib.color(elem)))
+	var applied: Array = []
+	for bi in GameState.beyond_skill_evos.get(id, []):
+		if bi < branches.size():
+			applied.append(str(branches[bi].get("name", "")))
+	vb.add_child(_label("적용: " + (" · ".join(applied) if not applied.is_empty() else "없음"), 14, Color(0.7, 0.88, 0.74)))
+	var cost: int = GameState.beyond_evo_cost(id)
+	var maxed: bool = cnt >= maxn
+	vb.add_child(_label("정수 %d%s" % [GameState.essence, "" if maxed else "   ·   다음 진화 %d" % cost], 15, Color(0.86, 0.8, 0.6)))
+	for i in branches.size():
+		var b: Dictionary = branches[i]
+		var card := PanelContainer.new()
+		var csb := StyleBoxFlat.new(); csb.bg_color = Color(0.18, 0.17, 0.23, 0.95); csb.set_corner_radius_all(8); csb.set_content_margin_all(10)
+		card.add_theme_stylebox_override("panel", csb)
+		vb.add_child(card)
+		var cvb := VBoxContainer.new(); cvb.add_theme_constant_override("separation", 4)
+		card.add_child(cvb)
+		cvb.add_child(_label(str(b.get("name", "")), 18, Color(1, 1, 1)))
+		var d := _label(str(b.get("desc", "")), 14, Color(0.8, 0.82, 0.9))
+		d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		cvb.add_child(d)
+		var btn := Button.new(); btn.add_theme_font_override("font", FONT); btn.add_theme_font_size_override("font_size", 15)
+		btn.text = "최대 진화" if maxed else "정수 %d" % cost
+		btn.disabled = maxed or GameState.essence < cost
+		var idx := i
+		btn.pressed.connect(func() -> void:
+			if GameState.evolve_beyond_skill(id, idx):
+				ov.queue_free()
+				_open_evo_overlay(id))
+		cvb.add_child(btn)
+	var close := Button.new(); close.text = "닫기"; close.add_theme_font_override("font", FONT); close.add_theme_font_size_override("font_size", 20)
+	close.pressed.connect(func() -> void:
+		ov.queue_free()
+		_rebuild())
+	vb.add_child(close)
+	add_child(ov)
 
 func _label(text: String, size: int, color: Color) -> Label:
 	var l := Label.new()
