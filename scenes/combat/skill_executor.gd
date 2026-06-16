@@ -126,6 +126,7 @@ func _skill_hit(e, dmg: float, element: String) -> void:
 	var d := _hit_ctx.damage * _hit_ctx.mult * randf_range(0.95, 1.05)  # ±5% 분산
 	_hit_ctx.dealt = d
 	e.take_damage(d)
+	host._hit_spark(_hit_ctx.pos, ElementLib.color(element), 18.0)  # 적중 스파크 — 몹 타격감(스킬 직격에도, FX 과밀 시 자동 생략)
 	if p.lifesteal > 0.0:
 		p.heal(d * p.lifesteal)  # 흡혈
 	if is_instance_valid(e) and e.hp > 0.0:
