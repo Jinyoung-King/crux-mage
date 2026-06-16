@@ -56,8 +56,31 @@ func _play_once() -> void:
 			_ring(col)
 			var th = THORN_ERUPT.new(); add_child(th); th.setup(_radius)
 			var nfx = PIXEL_FX.new(); add_child(nfx); nfx.play(FX_WOOD, 6, _radius * 1.4, 16.0)
+		"bolts":  # 가시 화살 — 외부 식물 발사체가 날아가는 모습(인게임 렌더와 동일)
+			_projectiles()
 		_:
 			_ring(col); _burst(col)        # 공통: 속성별 링 버스트 + 파편
+
+## 가시 화살 발사체 미리보기 — 인게임 fire_skill_bolt와 동일 스프라이트/회전으로 부채꼴 발사(아래→위)
+func _projectiles() -> void:
+	var n := 3
+	for i in n:
+		var spr := Sprite2D.new()
+		spr.texture = FX_WOOD
+		spr.hframes = 6
+		spr.frame = 2
+		spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		spr.scale = Vector2(2.4, 2.4)
+		var start := Vector2((i - (n - 1) / 2.0) * 26.0, 150.0)
+		var target := Vector2((i - (n - 1) / 2.0) * 90.0, -160.0)
+		spr.position = start
+		spr.rotation = (target - start).angle()  # 인게임과 동일(회전 보정 없음 — 도감에서 방향 확인 가능)
+		add_child(spr)
+		var tw := spr.create_tween()
+		tw.tween_property(spr, "position", target, 0.5)
+		tw.tween_callback(func() -> void:
+			if is_instance_valid(spr):
+				spr.queue_free())
 
 func _ring(col: Color) -> void:
 	var r = SKILL_RING.new()
