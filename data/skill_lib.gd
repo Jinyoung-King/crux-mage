@@ -5,7 +5,7 @@ extends RefCounted
 
 ## element = 카드에 표시할 대표 오행 속성(불/물/나무/쇠/흙). 실제 시전 상성은 시전 캐릭터 속성을 따름.
 const DEFS := {
-	"bolts":   {"name": "마력탄", "cooldown": 5.5, "power": 10.0, "radius": 0.0, "count": 3, "element": "wood"},
+	"bolts":   {"name": "가시 화살", "cooldown": 5.5, "power": 10.0, "radius": 0.0, "count": 3, "element": "wood"},
 	"meteor":  {"name": "유성", "cooldown": 10.5, "power": 18.0, "radius": 72.0, "count": 0, "element": "fire"},
 	"barrage": {"name": "융단폭격", "cooldown": 9.5, "power": 13.0, "radius": 52.0, "count": 3, "element": "earth"},
 	"chain":   {"name": "비도", "cooldown": 8.0, "power": 13.0, "radius": 0.0, "count": 4, "element": "metal"},
@@ -20,10 +20,10 @@ const DEFS := {
 }
 
 ## 스킬 시전 사거리(마법사로부터). 이 거리 안의 적만 타겟 — 스킬별 차등(기지 y≈1150 기준).
-## 마력탄·메테오·융단은 멀리, 비도(연쇄)는 가까이, 서리는 중거리.
+## 가시 화살·메테오·융단은 멀리, 비도(연쇄)는 가까이, 서리는 중거리.
 const SKILL_RANGE := {
 	"bolts": 1000.0,
-	"chain": 650.0,
+	"chain": 850.0,
 	"meteor": 1100.0,
 	"barrage": 1100.0,
 	"freeze": 850.0,
@@ -38,9 +38,9 @@ const SKILL_RANGE := {
 ## 각 항목 = tier N→N+1 효과. 정의 없는 스킬은 진화 대신 새 인스턴스로 누적(다중 스킬).
 const EVOLVE := {
 	"bolts": [
-		{"name": "연발 마력탄", "count": 2, "cd_mult": 0.82, "power_mult": 1.25},
-		{"name": "마력 폭풍", "count": 3, "cd_mult": 0.70, "power_mult": 1.55},
-		{"name": "비전 노바", "count": 4, "cd_mult": 0.7, "power_mult": 1.6},
+		{"name": "연발 가시 화살", "count": 2, "cd_mult": 0.82, "power_mult": 1.25},
+		{"name": "가시 폭풍", "count": 3, "cd_mult": 0.70, "power_mult": 1.55},
+		{"name": "가시 만개", "count": 4, "cd_mult": 0.7, "power_mult": 1.6},
 	],
 	"meteor": [
 		{"name": "쌍둥이 메테오", "radius_mult": 1.25, "power_mult": 1.4},
@@ -89,9 +89,9 @@ const EVOLVE := {
 ## 같은 분기를 여러 번 골라도 됨(누적). EVOLVE 배열 크기(=3)가 최대 진화 횟수 상한을 정한다.
 const EVOLVE_BRANCHES := {
 	"bolts": [
-		{"kind": "power",    "name": "연발 마력탄", "desc": "발사 수 +1 · 위력 +30%", "count_add": 1, "power_mult": 1.3},
-		{"kind": "element",  "name": "화염 마력탄", "desc": "명중 시 화상 부여(증발·기폭 연계) · 위력 +10%", "grant": "burn", "power_mult": 1.1},
-		{"kind": "behavior", "name": "관통 마력탄", "desc": "적을 1회 더 관통 · 위력 +10%", "behavior": "pierce", "amount": 1, "power_mult": 1.1},
+		{"kind": "power",    "name": "연발 가시 화살", "desc": "발사 수 +1 · 위력 +30%", "count_add": 1, "power_mult": 1.3},
+		{"kind": "element",  "name": "화염 가시 화살", "desc": "명중 시 화상 부여(증발·기폭 연계) · 위력 +10%", "grant": "burn", "power_mult": 1.1},
+		{"kind": "behavior", "name": "관통 가시 화살", "desc": "적을 1회 더 관통 · 위력 +10%", "behavior": "pierce", "amount": 1, "power_mult": 1.1},
 	],
 	"meteor": [
 		{"kind": "power",    "name": "쌍둥이 메테오", "desc": "위력 +40% · 반경 +20%", "power_mult": 1.4, "radius_mult": 1.2},

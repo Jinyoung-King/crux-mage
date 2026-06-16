@@ -84,6 +84,9 @@ func reset_for_reuse() -> void:
 	spr.texture = _base_texture
 	spr.modulate = Color.WHITE
 	spr.scale = _base_scale
+	spr.hframes = 1  # 스킬 발사체가 시트 프레임을 쓰면 hframes를 바꾸므로 풀 반환 시 복원
+	spr.frame = 0
+	spr.texture_filter = CanvasItem.TEXTURE_FILTER_PARENT_NODE
 	_trail.clear_points()
 	_trail.visible = false
 	active = true

@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1")
 card_name = "관통"
-description = "관통 +2 — 마력탄이 적 2명을 더 꿰뚫고 날아가 일직선의 모든 적을 타격."
+description = "관통 +2 — 가시 화살이 적 2명을 더 꿰뚫고 날아가 일직선의 모든 적을 타격."
 rarity = "uncommon"
 pierce_bonus = 2

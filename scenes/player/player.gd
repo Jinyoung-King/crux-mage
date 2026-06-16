@@ -8,7 +8,8 @@ signal skill_cast(data: Dictionary)  ## 액티브 스킬 발동 — {id,power,ra
 signal took_damage(amount: float)  ## 받는 피해 (빨간 데미지 숫자 표시용)
 
 const BARRIER_DROID := preload("res://scenes/fx/barrier_droid.gd")  ## 방어형 비행체(지속형 동반자)
-const SKILL_BOLT_TEX := preload("res://assets/sprites/bolt_skill.png")  ## 마력탄 스킬 전용 발사체(평타와 구분)
+const SKILL_BOLT_TEX := preload("res://assets/sprites/bolt_skill.png")  ## (구) 마력탄 절차 발사체 — 가시 화살은 외부 시트로 대체
+const FX_WOOD_BOLT := preload("res://assets/sprites/fx_wood.png")  ## '가시 화살' 외부 발사체(DevWizard Plant Missle, CC0, 96x16=6프레임)
 const FOCUS_SPREAD := PI / 90.0  ## 표적보다 발사 수가 많을 때 같은 표적에 겹쳐 쏘는 발사의 부채 각(≈2°)
 const BASIC_ATTACK_MULT := 0.04  ## 평타 피해 = effective_damage()의 이 비율(약한 베이스라인 — 스킬 쿨과 별개로 연사 주기마다)
 const MAX_SKILL_SLOTS := 5  ## 스킬 슬롯 제한(캐릭터 고유 1 포함) — 다 쓰기 방지·슬롯 차면 진화 유도. v1.95 4→5(원소 균열 몰빵 여유, 성능은 발사체/FX 상한이 보장)
@@ -311,9 +312,12 @@ func fire_skill_bolt(target, dmg: float, elem: String, aim_point: Vector2 = Vect
 	if p == null:
 		return  # 발사체 풀/캡 초과 — 드랍
 	var spr: Sprite2D = p.get_node("Sprite2D")
-	spr.texture = SKILL_BOLT_TEX  # 평타와 구분되는 '간지' 마법 별
-	spr.modulate = ElementLib.color(elem)  # 스킬 자체 속성색으로 틴트(오방색)
-	spr.scale *= 1.5  # 평타보다 크게(강조)
+	spr.texture = FX_WOOD_BOLT  # 외부 식물 발사체(Plant Missle 시트의 한 프레임)
+	spr.hframes = 6
+	spr.frame = 2  # 형성된 미사일 프레임
+	spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # 픽셀 선명
+	spr.modulate = Color.WHITE  # 외부 시트 원색 유지(틴트 시 탁해짐)
+	spr.scale = Vector2(2.2, 2.2)  # 16px 프레임 → 보이게 확대
 	p.element = elem  # 스킬 속성으로 상성 판정(시전자 속성 아님)
 	p.enable_trail()  # 스킬 마력탄: 속성색 꼬리 잔광(평타는 없음)
 	if character:
