@@ -8,6 +8,8 @@ const PIXEL_FX := preload("res://scenes/fx/pixel_fx.gd")
 const FX_EXPLOSION_EXT := preload("res://assets/sprites/fx_ext_explosion.png")  # 불 폭발(외부 CC0) — 유성·불바다 공용
 const FALLING_SKILL := preload("res://scenes/fx/falling_skill.gd")
 const THORN_ERUPT := preload("res://scenes/fx/thorn_erupt.gd")
+const FX_WATER := preload("res://assets/sprites/fx_water.png")  # 물(빙하·서리바람) — DevWizard CC0
+const FX_WOOD := preload("res://assets/sprites/fx_wood.png")    # 목(가시밭) — DevWizard CC0
 const LOOP := 1.7  ## 반복 주기(초)
 
 var _id := ""
@@ -39,9 +41,16 @@ func _play_once() -> void:
 			xfx.play(FX_EXPLOSION_EXT, 10, _radius * 2.2, 60.0, Color.WHITE, 5)
 		"barrage", "rockfall":
 			_falling(col, _elem, false)   # 바위 낙하 → 폭발 링
-		"thorns":
-			_burst(col); _ring(col)
+		"glacier":  # 외부 물 FX(DevWizard CC0)
+			_ring(col)
+			var gfx = PIXEL_FX.new(); add_child(gfx); gfx.play(FX_WATER, 6, _radius * 2.0, 16.0)
+		"freeze":  # 외부 물 FX(중앙 대형)
+			_ring(col)
+			var ffx = PIXEL_FX.new(); add_child(ffx); ffx.play(FX_WATER, 6, 200.0, 16.0)
+		"thorns":  # 가시 솟구침 + 외부 자연 FX
+			_ring(col)
 			var th = THORN_ERUPT.new(); add_child(th); th.setup(_radius)
+			var nfx = PIXEL_FX.new(); add_child(nfx); nfx.play(FX_WOOD, 6, _radius * 1.4, 16.0)
 		_:
 			_ring(col); _burst(col)        # 공통: 속성별 링 버스트 + 파편
 
