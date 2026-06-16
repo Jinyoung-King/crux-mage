@@ -3,10 +3,11 @@ extends Node
 ## 씬을 새로 로드해도 유지되며, 최고 기록은 user://에 영속 저장된다.
 
 const SAVE_PATH := "user://save.cfg"
-const VERSION := "v3.1"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
+const VERSION := "v3.2"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
 
 # 패치노트 (최신이 위). 새 버전 추가 시 맨 앞에 한 항목 추가. 시작 화면 "패치노트" + 업데이트 시 자동 안내.
 const CHANGELOG := [
+	{"v": "v3.2", "notes": ["그래픽 품질 설정 추가 — 일시정지 메뉴(설정)에 '품질' 버튼: 자동/높음/중간/낮음 순환(영속). **자동**(기본)은 v3.1 거버너가 FPS 보고 알아서 조절하고, 직접 고정하고 싶으면 **높음**(풀 연출)·**중간**(데미지 숫자 치명만·배경 절감)·**낮음**(숫자 최소·배경 더↓·동시 적 18, 약한 기기 최쾌적)을 고르면 그 단계로 잠깁니다. ※ 기기 사양 자동 감지는 웹에선 신뢰도가 낮아(브라우저가 GPU·RAM 정보를 가림) 넣지 않았습니다 — 대신 '자동'이 실제 FPS로 이미 기기에 맞춰 적응하고, 취향대로 고정하고 싶을 때 수동 설정을 쓰는 구조입니다."]},
 	{"v": "v3.1", "notes": ["프레임 방어 — 적응형 FPS 거버너 + 배경 절감. ① 평균 FPS가 50 밑으로 떨어지면 비필수부터 자동으로 단계적으로 끄고(데미지 숫자 솎기 → 배경 재드로우 빈도↓ → 최후에 동시 적 수 살짝↓), FPS가 회복되면 자동으로 되돌립니다. 기기 성능을 몰라도 약한 기기에서 50fps를 사수하고, 좋은 기기는 풀 연출 유지(요동 방지 히스테리시스+쿨다운). 받는 피해 숫자는 항상 표시(중요 정보). ② 상시 부하이던 배경 별빛을 매 프레임 통째로 다시 그리던 것 → 별 수 70→48 + 저전력 시 재드로우 간격 완화. (Godot 자체가 느린 게 아니라 웹+모바일 단일스레드라 매 프레임 작업을 줄이는 게 핵심)"]},
 	{"v": "v3.0", "notes": ["세이브 안전장치 — 진행 보호(자동 + 백업 코드). ① 자동(무조작): 브라우저에 '영구 저장' 요청(브라우저가 데이터를 함부로 비우지 않도록) + 저장할 때마다 별도 보관소(localStorage)에 미러 + 직전 세이브를 .bak로 1벌 보관해, 한쪽이 손상돼도 자동 복구합니다. ② 백업 코드: 시작 화면 우하단 '세이브 백업'에서 현재 진행을 '코드'로 내보내(복사) 메모장 등에 보관하고, 코드를 붙여넣어 어디서든 복원합니다. 브라우저 데이터를 지우거나 기기를 바꿔도(특히 iOS는 미사용 시 데이터를 지움) 코드만 있으면 안전합니다. 잘못된 코드는 거부하고 적용 전 현재 진행을 .bak로 백업합니다."]},
 	{"v": "v2.9", "notes": ["스킬 시전 시 뜨던 스킬 이름 글자(유성!·전격! 등)도 제거 — v2.7의 반응 텍스트 제거에 이어, 시전마다 새로 그리던 이름 팝업까지 없애 렌더 부하를 더 덜었습니다. 스킬 연출(낙하·폭발·번개·서리 등)은 그대로라 무엇을 썼는지 색·모양으로 구분됩니다. 동작·피해는 변화 없음."]},
@@ -283,6 +284,7 @@ var sfx_volume := 1.0  ## 효과음 음량(0~1) — 영속
 var muted := false  ## 음소거 — 영속
 var auto_card := false  ## 카드 드래프트 10초 후 자동선택 토글 — 영속
 var show_damage_numbers := true  ## 데미지 숫자 표시 토글 — 영속
+var quality_mode := "auto"  ## 그래픽 품질: "auto"(거버너 적응) / "high"·"med"·"low"(tier 0·1·2 고정) — 영속
 var coins := 0  ## 영구 재화 (런 종료 시 누적, 캐릭터 공용 지갑)
 const TEST_COIN_GRANT := 500000  ## 테스트 기간 1회 지급 코인(50만) — 세이브당 한 번만
 var test_coin_granted := false   ## 위 지급을 이미 받았는지(중복 지급 방지 플래그)
@@ -330,6 +332,29 @@ func set_auto_card(b: bool) -> void:
 func set_show_damage_numbers(b: bool) -> void:
 	show_damage_numbers = b
 	_save()
+
+## 그래픽 품질 순환(자동→높음→중간→낮음→자동) — 영속. 반환=새 모드.
+const QUALITY_ORDER := ["auto", "high", "med", "low"]
+func cycle_quality() -> String:
+	var i: int = QUALITY_ORDER.find(quality_mode)
+	quality_mode = QUALITY_ORDER[(i + 1) % QUALITY_ORDER.size()]
+	_save()
+	return quality_mode
+
+func quality_label() -> String:
+	match quality_mode:
+		"high": return "높음"
+		"med": return "중간"
+		"low": return "낮음"
+		_: return "자동"
+
+## 고정 tier(0·1·2). "auto"면 -1(거버너 자율 적응).
+func quality_locked_tier() -> int:
+	match quality_mode:
+		"high": return 0
+		"med": return 1
+		"low": return 2
+		_: return -1
 
 func is_unlocked(c: CharacterData) -> bool:
 	return best_wave >= c.unlock_wave
@@ -690,6 +715,7 @@ func _load() -> void:
 		muted = cf.get_value("settings", "muted", false)
 		auto_card = cf.get_value("settings", "auto_card", false)
 		show_damage_numbers = cf.get_value("settings", "show_damage_numbers", true)
+		quality_mode = cf.get_value("settings", "quality_mode", "auto")
 		coins = cf.get_value("meta", "coins", 0)
 		upgrades = cf.get_value("meta", "upgrades", {})
 		char_xp = cf.get_value("meta", "char_xp", {})
@@ -724,6 +750,7 @@ func _save() -> void:
 	cf.set_value("settings", "muted", muted)
 	cf.set_value("settings", "auto_card", auto_card)
 	cf.set_value("settings", "show_damage_numbers", show_damage_numbers)
+	cf.set_value("settings", "quality_mode", quality_mode)
 	cf.set_value("meta", "coins", coins)
 	cf.set_value("meta", "upgrades", upgrades)
 	cf.set_value("meta", "char_xp", char_xp)

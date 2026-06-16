@@ -152,6 +152,7 @@ var _perf_tier := 0         # 0=풀품질 / 1=중(데미지숫자 치명만·배
 var _fps_ema := 60.0        # 평균 FPS(지수이동평균 — 일시적 끊김에 요동 안 치게)
 var _perf_cd := 3.0         # 단계 변경 쿨다운(초). 시작 3초 워밍업(초기 FPS 측정 불안정 구간 보호)
 var _alive_cap := MAX_ALIVE # 거버너가 낮추는 동시 적 상한(런타임)
+var quality_button: Button  # 일시정지 설정의 '품질' 순환 버튼(코드 생성)
 var _shop_cards: Array = []
 var _shop_cost: Array = []
 var start_drafts_left := 0  # 웨이브 전 시작 드래프트 남은 횟수 (1 + 추가 시작 카드 레벨)
@@ -229,6 +230,18 @@ func _ready() -> void:
 	volume_slider.value = GameState.sfx_volume
 	_update_mute_label()
 	_update_damage_label()
+	# 품질 설정 버튼(일시정지 메뉴, 데미지 토글 옆) — 자동/높음/중간/낮음 순환. 코드 생성(데미지 버튼과 동일 스타일).
+	quality_button = Button.new()
+	quality_button.custom_minimum_size = Vector2(280, 52)
+	quality_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	quality_button.add_theme_font_override("font", FONT)
+	quality_button.add_theme_font_size_override("font_size", 22)
+	quality_button.pressed.connect(_on_quality_pressed)
+	var pcenter := $HUD/PauseScreen/Center
+	pcenter.add_child(quality_button)
+	pcenter.move_child(quality_button, damage_button.get_index() + 1)  # 데미지 숫자 토글 바로 아래
+	_update_quality_label()
+	_apply_quality_setting()  # 저장된 품질을 런 시작에 적용(고정 모드면 즉시 tier 잠금)
 	_build_cards_ui()  # '내 카드' 버튼 + 획득 카드 리스트 패널
 	_build_base_hp_bar()  # 성벽 내구도 바(스킬 아이콘 하단)
 	$HUD/HpIcon.hide()  # 좌상단 방패 아이콘 제거 — HP는 하단 바, 좌상단은 '남은 적 수'로 대체
@@ -331,6 +344,8 @@ func _process(delta: float) -> void:
 func _govern_fps(delta: float) -> void:
 	if get_tree().paused or game_over:
 		return
+	if GameState.quality_locked_tier() >= 0:
+		return  # 수동 품질 고정 — 자동 조절 안 함(_apply_quality_setting이 tier 설정·유지)
 	_fps_ema = lerpf(_fps_ema, float(Engine.get_frames_per_second()), 0.1)
 	_perf_cd -= delta
 	if _perf_cd > 0.0:
@@ -350,6 +365,22 @@ func _apply_perf_tier() -> void:
 	var bg := $Background/Bg
 	if bg.has_method("set_perf"):
 		bg.set_perf(_perf_tier)
+
+## 품질 설정 적용 — 고정(높음/중간/낮음)이면 그 tier로 잠금, 자동이면 거버너에 맡김. 런 시작·설정 변경 시 호출.
+func _apply_quality_setting() -> void:
+	var locked := GameState.quality_locked_tier()
+	if locked >= 0:
+		_perf_tier = locked
+		_apply_perf_tier()
+
+func _on_quality_pressed() -> void:
+	GameState.cycle_quality()
+	_apply_quality_setting()
+	_update_quality_label()
+
+func _update_quality_label() -> void:
+	if quality_button:
+		quality_button.text = "품질: %s" % GameState.quality_label()
 
 ## 보유 스킬 수가 바뀌면 스킬 아이콘을 다시 만든다(이름·색·쿨은 매 프레임 update_cd로 갱신 → 진화 반영)
 func _rebuild_skill_icons(skills: Array) -> void:
