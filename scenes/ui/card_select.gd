@@ -171,7 +171,7 @@ func _build_reroll_row() -> void:
 		var cell := CenterContainer.new()
 		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL  # 카드 칸과 같은 폭 분배
 		var ic = REROLL_ICON.new()
-		ic.custom_minimum_size = Vector2(40, 40)
+		ic.custom_minimum_size = Vector2(64, 64)  # 탭 영역·아이콘 확대(잘 안 눌리던 문제)
 		ic.pressed.connect(_on_card_reroll.bind(i))
 		cell.add_child(ic)
 		reroll_row.add_child(cell)
