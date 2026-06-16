@@ -13,8 +13,8 @@ const DEATH_BURST_SCENE := preload("res://scenes/fx/death_burst.tscn")
 const SCORCH := preload("res://scenes/fx/scorch_mark.gd")  # 메테오 착탄 그을음
 const THORN_ERUPT := preload("res://scenes/fx/thorn_erupt.gd")  # 가시밭 가시 솟구침
 const PIXEL_FX := preload("res://scenes/fx/pixel_fx.gd")  # 픽셀 FX 시트 재생기(아트 업그레이드)
-const FX_EXPLOSION_FIRE := preload("res://assets/sprites/fx_explosion_fire.png")  # 유성 착탄 폭발(절차 생성)
-const FX_EXPLOSION_EXT := preload("res://assets/sprites/fx_ext_explosion.png")  # 불바다 폭발(외부 CC0 팩 — OpenGameArt "explosion-7", CC0/PD, 10x5=50프레임) — 비교용
+const FX_EXPLOSION_EXT := preload("res://assets/sprites/fx_ext_explosion.png")  # 불 폭발(외부 CC0 — OpenGameArt "explosion-7", CC0/PD, 10x5=50프레임). 유성·불바다 공용
+# (절차 생성 fx_explosion_fire.png는 외부 폭발로 통일되며 미사용 — gen_fx.py·에셋은 보존)
 const REACTION_HP_PCT := 0.06  ## 격발 반응(증발·빙결파쇄)이 주는 추가 % 최대체력 피해 — 복리 체력 관통
 
 var player
@@ -254,7 +254,7 @@ func _drop_aoe(center: Vector2, radius: float, ep: float, element: String, col: 
 				var fx = PIXEL_FX.new()
 				fx.position = center
 				fx_root.add_child(fx)
-				fx.play(FX_EXPLOSION_FIRE, 9, radius * 2.2, 26.0)  # 착탄 지점에 확장형 픽셀 폭발
+				fx.play(FX_EXPLOSION_EXT, 10, radius * 2.2, 60.0, Color.WHITE, 5)  # 외부 CC0 폭발(불바다와 동일 — 불 통일)
 			elif element == "earth":  # 융단폭격: 먼지 기둥(위로 떠오름)
 				_particle_fx(center, Color(0.72, 0.6, 0.42), sub, 0.95, 25.0, 110.0, -50.0, 4.0, 8.0)
 			if player.build.ground_field:

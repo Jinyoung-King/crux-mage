@@ -5,8 +5,7 @@ extends Node2D
 const SKILL_RING := preload("res://scenes/fx/skill_ring.gd")
 const DEATH_BURST := preload("res://scenes/fx/death_burst.tscn")
 const PIXEL_FX := preload("res://scenes/fx/pixel_fx.gd")
-const FX_EXPLOSION_FIRE := preload("res://assets/sprites/fx_explosion_fire.png")
-const FX_EXPLOSION_EXT := preload("res://assets/sprites/fx_ext_explosion.png")  # 불바다: 외부 CC0 팩(비교용)
+const FX_EXPLOSION_EXT := preload("res://assets/sprites/fx_ext_explosion.png")  # 불 폭발(외부 CC0) — 유성·불바다 공용
 const FALLING_SKILL := preload("res://scenes/fx/falling_skill.gd")
 const THORN_ERUPT := preload("res://scenes/fx/thorn_erupt.gd")
 const LOOP := 1.7  ## 반복 주기(초)
@@ -72,6 +71,6 @@ func _falling(col: Color, elem: String, pixel: bool) -> void:
 		if pixel:
 			var fx = PIXEL_FX.new()
 			add_child(fx)
-			fx.play(FX_EXPLOSION_FIRE, 9, _radius * 2.2, 26.0)
+			fx.play(FX_EXPLOSION_EXT, 10, _radius * 2.2, 60.0, Color.WHITE, 5)  # 유성도 외부 폭발로 통일(인게임 일치)
 		if is_instance_valid(m):
 			m.queue_free())
