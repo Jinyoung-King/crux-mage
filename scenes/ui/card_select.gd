@@ -238,20 +238,23 @@ func _style_card(btn: Button, card) -> void:
 			tag = "★ 진화 %d/%d" % [_skill_stacks(card.grant_skill_id), player.EVOLVE_COST]
 		box.add_child(_label("%s · %s속성" % [tag, ElementLib.display_name(elem)], 15, ElementLib.color(elem)))
 		box.add_child(_label(title, 23, ElementLib.color(elem)))
-	else:
-		box.add_child(_label(_tier_badge(rarity), 15, tier))
+	else:  # 희귀도 텍스트 뱃지 제거 — 프레임 색이 이미 희귀도를 보여줌(단순화, 친구 피드백)
 		box.add_child(_label(card.card_name, 23, tier if rarity != "common" else Color(0.95, 0.97, 1.0)))
-	var desc_text: String = _skill_detail(card.grant_skill_id) if card.grant_skill_id != "" else card.description
-	var desc := _label(desc_text, 16, Color(0.82, 0.85, 0.9))
-	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc.add_theme_constant_override("line_spacing", 5)  # 줄간격 ↑ (가독성)
-	box.add_child(desc)
-	var preview: String = _stat_preview(card)  # 일반 카드: 관련 능력치 현재 → 변경 후
-	if card.grant_skill_id != "":
-		preview = _next_evolve_delta(card.grant_skill_id)  # 스킬 카드: 다음 진화 능력치 향상(중복 픽 효과)
-	if preview != "":
-		var pl := _label(preview, 14, Color(0.55, 0.85, 0.72))
-		pl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART  # 긴 한 줄이 카드 폭을 넘지 않게 줄바꿈(미설정 시 box가 텍스트 폭만큼 커져 카드 침범)
+	# 효과 표시 — 단순·직관(친구 피드백): '수치 변화(→)'가 있으면 그걸 메인으로, 긴 설명문은 생략.
+	var preview: String = _next_evolve_delta(card.grant_skill_id) if card.grant_skill_id != "" else _stat_preview(card)
+	if card.grant_skill_id != "":  # 스킬 카드: 데미지·쿨·형태 요약(설명 유지)
+		var sd := _label(_skill_detail(card.grant_skill_id), 16, Color(0.82, 0.85, 0.9))
+		sd.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		sd.add_theme_constant_override("line_spacing", 5)
+		box.add_child(sd)
+	elif preview == "":  # 수치 미리보기가 없는 카드만 짧은 설명 표시(순수 부여·특수)
+		var dl := _label(card.description, 16, Color(0.82, 0.85, 0.9))
+		dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		dl.add_theme_constant_override("line_spacing", 5)
+		box.add_child(dl)
+	if preview != "":  # 메인 takeaway — 무엇이 얼마로 바뀌는지(크게·밝게)
+		var pl := _label(preview, 18, Color(0.62, 0.95, 0.75))
+		pl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		box.add_child(pl)
 	btn.add_child(box)
 
@@ -400,17 +403,13 @@ func _skill_detail(id: String) -> String:
 	var owned: bool = _skill_owned_evolvable(id)
 	var lines: PackedStringArray = []
 	if id == "barrier_droid":  # 지속형 동반자 — 동작 요약(짧게)
-		if owned:
-			lines.append("진화 %d/%d" % [_skill_stacks(id), player.EVOLVE_COST])
-		else:
-			lines.append("수호 비행체 획득(지속형)")
+		if not owned:
+			lines.append("수호 비행체 획득(지속형)")  # 보유 중이면 태그 '진화 N/N'로 충분 → 중복 줄 생략
 		lines.append("비행체 %d기 · 적 탄막 소멸" % int(d.get("count", 2)))
 		lines.append("공전 반경 내 적 지속 피해")
 		return "\n".join(lines)
-	if owned:
-		lines.append("진화 %d/%d" % [_skill_stacks(id), player.EVOLVE_COST])
-	else:
-		lines.append("%s 획득" % d.get("name", "스킬"))
+	if not owned:
+		lines.append("%s 획득" % d.get("name", "스킬"))  # 보유 중이면 태그 '진화 N/N'로 충분 → 중복 줄 생략
 	lines.append("데미지 %d · 쿨 %s초" % [int(d.get("power", 0)), _fmt_cd(d.get("cooldown", 0.0))])
 	var cnt := int(d.get("count", 0))
 	var rad := int(d.get("radius", 0))

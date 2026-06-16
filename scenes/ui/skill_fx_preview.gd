@@ -10,6 +10,7 @@ const FALLING_SKILL := preload("res://scenes/fx/falling_skill.gd")
 const THORN_ERUPT := preload("res://scenes/fx/thorn_erupt.gd")
 const FX_WATER := preload("res://assets/sprites/fx_water.png")  # 물(빙하·서리바람) — DevWizard CC0
 const FX_WOOD := preload("res://assets/sprites/fx_wood.png")    # 목(가시밭) — DevWizard CC0
+const FX_METAL := preload("res://assets/sprites/fx_metal.png")  # 쇠(전격) — DevWizard CC0
 const LOOP := 1.7  ## 반복 주기(초)
 
 var _id := ""
@@ -40,7 +41,11 @@ func _play_once() -> void:
 			add_child(xfx)
 			xfx.play(FX_EXPLOSION_EXT, 10, _radius * 2.2, 60.0, Color.WHITE, 5)
 		"barrage", "rockfall":
-			_falling(col, _elem, false)   # 바위 낙하 → 폭발 링
+			_falling(col, _elem, true)    # 바위 낙하 → 외부 폭발(폭격 임팩트)
+		"chain":  # 외부 번개 스파크(연쇄 명중 모사)
+			_ring(col)
+			for off in [Vector2.ZERO, Vector2(60, -36), Vector2(-54, 28)]:
+				var sfx = PIXEL_FX.new(); sfx.position = off; add_child(sfx); sfx.play(FX_METAL, 6, 64.0, 22.0)
 		"glacier":  # 외부 물 FX(DevWizard CC0)
 			_ring(col)
 			var gfx = PIXEL_FX.new(); add_child(gfx); gfx.play(FX_WATER, 6, _radius * 2.0, 16.0)

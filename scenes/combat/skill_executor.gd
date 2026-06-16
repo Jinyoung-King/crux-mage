@@ -16,6 +16,8 @@ const PIXEL_FX := preload("res://scenes/fx/pixel_fx.gd")  # 픽셀 FX 시트 재
 const FX_EXPLOSION_EXT := preload("res://assets/sprites/fx_ext_explosion.png")  # 불 폭발(외부 CC0 — OpenGameArt "explosion-7", CC0/PD, 10x5=50프레임). 유성·불바다 공용
 const FX_WATER := preload("res://assets/sprites/fx_water.png")  # 물(빙하·서리바람) — DevWizard "Splash", CC0, 192x32=6프레임
 const FX_WOOD := preload("res://assets/sprites/fx_wood.png")    # 목(가시밭) — DevWizard "Plant Missle", CC0, 96x16=6프레임
+const FX_METAL := preload("res://assets/sprites/fx_metal.png")  # 쇠(전격) — DevWizard "Magic Sparks", CC0, 96x16=6프레임. 연쇄 명중 스파크
+# (흙=융단폭격·낙석은 FX_EXPLOSION_EXT 재사용 — 폭격 임팩트로 적합)
 # (절차 생성 fx_explosion_fire.png는 외부 폭발로 통일되며 미사용 — gen_fx.py·에셋은 보존)
 const REACTION_HP_PCT := 0.06  ## 격발 반응(증발·빙결파쇄)이 주는 추가 % 최대체력 피해 — 복리 체력 관통
 
@@ -266,8 +268,12 @@ func _drop_aoe(center: Vector2, radius: float, ep: float, element: String, col: 
 				fx.position = center
 				fx_root.add_child(fx)
 				fx.play(FX_EXPLOSION_EXT, 10, radius * 2.2, 60.0, Color.WHITE, 5)  # 외부 CC0 폭발(불바다와 동일 — 불 통일)
-			elif element == "earth":  # 융단폭격: 먼지 기둥(위로 떠오름)
+			elif element == "earth":  # 융단폭격·낙석: 먼지 기둥 + 외부 폭발 시트(폭격 임팩트)
 				_particle_fx(center, Color(0.72, 0.6, 0.42), sub, 0.95, 25.0, 110.0, -50.0, 4.0, 8.0)
+				var efx = PIXEL_FX.new()
+				efx.position = center
+				fx_root.add_child(efx)
+				efx.play(FX_EXPLOSION_EXT, 10, radius * 2.0, 60.0, Color.WHITE, 5)
 			if player.build.ground_field:
 				_ground_field(center, radius, ep * player.build.field_mult(), element)  # 누적 시 장판 피해↑
 			if do_shake:
@@ -326,9 +332,14 @@ func _skill_chain(count: int, dmg: float, element: String, pool: Array) -> void:
 	for e in enemies.slice(0, count):
 		if not is_instance_valid(e):
 			continue
+		var hp: Vector2 = e.global_position  # 명중 좌표 캡처(_skill_hit로 free될 수 있음)
 		_skill_hit(e, dmg, element)
-		_draw_arc(prev, e.global_position)
-		prev = e.global_position
+		_draw_arc(prev, hp)
+		var sfx = PIXEL_FX.new()  # 외부 번개 스파크(명중 임팩트)
+		sfx.position = hp
+		fx_root.add_child(sfx)
+		sfx.play(FX_METAL, 6, 56.0, 22.0)
+		prev = hp
 
 ## 뇌전 연쇄 시각: 두 적 사이에 짧게 번쩍이는 선 (물리 콜백 밖에서 생성 — call_deferred)
 func _on_chain(from: Vector2, to: Vector2) -> void:
