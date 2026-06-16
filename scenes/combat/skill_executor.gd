@@ -71,31 +71,26 @@ func execute(s: Dictionary) -> void:
 				if is_instance_valid(e):
 					e.apply_slow(0.3, 2.5)
 					_skill_hit(e, ep, element)
-			host._skill_ring(Vector2(360, 420), 460.0, Color(0.5, 0.8, 1.0), "water")  # 화면 전체 서리 폭발
-			_snowfall()  # 화면 가득 떨어지는 눈송이
-			var sfx = PIXEL_FX.new()  # 외부 물 FX(중앙 대형)
-			sfx.position = Vector2(360, 420)
-			fx_root.add_child(sfx)
-			sfx.play(FX_WATER, 6, 220.0, 16.0)
+			for fp in [Vector2(360, 300), Vector2(190, 560), Vector2(530, 560)]:  # 외부 물 FX 여러 곳(화면 전체 서리)
+				var sfx = PIXEL_FX.new()
+				sfx.position = fp
+				fx_root.add_child(sfx)
+				sfx.play(FX_WATER, 6, 240.0, 16.0)
 		"thorns":  # 가시밭: 가장 밀집한 곳에 초기 광역 피해 + 지속 가시 장판(속성색=초록)
 			var tc := aim if aim != Vector2.INF else _densest_cluster(er, pool)
 			if tc != Vector2.INF:
 				_skill_aoe(tc, er, ep, false, element)
 				_ground_field(tc, er, ep, element)
-				host._skill_ring(tc, er, col, element)
-				_thorn_erupt(tc, er)  # 가시 솟구침 연출
 				var nfx = PIXEL_FX.new()  # 외부 자연 FX
 				nfx.position = tc
 				fx_root.add_child(nfx)
-				nfx.play(FX_WOOD, 6, er * 1.4, 16.0)
+				nfx.play(FX_WOOD, 6, er * 1.7, 16.0)
 		"inferno":  # 불바다: 밀집 지점에 화염 작렬(광역 피해 + 화상) + 잔류 화염 장판(지속 피해)
 			var fc := aim if aim != Vector2.INF else _densest_cluster(er, pool)
 			if fc != Vector2.INF:
 				_skill_aoe(fc, er, ep, true, element)   # 광역 피해 + 화상 부여
 				_ground_field(fc, er, ep, element)       # 잔류 화염 장판(DoT)
-				host._skill_ring(fc, er, col, element)
-				_scorch(fc, er)  # 그을음 자국
-				var xfx = PIXEL_FX.new()  # 외부 CC0 팩 픽셀 폭발(유성=절차 생성과 비교용 A/B)
+				var xfx = PIXEL_FX.new()  # 외부 픽셀 폭발
 				xfx.position = fc
 				fx_root.add_child(xfx)
 				xfx.play(FX_EXPLOSION_EXT, 10, er * 2.2, 60.0, Color.WHITE, 5)  # 10x5=50프레임 격자
@@ -113,8 +108,6 @@ func execute(s: Dictionary) -> void:
 						_skill_hit(e, ep, element)
 						if is_instance_valid(e) and e.hp > 0.0:
 							e.apply_slow(0.3, 3.0)  # 강한 둔화(국지·서리바람보다 길게)
-				host._skill_ring(gc, er, col, element)
-				_particle_fx(gc, Color(0.7, 0.9, 1.0), 40, 0.7, 60.0, 190.0, 120.0, 1.5, 3.5)  # 얼음 파편 비산
 				var gfx = PIXEL_FX.new()  # 외부 물 FX
 				gfx.position = gc
 				fx_root.add_child(gfx)
@@ -264,22 +257,10 @@ func _drop_aoe(center: Vector2, radius: float, ep: float, element: String, col: 
 	t.tween_callback(func() -> void:
 		if not host.game_over:
 			_skill_aoe(center, radius, ep, burn, element)  # 도달 시 폭발 피해(스킬 속성 상성)
-			host._skill_ring(center, radius, col, element)
-			_skill_burst_n(center, col, burst_amt)
-			var sub := maxi(5, burst_amt / 3)  # 부속 입자(잔불·먼지)도 예산에 비례
-			if element == "fire":  # 유성: 그을음 크레이터 + 잔불 + 픽셀 폭발 시트(아트 업그레이드 슬라이스)
-				_scorch(center, radius)
-				_particle_fx(center, Color(1.0, 0.6, 0.2), sub, 0.8, 60.0, 200.0, 160.0, 2.0, 4.0)
-				var fx = PIXEL_FX.new()
-				fx.position = center
-				fx_root.add_child(fx)
-				fx.play(FX_EXPLOSION_EXT, 10, radius * 2.2, 60.0, Color.WHITE, 5)  # 외부 CC0 폭발(불바다와 동일 — 불 통일)
-			elif element == "earth":  # 융단폭격·낙석: 먼지 기둥 + 외부 폭발 시트(폭격 임팩트)
-				_particle_fx(center, Color(0.72, 0.6, 0.42), sub, 0.95, 25.0, 110.0, -50.0, 4.0, 8.0)
-				var efx = PIXEL_FX.new()
-				efx.position = center
-				fx_root.add_child(efx)
-				efx.play(FX_EXPLOSION_EXT, 10, radius * 2.0, 60.0, Color.WHITE, 5)
+			var fx = PIXEL_FX.new()  # 외부 픽셀 폭발(불·흙 공용) — 절차 링·입자·그을음 제거
+			fx.position = center
+			fx_root.add_child(fx)
+			fx.play(FX_EXPLOSION_EXT, 10, radius * 2.2, 60.0, Color.WHITE, 5)
 			if player.build.ground_field:
 				_ground_field(center, radius, ep * player.build.field_mult(), element)  # 누적 시 장판 피해↑
 			if do_shake:
@@ -334,18 +315,15 @@ func _skill_chain(count: int, dmg: float, element: String, pool: Array) -> void:
 		return
 	var pp: Vector2 = player.global_position
 	enemies.sort_custom(func(a, b): return pp.distance_squared_to(a.global_position) < pp.distance_squared_to(b.global_position))
-	var prev := pp
 	for e in enemies.slice(0, count):
 		if not is_instance_valid(e):
 			continue
 		var hp: Vector2 = e.global_position  # 명중 좌표 캡처(_skill_hit로 free될 수 있음)
 		_skill_hit(e, dmg, element)
-		_draw_arc(prev, hp)
-		var sfx = PIXEL_FX.new()  # 칼날 클래시 스파크(명중 임팩트)
+		var sfx = PIXEL_FX.new()  # 명중마다 외부 금속 스파크(칼날 궤적선 제거 — 외부 시트만)
 		sfx.position = hp
 		fx_root.add_child(sfx)
-		sfx.play(FX_METAL, 6, 56.0, 22.0)
-		prev = hp
+		sfx.play(FX_METAL, 6, 64.0, 22.0)
 
 ## 비도 연쇄 시각: 두 적 사이를 잇는 금속 칼날 궤적(직선 streak). (물리 콜백 밖 — call_deferred)
 func _on_chain(from: Vector2, to: Vector2) -> void:
