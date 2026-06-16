@@ -16,7 +16,7 @@ const PIXEL_FX := preload("res://scenes/fx/pixel_fx.gd")  # 픽셀 FX 시트 재
 const FX_EXPLOSION_EXT := preload("res://assets/sprites/fx_ext_explosion.png")  # 불 폭발(외부 CC0 — OpenGameArt "explosion-7", CC0/PD, 10x5=50프레임). 유성·불바다 공용
 const FX_WATER := preload("res://assets/sprites/fx_water.png")  # 물(빙하·서리바람) — DevWizard "Splash", CC0, 192x32=6프레임
 const FX_WOOD := preload("res://assets/sprites/fx_wood.png")    # 목(가시밭) — DevWizard "Plant Missle", CC0, 96x16=6프레임
-const FX_METAL := preload("res://assets/sprites/fx_metal.png")  # 쇠(전격) — DevWizard "Magic Sparks", CC0, 96x16=6프레임. 연쇄 명중 스파크
+const FX_METAL := preload("res://assets/sprites/fx_metal.png")  # 쇠(비도) — DevWizard "Magic Sparks", CC0, 96x16=6프레임. 칼날 클래시 스파크
 # (흙=융단폭격·낙석은 FX_EXPLOSION_EXT 재사용 — 폭격 임팩트로 적합)
 # (절차 생성 fx_explosion_fire.png는 외부 폭발로 통일되며 미사용 — gen_fx.py·에셋은 보존)
 const REACTION_HP_PCT := 0.06  ## 격발 반응(증발·빙결파쇄)이 주는 추가 % 최대체력 피해 — 복리 체력 관통
@@ -335,27 +335,23 @@ func _skill_chain(count: int, dmg: float, element: String, pool: Array) -> void:
 		var hp: Vector2 = e.global_position  # 명중 좌표 캡처(_skill_hit로 free될 수 있음)
 		_skill_hit(e, dmg, element)
 		_draw_arc(prev, hp)
-		var sfx = PIXEL_FX.new()  # 외부 번개 스파크(명중 임팩트)
+		var sfx = PIXEL_FX.new()  # 칼날 클래시 스파크(명중 임팩트)
 		sfx.position = hp
 		fx_root.add_child(sfx)
 		sfx.play(FX_METAL, 6, 56.0, 22.0)
 		prev = hp
 
-## 뇌전 연쇄 시각: 두 적 사이에 짧게 번쩍이는 선 (물리 콜백 밖에서 생성 — call_deferred)
+## 비도 연쇄 시각: 두 적 사이를 잇는 금속 칼날 궤적(직선 streak). (물리 콜백 밖 — call_deferred)
 func _on_chain(from: Vector2, to: Vector2) -> void:
 	_draw_arc.call_deferred(from, to)
 
+## 금속 칼날 궤적 — 강철 글로우 + 밝은 코어 2겹의 직선 streak(번개 지그재그·곁가지 제거).
+## (_jagged는 미사용이지만 향후 '감전' 조합 번개 연출용으로 보존)
 func _draw_arc(from: Vector2, to: Vector2) -> void:
-	# 지그재그 번개: 글로우(굵고 옅은) + 코어(가늘고 밝은) 2겹 + 곁가지 1 + 노드 섬광
-	var amp: float = minf(from.distance_to(to) * 0.14, 36.0)
-	var pts := _jagged(from, to, 6, amp)
-	_lightning_line(pts, 10.0, Color(0.6, 0.45, 1.0, 0.5))   # 글로우
-	_lightning_line(pts, 3.5, Color(0.96, 0.92, 1.0, 0.98))  # 코어
-	var mid: Vector2 = pts[pts.size() / 2]  # 중간에서 짧게 갈라지는 곁가지(가지치기)
-	var ang := (to - from).angle() + randf_range(-1.1, 1.1)
-	var tip := mid + Vector2(cos(ang), sin(ang)) * from.distance_to(to) * 0.3
-	_lightning_line(_jagged(mid, tip, 3, amp * 0.6), 2.2, Color(0.85, 0.8, 1.0, 0.85))
-	host._hit_spark(to, Color(0.85, 0.85, 1.0), 16.0)  # 노드 섬광
+	var pts := PackedVector2Array([from, to])
+	_lightning_line(pts, 8.0, Color(0.62, 0.66, 0.78, 0.4))   # 강철 글로우(굵고 옅게)
+	_lightning_line(pts, 2.8, Color(0.95, 0.97, 1.0, 0.98))   # 칼날 코어(가늘고 밝게)
+	host._hit_spark(to, Color(0.9, 0.92, 1.0), 14.0)  # 명중 클래시 스파크(금속 흰빛)
 
 ## 두 점 사이를 지그재그로 잇는 점열(양 끝 고정, 중간은 수직으로 무작위 흔듦)
 func _jagged(from: Vector2, to: Vector2, segs: int, amp: float) -> PackedVector2Array:

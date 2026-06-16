@@ -415,7 +415,7 @@ func _skill_detail(id: String) -> String:
 	var rad := int(d.get("radius", 0))
 	match id:
 		"bolts": lines.append("가까운 %d명 마력탄" % cnt)
-		"chain": lines.append("%d명 번개 연쇄" % cnt)
+		"chain": lines.append("%d명 칼날 연쇄" % cnt)
 		"barrage": lines.append("거대 돌 낙하 · 반경 %d(다발=반경↑)" % rad)
 		"meteor": lines.append("반경 %d 광역 피해" % rad)
 		"freeze": lines.append("화면 전체 둔화")

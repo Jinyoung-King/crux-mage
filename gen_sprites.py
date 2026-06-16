@@ -390,7 +390,7 @@ write_png("mage_wood.png", WIZARD, _wizard_pal((40, 115, 70), (75, 180, 95), (32
 write_png("mage_fire.png", WIZARD, _wizard_pal((150, 40, 40), (205, 75, 60), (115, 30, 35), (255, 180, 80)))
 write_png("mage_storm.png", WIZARD, _wizard_pal((40, 115, 70), (70, 175, 95), (35, 95, 55), (190, 255, 150)))
 write_png("mage_frost.png", WIZARD, _wizard_pal((50, 110, 150), (85, 175, 205), (40, 90, 130), (190, 240, 255)))
-write_png("mage_arc.png", WIZARD, _wizard_pal((90, 60, 150), (140, 95, 215), (70, 45, 120), (210, 180, 255)))
+write_png("mage_arc.png", WIZARD, _wizard_pal((85, 92, 105), (150, 162, 184), (60, 66, 78), (228, 234, 246)))  # 금=강철(비도술사)
 write_png("mage_bomb.png", WIZARD, _wizard_pal((70, 55, 40), (125, 95, 55), (50, 40, 28), (255, 150, 60)))
 write_png("fireball.png", FIREBALL, FIREBALL_PAL)
 write_png("arrow.png", ARROW, ARROW_PAL)

@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-card_name = "전격 습득"
-description = "전격 — 없으면 습득, 있으면 진화(폭풍 번개→천벌)"
+card_name = "비도 습득"
+description = "비도 — 없으면 습득, 있으면 진화(강철 비도→비도 난무)"
 rarity = "rare"
 grant_skill_id = "chain"

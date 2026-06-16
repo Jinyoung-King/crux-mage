@@ -8,7 +8,7 @@ const DEFS := {
 	"bolts":   {"name": "마력탄", "cooldown": 5.5, "power": 10.0, "radius": 0.0, "count": 3, "element": "wood"},
 	"meteor":  {"name": "유성", "cooldown": 10.5, "power": 18.0, "radius": 72.0, "count": 0, "element": "fire"},
 	"barrage": {"name": "융단폭격", "cooldown": 9.5, "power": 13.0, "radius": 52.0, "count": 3, "element": "earth"},
-	"chain":   {"name": "전격", "cooldown": 8.0, "power": 13.0, "radius": 0.0, "count": 4, "element": "metal"},
+	"chain":   {"name": "비도", "cooldown": 8.0, "power": 13.0, "radius": 0.0, "count": 4, "element": "metal"},
 	"freeze":  {"name": "서리바람", "cooldown": 12.0, "power": 9.0, "radius": 0.0, "count": 0, "element": "water"},
 	"thorns":  {"name": "가시밭", "cooldown": 9.0, "power": 9.0, "radius": 88.0, "count": 0, "element": "wood"},
 	"inferno": {"name": "불바다", "cooldown": 8.0, "power": 9.0, "radius": 64.0, "count": 0, "element": "fire"},   # 화염 작렬+화상+잔류 장판(DoT)
@@ -20,7 +20,7 @@ const DEFS := {
 }
 
 ## 스킬 시전 사거리(마법사로부터). 이 거리 안의 적만 타겟 — 스킬별 차등(기지 y≈1150 기준).
-## 마력탄·메테오·융단은 멀리, 전격(연쇄)은 가까이, 서리는 중거리.
+## 마력탄·메테오·융단은 멀리, 비도(연쇄)는 가까이, 서리는 중거리.
 const SKILL_RANGE := {
 	"bolts": 1000.0,
 	"chain": 650.0,
@@ -48,9 +48,9 @@ const EVOLVE := {
 		{"name": "종말의 운석", "radius_mult": 1.4, "power_mult": 2.0},
 	],
 	"chain": [
-		{"name": "폭풍 번개", "count": 2, "cd_mult": 0.85, "power_mult": 1.3},
-		{"name": "천벌", "count": 3, "cd_mult": 0.7, "power_mult": 1.6},
-		{"name": "뇌신의 분노", "count": 4, "cd_mult": 0.7, "power_mult": 1.7},
+		{"name": "강철 비도", "count": 2, "cd_mult": 0.85, "power_mult": 1.3},
+		{"name": "비도 난무", "count": 3, "cd_mult": 0.7, "power_mult": 1.6},
+		{"name": "참격 폭풍", "count": 4, "cd_mult": 0.7, "power_mult": 1.7},
 	],
 	"freeze": [
 		{"name": "눈보라", "cd_mult": 0.8, "power_mult": 1.4},
@@ -104,9 +104,9 @@ const EVOLVE_BRANCHES := {
 		{"kind": "behavior", "name": "확산 포격",   "desc": "표적 수 +1(다발 강화) · 위력 +15%", "behavior": "extra_targets", "amount": 1, "power_mult": 1.15},
 	],
 	"chain": [
-		{"kind": "power",    "name": "폭풍 번개", "desc": "연쇄 수 +1 · 위력 +30%", "count_add": 1, "power_mult": 1.3},
-		{"kind": "element",  "name": "한파 번개", "desc": "명중 시 둔화 부여(빙결파쇄 연계) · 위력 +10%", "grant": "slow", "power_mult": 1.1},
-		{"kind": "behavior", "name": "확산 번개", "desc": "표적 수 +1 · 위력 +15%", "behavior": "extra_targets", "amount": 1, "power_mult": 1.15},
+		{"kind": "power",    "name": "강철 비도", "desc": "연쇄 수 +1 · 위력 +30%", "count_add": 1, "power_mult": 1.3},
+		{"kind": "element",  "name": "서리 비도", "desc": "명중 시 둔화 부여(빙결파쇄 연계) · 위력 +10%", "grant": "slow", "power_mult": 1.1},
+		{"kind": "behavior", "name": "산탄 비도", "desc": "표적 수 +1 · 위력 +15%", "behavior": "extra_targets", "amount": 1, "power_mult": 1.15},
 	],
 	"freeze": [
 		{"kind": "power",    "name": "눈보라",    "desc": "위력 +40%", "power_mult": 1.4},

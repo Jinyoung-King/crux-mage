@@ -20,7 +20,7 @@ var burn_dps := 0.0
 var burn_duration := 0.0
 var slow_factor := 1.0
 var slow_duration := 0.0
-# 뇌전술사 연쇄 (플레이어가 발사 시 캐릭터에서 채움)
+# 비도술사 연쇄 (플레이어가 발사 시 캐릭터에서 채움)
 var chain_count := 0
 var chain_factor := 0.0
 var chain_range := 220.0

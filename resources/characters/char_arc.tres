@@ -7,8 +7,8 @@
 
 [resource]
 script = ExtResource("1")
-display_name = "뇌전술사"
-description = "연쇄 번개 · 무리에 강함"
+display_name = "비도술사"
+description = "튕기는 칼날 · 무리에 강함"
 mage_sprite = ExtResource("2")
 projectile_sprite = ExtResource("3")
 shoot_sound = ExtResource("4")
@@ -16,14 +16,14 @@ base_damage = 12.0
 base_fire_rate = 1.8
 base_projectile_count = 1
 unlock_wave = 15
-accent_color = Color(0.72, 0.5, 1, 1)
+accent_color = Color(0.8, 0.84, 0.92, 1)
 passive_chain_count = 2
 passive_chain_factor = 0.6
 passive_chain_range = 220.0
 element = "metal"
 skill_id = "chain"
-skill_name = "체인 라이트닝"
-skill_desc = "다수 적 연쇄 번개"
+skill_name = "비도"
+skill_desc = "적 사이를 튕기는 칼날 연쇄"
 skill_cooldown = 6.5
 skill_power = 22.0
 skill_count = 5
