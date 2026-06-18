@@ -1,0 +1,66 @@
+name: Deploy Web to GitHub Pages
+
+# main에 푸시하면 Godot로 웹 빌드 후 GitHub Pages에 자동 배포.
+# 최초 1회: 레포 Settings → Pages → Build and deployment → Source = "GitHub Actions" 로 설정해야 함.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:  # 수동 실행 버튼도 제공
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: "4.6.3"   # 로컬과 동일(4.6.3.stable). 엔진 올리면 이 값만 바꿀 것
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Godot + 웹 export 템플릿 설치
+        run: |
+          set -e
+          GV="${GODOT_VERSION}"
+          BASE="https://github.com/godotengine/godot/releases/download/${GV}-stable"
+          curl -fL -o godot.zip "${BASE}/Godot_v${GV}-stable_linux.x86_64.zip"
+          curl -fL -o templates.tpz "${BASE}/Godot_v${GV}-stable_export_templates.tpz"
+          unzip -q godot.zip
+          mv "Godot_v${GV}-stable_linux.x86_64" godot
+          chmod +x godot
+          mkdir -p "$HOME/.local/share/godot/export_templates/${GV}.stable"
+          unzip -q templates.tpz
+          mv templates/* "$HOME/.local/share/godot/export_templates/${GV}.stable/"
+
+      - name: 웹 빌드 (Web 프리셋)
+        run: |
+          set -e
+          mkdir -p build/web
+          # 임포트 캐시 생성(신규 체크아웃이라 .godot 없음) — 2회로 안정화
+          ./godot --headless --import --path . || true
+          ./godot --headless --import --path . || true
+          ./godot --headless --export-release "Web" build/web/index.html --path .
+          touch build/web/.nojekyll   # GitHub Pages가 파일을 Jekyll로 가공하지 않도록
+          test -f build/web/index.wasm && echo "빌드 OK: $(ls -la build/web/index.wasm)"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
