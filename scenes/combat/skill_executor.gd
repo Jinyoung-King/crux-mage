@@ -13,7 +13,7 @@ const DEATH_BURST_SCENE := preload("res://scenes/fx/death_burst.tscn")
 const SCORCH := preload("res://scenes/fx/scorch_mark.gd")  # 메테오 착탄 그을음
 const THORN_ERUPT := preload("res://scenes/fx/thorn_erupt.gd")  # 가시밭 가시 솟구침
 const PIXEL_FX := preload("res://scenes/fx/pixel_fx.gd")  # 픽셀 FX 시트 재생기(아트 업그레이드)
-const FX_EXPLOSION_EXT := preload("res://assets/sprites/fx_ext_explosion.png")  # 불 폭발(외부 CC0 — OpenGameArt "explosion-7", CC0/PD, 10x5=50프레임). 유성·불바다 공용
+const FX_EXPLOSION_EXT := preload("res://assets/sprites/fx_cm_explosion.png")  # 폭발(외부 CC0 — CodeManu "Free Pixel Effects Pack" 16_sunburn, CC0/PD, 8x8=64프레임 100px). 유성·불바다·흙 폭격 공용. 이펙트 통일(2026-06-18)
 const FX_WATER := preload("res://assets/sprites/fx_water.png")  # 물(빙하·서리바람) — DevWizard "Splash", CC0, 192x32=6프레임
 const FX_WOOD := preload("res://assets/sprites/fx_wood.png")    # 목(가시밭) — DevWizard "Plant Missle", CC0, 96x16=6프레임
 const FX_METAL := preload("res://assets/sprites/fx_metal.png")  # 쇠(비도) — DevWizard "Magic Sparks", CC0, 96x16=6프레임. 칼날 클래시 스파크
@@ -96,7 +96,7 @@ func execute(s: Dictionary) -> void:
 				var xfx = PIXEL_FX.new()  # 외부 픽셀 폭발
 				xfx.position = fc
 				fx_root.add_child(xfx)
-				xfx.play(FX_EXPLOSION_EXT, 10, er * 2.2, 60.0, Color.WHITE, 5)  # 10x5=50프레임 격자
+				xfx.play(FX_EXPLOSION_EXT, 8, er * 2.2, 60.0, Color.WHITE, 8)  # 8x8=64프레임 격자(CodeManu)
 		"rockfall":  # 낙석: 여러 바위가 흩어진 적 위로 분산 낙하(각 중간 폭발). count=바위 수
 			var pts := _random_enemy_points(count, pool)
 			for pt in pts:
@@ -304,7 +304,7 @@ func _drop_aoe(center: Vector2, radius: float, ep: float, element: String, col: 
 			var fx = PIXEL_FX.new()  # 외부 픽셀 폭발(불·흙 공용) — 절차 링·입자·그을음 제거
 			fx.position = center
 			fx_root.add_child(fx)
-			fx.play(FX_EXPLOSION_EXT, 10, radius * 2.2, 60.0, Color.WHITE, 5)
+			fx.play(FX_EXPLOSION_EXT, 8, radius * 2.2, 60.0, Color.WHITE, 8)  # 8x8=64프레임 격자(CodeManu)
 			if player.build.ground_field:
 				_ground_field(center, radius, ep * player.build.field_mult(), element)  # 누적 시 장판 피해↑
 			if do_shake:

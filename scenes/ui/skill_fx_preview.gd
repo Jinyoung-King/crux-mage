@@ -5,7 +5,7 @@ extends Node2D
 const SKILL_RING := preload("res://scenes/fx/skill_ring.gd")
 const DEATH_BURST := preload("res://scenes/fx/death_burst.tscn")
 const PIXEL_FX := preload("res://scenes/fx/pixel_fx.gd")
-const FX_EXPLOSION_EXT := preload("res://assets/sprites/fx_ext_explosion.png")  # 불 폭발(외부 CC0) — 유성·불바다 공용
+const FX_EXPLOSION_EXT := preload("res://assets/sprites/fx_cm_explosion.png")  # 폭발(외부 CC0 — CodeManu, 8x8=64프레임) — 유성·불바다 공용. 이펙트 통일(2026-06-18)
 const FALLING_SKILL := preload("res://scenes/fx/falling_skill.gd")
 const THORN_ERUPT := preload("res://scenes/fx/thorn_erupt.gd")
 const FX_WATER := preload("res://assets/sprites/fx_water.png")  # 물(빙하·서리바람) — DevWizard CC0
@@ -38,7 +38,7 @@ func _play_once() -> void:
 		"inferno":  # 외부 픽셀 폭발
 			var xfx = PIXEL_FX.new()
 			add_child(xfx)
-			xfx.play(FX_EXPLOSION_EXT, 10, _radius * 2.2, 60.0, Color.WHITE, 5)
+			xfx.play(FX_EXPLOSION_EXT, 8, _radius * 2.2, 60.0, Color.WHITE, 8)
 		"barrage", "rockfall":
 			_falling(col, _elem, true)    # 바위 낙하 → 외부 폭발(폭격 임팩트)
 		"chain":  # 비도 — 칼날 클래시 스파크(연쇄 명중 모사)
@@ -102,6 +102,6 @@ func _falling(col: Color, elem: String, pixel: bool) -> void:
 		if pixel:
 			var fx = PIXEL_FX.new()
 			add_child(fx)
-			fx.play(FX_EXPLOSION_EXT, 10, _radius * 2.2, 60.0, Color.WHITE, 5)  # 유성도 외부 폭발로 통일(인게임 일치)
+			fx.play(FX_EXPLOSION_EXT, 8, _radius * 2.2, 60.0, Color.WHITE, 8)  # 유성도 외부 폭발로 통일(인게임 일치)
 		if is_instance_valid(m):
 			m.queue_free())

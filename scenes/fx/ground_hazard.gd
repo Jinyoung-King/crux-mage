@@ -4,7 +4,7 @@ extends Node2D
 ## 화염(fire) 장판은 지속시간 동안 외부 불 FX를 반복 분출해 '타오르는' 연출.
 
 const PIXEL_FX := preload("res://scenes/fx/pixel_fx.gd")  # 블레이즈용 외부 FX 재생기
-const FX_FIRE := preload("res://assets/sprites/fx_ext_explosion.png")  # 외부 불 폭발 시트(CC0)
+const FX_FIRE := preload("res://assets/sprites/fx_cm_explosion.png")  # 외부 불 폭발 시트(CC0 — CodeManu, 8x8=64프레임). 이펙트 통일(2026-06-18)
 
 var radius := 90.0
 var dps := 10.0
@@ -54,7 +54,7 @@ func _spawn_blaze() -> void:
 	var fx = PIXEL_FX.new()
 	fx.position = position + Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * radius * 0.6
 	par.add_child(fx)
-	fx.play(FX_FIRE, 10, radius * 0.7, 60.0, Color.WHITE, 5)
+	fx.play(FX_FIRE, 8, radius * 0.7, 60.0, Color.WHITE, 8)
 
 func _draw() -> void:
 	# 원형 채움 제거 — 구역은 속성 픽셀 장식(+화염은 블레이즈)으로만 표현.
