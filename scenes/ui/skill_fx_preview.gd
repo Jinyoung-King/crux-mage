@@ -9,7 +9,8 @@ const FX_EXPLOSION_EXT := preload("res://assets/sprites/fx_cm_explosion.png")  #
 const FALLING_SKILL := preload("res://scenes/fx/falling_skill.gd")
 const THORN_ERUPT := preload("res://scenes/fx/thorn_erupt.gd")
 const FX_WATER := preload("res://assets/sprites/fx_cm_water.png")  # 물(빙하·서리) — CodeManu 19_freezing, CC0, 10x10=100프레임. 이펙트 통일(2026-06-18)
-const FX_WOOD := preload("res://assets/sprites/fx_wood.png")    # 목(가시밭) — DevWizard CC0
+const FX_WOOD := preload("res://assets/sprites/fx_wood.png")    # 가시 화살 발사체 미리보기 — DevWizard CC0(발사체는 그대로)
+const FX_CM_WOOD := preload("res://assets/sprites/fx_cm_wood.png")  # 가시밭 AoE — CodeManu 17_felspell, CC0, 10x10=100프레임. 이펙트 통일(2026-06-18)
 const FX_METAL := preload("res://assets/sprites/fx_metal.png")  # 쇠(비도) — DevWizard CC0
 const LOOP := 1.7  ## 반복 주기(초)
 
@@ -50,7 +51,7 @@ func _play_once() -> void:
 			var ffx = PIXEL_FX.new(); add_child(ffx); ffx.play(FX_WATER, 10, 200.0, 60.0, Color.WHITE, 10)
 		"thorns":  # 가시 솟구침 + 외부 자연 FX
 			var th = THORN_ERUPT.new(); add_child(th); th.setup(_radius)
-			var nfx = PIXEL_FX.new(); add_child(nfx); nfx.play(FX_WOOD, 6, _radius * 1.4, 16.0)
+			var nfx = PIXEL_FX.new(); add_child(nfx); nfx.play(FX_CM_WOOD, 10, _radius * 1.4, 60.0, Color.WHITE, 10)
 		"bolts":  # 가시 화살 — 외부 식물 발사체가 날아가는 모습(인게임 렌더와 동일)
 			_projectiles()
 		_:
