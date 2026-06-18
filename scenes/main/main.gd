@@ -1053,24 +1053,6 @@ func _has_skill(id: String) -> bool:
 			return true
 	return false
 
-## 화상 부여원(부여 카드·점화 유물·메테오 스킬)이 있나 — 기폭 카드 유효성
-func _has_burn_source() -> bool:
-	if $Player.build.apply_burn or $Player.relic_levels.has("ignite"):
-		return true
-	for s in $Player.skills:
-		if s.id == "meteor":
-			return true
-	return false
-
-## 둔화 부여원(부여 카드·빙결 스킬)이 있나 — 파쇄 카드 유효성
-func _has_slow_source() -> bool:
-	if $Player.build.apply_slow:
-		return true
-	for s in $Player.skills:
-		if s.id == "freeze":
-			return true
-	return false
-
 ## 현재 빌드에서 의미 있는 카드인지 — 죽은 픽(조건 미충족 시너지 등)을 드래프트에서 제외
 func _is_card_useful(card: CardData) -> bool:
 	if card.grant_skill_id != "":
@@ -1093,10 +1075,6 @@ func _is_card_useful(card: CardData) -> bool:
 		return false  # 표적형 스킬이 없으면 다발 무의미
 	if card.pierce_bonus > 0 and not _has_bolts_skill():
 		return false  # 마력탄 스킬이 없으면 관통 무의미(발사체 전용)
-	if card.detonate_burn_bonus > 0.0 and not _has_burn_source():
-		return false  # 화상 부여원 없으면 기폭 무의미
-	if card.frostbite_bonus > 0.0 and not _has_slow_source():
-		return false  # 둔화 부여원 없으면 파쇄 무의미
 	if card.heal > 0.0 and $Player.hp >= $Player.max_hp:
 		return false  # 만피에 회복 카드 금지
 	if card.max_hp_bonus < 0.0 and $Player.max_hp + card.max_hp_bonus < 30.0:
