@@ -8,7 +8,7 @@ const PIXEL_FX := preload("res://scenes/fx/pixel_fx.gd")
 const FX_EXPLOSION_EXT := preload("res://assets/sprites/fx_cm_explosion.png")  # 폭발(외부 CC0 — CodeManu, 8x8=64프레임) — 유성·불바다 공용. 이펙트 통일(2026-06-18)
 const FALLING_SKILL := preload("res://scenes/fx/falling_skill.gd")
 const THORN_ERUPT := preload("res://scenes/fx/thorn_erupt.gd")
-const FX_WATER := preload("res://assets/sprites/fx_water.png")  # 물(빙하·서리바람) — DevWizard CC0
+const FX_WATER := preload("res://assets/sprites/fx_cm_water.png")  # 물(빙하·서리) — CodeManu 19_freezing, CC0, 10x10=100프레임. 이펙트 통일(2026-06-18)
 const FX_WOOD := preload("res://assets/sprites/fx_wood.png")    # 목(가시밭) — DevWizard CC0
 const FX_METAL := preload("res://assets/sprites/fx_metal.png")  # 쇠(비도) — DevWizard CC0
 const LOOP := 1.7  ## 반복 주기(초)
@@ -45,9 +45,9 @@ func _play_once() -> void:
 			for off in [Vector2.ZERO, Vector2(60, -36), Vector2(-54, 28)]:
 				var sfx = PIXEL_FX.new(); sfx.position = off; add_child(sfx); sfx.play(FX_METAL, 6, 64.0, 22.0)
 		"glacier":  # 외부 물 FX(DevWizard CC0)
-			var gfx = PIXEL_FX.new(); add_child(gfx); gfx.play(FX_WATER, 6, _radius * 2.0, 16.0)
+			var gfx = PIXEL_FX.new(); add_child(gfx); gfx.play(FX_WATER, 10, _radius * 2.0, 60.0, Color.WHITE, 10)
 		"freeze":  # 외부 물 FX(중앙 대형)
-			var ffx = PIXEL_FX.new(); add_child(ffx); ffx.play(FX_WATER, 6, 200.0, 16.0)
+			var ffx = PIXEL_FX.new(); add_child(ffx); ffx.play(FX_WATER, 10, 200.0, 60.0, Color.WHITE, 10)
 		"thorns":  # 가시 솟구침 + 외부 자연 FX
 			var th = THORN_ERUPT.new(); add_child(th); th.setup(_radius)
 			var nfx = PIXEL_FX.new(); add_child(nfx); nfx.play(FX_WOOD, 6, _radius * 1.4, 16.0)
