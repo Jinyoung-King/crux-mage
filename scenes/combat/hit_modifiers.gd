@@ -31,12 +31,14 @@ class Crit extends Base:
 			ctx.is_crit = true
 
 ## 파쇄(Frostbite): 둔화/빙결 적에게 추가 일격
+## (휴면 — v3.27 상태/반응 카드 제거로 build_for 미등록. 빙결파쇄 반응 베이스라인이 대체. 재도입 시 build_for에 다시 추가)
 class Frostbite extends Base:
 	func on_hit(ctx) -> void:
 		if ctx.was_slowed:
 			ctx.enemy.take_damage(ctx.dealt * p.build.frostbite)
 
 ## 기폭(Detonate): 화상 적 명중 시 화상을 소모하고 광역 폭발
+## (휴면 — v3.27 상태/반응 카드 제거로 build_for 미등록. 증발 반응 베이스라인이 대체. 재도입 시 build_for에 다시 추가)
 class Detonate extends Base:
 	func on_hit(ctx) -> void:
 		if ctx.was_burning:
@@ -85,8 +87,6 @@ static func build_for(p) -> Array:
 	var mods: Array = []
 	if p.relic_levels.has("berserk"): mods.append(Berserk.new(p))
 	if p.character and p.character.passive_crit_chance > 0.0: mods.append(Crit.new(p))
-	if p.build.frostbite > 0.0: mods.append(Frostbite.new(p))
-	if p.build.detonate_burn > 0.0: mods.append(Detonate.new(p))
 	if p.build.apply_burn: mods.append(ApplyBurn.new(p))
 	if p.build.apply_slow: mods.append(ApplySlow.new(p))
 	if p.relic_levels.has("ignite"): mods.append(Ignite.new(p))
