@@ -311,11 +311,7 @@ func _show_start_build_summary() -> void:
 		var c: int = _start_build_summary[nm]
 		var part: String = "%s×%d" % [nm, c] if c > 1 else str(nm)
 		text += (", " if text != "" else "") + part
-	var lbl := Label.new()
-	lbl.text = "시작 빌드 ┃ " + text
-	lbl.add_theme_font_override("font", FONT)
-	lbl.add_theme_font_size_override("font_size", 19)
-	lbl.add_theme_color_override("font_color", Color(1.0, 0.95, 0.7))
+	var lbl := _label("시작 빌드 ┃ " + text, 19, Color(1.0, 0.95, 0.7))
 	lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
 	lbl.add_theme_constant_override("outline_size", 5)
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -1788,33 +1784,30 @@ func _open_cards() -> void:
 		total += cnt
 		cards_list.add_child(_card_row(nm, cnt, r))
 	if _picked_order.is_empty():
-		var empty := Label.new()
-		empty.text = "아직 획득한 카드가 없습니다"
-		empty.add_theme_font_override("font", FONT)
-		empty.add_theme_font_size_override("font_size", 20)
-		empty.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
+		var empty := _label("아직 획득한 카드가 없습니다", 20, Color(0.7, 0.7, 0.75))
 		cards_list.add_child(empty)
 	cards_count_label.text = "총 %d장 · %d종" % [total, _picked_order.size()]
 	cards_panel.show()
 	get_tree().paused = true
 
-## 섹션 헤더(금색) — '내 카드' 패널 안 구분용
-func _section_header(text: String) -> Label:
+## 공통 라벨 생성: 텍스트 + 폰트 + 크기 + 색 (정렬·mouse_filter 등 그 외 속성은 호출부에서)
+func _label(text: String, size: int, color: Color) -> Label:
 	var l := Label.new()
 	l.text = text
 	l.add_theme_font_override("font", FONT)
-	l.add_theme_font_size_override("font_size", 22)
-	l.add_theme_color_override("font_color", Color(1.0, 0.86, 0.4))
+	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_color_override("font_color", color)
+	return l
+
+## 섹션 헤더(금색) — '내 카드' 패널 안 구분용
+func _section_header(text: String) -> Label:
+	var l := _label(text, 22, Color(1.0, 0.86, 0.4))
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE  # 스크롤 입력 방해 금지
 	return l
 
 ## 섹션 부제(작은 안내 줄)
 func _section_sub(text: String, color: Color) -> Label:
-	var l := Label.new()
-	l.text = text
-	l.add_theme_font_override("font", FONT)
-	l.add_theme_font_size_override("font_size", 15)
-	l.add_theme_color_override("font_color", color)
+	var l := _label(text, 15, color)
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	l.custom_minimum_size = Vector2(500, 0)
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1851,11 +1844,7 @@ func _skill_stat_row(s: Dictionary) -> Label:
 
 ## 보유 스킬 행 라벨(공통 스타일)
 func _build_stat_label(text: String) -> Label:
-	var l := Label.new()
-	l.text = text
-	l.add_theme_font_override("font", FONT)
-	l.add_theme_font_size_override("font_size", 17)
-	l.add_theme_color_override("font_color", Color(0.9, 0.92, 0.98))
+	var l := _label(text, 17, Color(0.9, 0.92, 0.98))
 	l.custom_minimum_size = Vector2(500, 0)
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return l
@@ -1867,29 +1856,17 @@ func _card_row(nm: String, cnt: int, rar: String) -> Control:
 	row.add_theme_constant_override("separation", 10)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE  # 스크롤 입력 방해 금지
 	var col: Color = RARITY_COLORS.get(rar, Color.WHITE)
-	var badge := Label.new()
-	badge.text = RARITY_BADGE.get(rar, "일반")
-	badge.add_theme_font_override("font", FONT)
-	badge.add_theme_font_size_override("font_size", 16)
-	badge.add_theme_color_override("font_color", col)
+	var badge := _label(RARITY_BADGE.get(rar, "일반"), 16, col)
 	badge.custom_minimum_size = Vector2(52, 0)
 	badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(badge)
-	var name_lbl := Label.new()
-	name_lbl.text = nm
-	name_lbl.add_theme_font_override("font", FONT)
-	name_lbl.add_theme_font_size_override("font_size", 22)
-	name_lbl.add_theme_color_override("font_color", col)
+	var name_lbl := _label(nm, 22, col)
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(name_lbl)
 	if cnt > 1:
-		var cnt_lbl := Label.new()
-		cnt_lbl.text = "×%d" % cnt
-		cnt_lbl.add_theme_font_override("font", FONT)
-		cnt_lbl.add_theme_font_size_override("font_size", 22)
-		cnt_lbl.add_theme_color_override("font_color", Color(0.95, 0.95, 1.0))
+		var cnt_lbl := _label("×%d" % cnt, 22, Color(0.95, 0.95, 1.0))
 		cnt_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(cnt_lbl)
 	return row

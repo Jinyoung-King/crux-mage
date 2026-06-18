@@ -107,11 +107,8 @@ func _ready() -> void:
 
 ## 수동 업데이트 확인 버튼(웹) — 우하단. 새 버전이 있으면 캐시 비우고 적용(재시작), 이미 최신이면 토스트 알림만(재시작 안 함).
 func _build_update_button() -> void:
-	var ub := Button.new()
-	ub.text = "업데이트 확인"
+	var ub := _btn("업데이트 확인", 14)
 	ub.flat = true
-	ub.add_theme_font_override("font", FONT)
-	ub.add_theme_font_size_override("font_size", 14)
 	ub.add_theme_color_override("font_color", Color(0.62, 0.72, 0.95))
 	ub.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	ub.offset_left = -160.0
@@ -123,11 +120,8 @@ func _build_update_button() -> void:
 
 ## 세이브 백업 버튼(우하단, '업데이트 확인' 위) — 모든 플랫폼. 백업 코드 패널 진입.
 func _build_save_button() -> void:
-	var sb := Button.new()
-	sb.text = "세이브 백업"
+	var sb := _btn("세이브 백업", 14)
 	sb.flat = true
-	sb.add_theme_font_override("font", FONT)
-	sb.add_theme_font_size_override("font_size", 14)
 	sb.add_theme_color_override("font_color", Color(0.6, 0.85, 0.7))
 	sb.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	sb.offset_left = -160.0
@@ -137,11 +131,16 @@ func _build_save_button() -> void:
 	sb.pressed.connect(_open_save_panel)
 	add_child(sb)
 
-func _panel_button(text: String) -> Button:
+## 공통 버튼 생성: 텍스트 + 폰트 + 크기 (flat·색·앵커·스타일박스 등 그 외는 호출부에서)
+func _btn(text: String, size: int) -> Button:
 	var b := Button.new()
 	b.text = text
 	b.add_theme_font_override("font", FONT)
-	b.add_theme_font_size_override("font_size", 18)
+	b.add_theme_font_size_override("font_size", size)
+	return b
+
+func _panel_button(text: String) -> Button:
+	var b := _btn(text, 18)
 	b.custom_minimum_size = Vector2(0, 44)
 	return b
 
@@ -217,10 +216,7 @@ func _open_save_panel() -> void:
 func _build_patch_badge() -> void:
 	if GameState.seen_version == GameState.VERSION:
 		return  # 이미 본 버전 — 배지 없음
-	var b := Button.new()
-	b.text = "★ 새 패치 %s — 보기" % GameState.VERSION
-	b.add_theme_font_override("font", FONT)
-	b.add_theme_font_size_override("font_size", 18)
+	var b := _btn("★ 새 패치 %s — 보기" % GameState.VERSION, 18)
 	b.add_theme_color_override("font_color", Color(1.0, 0.92, 0.5))
 	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	var st := StyleBoxFlat.new()
@@ -269,19 +265,13 @@ func _build_char_view() -> void:
 	char_view.add_child(elem_lbl)
 	desc_lbl = _label("", 17, Color(0.82, 0.82, 0.88))
 	char_view.add_child(desc_lbl)
-	var info_btn := Button.new()
-	info_btn.text = "오행 상성표 ⓘ"
+	var info_btn := _btn("오행 상성표 ⓘ", 16)
 	info_btn.flat = true
-	info_btn.add_theme_font_override("font", FONT)
-	info_btn.add_theme_font_size_override("font_size", 16)
 	info_btn.add_theme_color_override("font_color", Color(0.72, 0.78, 0.9))
 	info_btn.pressed.connect(_show_counter_help)
 	char_view.add_child(info_btn)
-	var tips_btn := Button.new()
-	tips_btn.text = "공략 팁 ⓘ"
+	var tips_btn := _btn("공략 팁 ⓘ", 16)
 	tips_btn.flat = true
-	tips_btn.add_theme_font_override("font", FONT)
-	tips_btn.add_theme_font_size_override("font_size", 16)
 	tips_btn.add_theme_color_override("font_color", Color(0.72, 0.78, 0.9))
 	tips_btn.pressed.connect(_show_tips_help)
 	char_view.add_child(tips_btn)
@@ -337,12 +327,9 @@ func _build_counter_help() -> void:
 	for i in cycle.size():
 		v.add_child(_counter_row(cycle[i], cycle[(i + 1) % cycle.size()]))
 	var spacer2 := Control.new(); spacer2.custom_minimum_size = Vector2(0, 8); v.add_child(spacer2)
-	var close := Button.new()
-	close.text = "닫기"
+	var close := _btn("닫기", 22)
 	close.custom_minimum_size = Vector2(200, 50)
 	close.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	close.add_theme_font_override("font", FONT)
-	close.add_theme_font_size_override("font_size", 22)
 	close.pressed.connect(_hide_counter_help)
 	v.add_child(close)
 
@@ -402,12 +389,9 @@ func _build_tips_help() -> void:
 	for t in TIPS:
 		v.add_child(_tip_row(t))
 	var spacer := Control.new(); spacer.custom_minimum_size = Vector2(0, 6); v.add_child(spacer)
-	var close := Button.new()
-	close.text = "닫기"
+	var close := _btn("닫기", 22)
 	close.custom_minimum_size = Vector2(200, 50)
 	close.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	close.add_theme_font_override("font", FONT)
-	close.add_theme_font_size_override("font_size", 22)
 	close.pressed.connect(_hide_tips_help)
 	v.add_child(close)
 
@@ -470,12 +454,9 @@ func _cycle(dir: int) -> void:
 	_apply_char()
 
 func _arrow(text: String) -> Button:
-	var b := Button.new()
-	b.text = text
+	var b := _btn(text, 34)
 	b.flat = true
 	b.custom_minimum_size = Vector2(52, 80)
-	b.add_theme_font_override("font", FONT)
-	b.add_theme_font_size_override("font_size", 34)
 	return b
 
 func _on_start_wave_changed(v: float) -> void:
@@ -534,12 +515,9 @@ func _build_beyond_button() -> void:
 	var lbl := _label("─ 저편 (멀티속성 여정 · 수동 조작) ─", 15, Color(0.74, 0.66, 0.92))
 	$Center.add_child(lbl)
 	if GameState.best_wave >= GameState.BEYOND_WAVE:
-		var b := Button.new()
-		b.text = "⟡ 저편 진입"
+		var b := _btn("⟡ 저편 진입", 22)
 		b.custom_minimum_size = Vector2(220, 52)
 		b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-		b.add_theme_font_override("font", FONT)
-		b.add_theme_font_size_override("font_size", 22)
 		b.add_theme_color_override("font_color", Color(0.92, 0.88, 1.0))
 		var sb := StyleBoxFlat.new()
 		sb.bg_color = Color(0.3, 0.22, 0.46)
@@ -603,11 +581,8 @@ func _build_stage_buttons() -> void:
 	row.add_theme_constant_override("separation", 8)
 	$Center.add_child(row)
 	for elem in ["wood", "fire", "earth", "metal", "water"]:
-		var b := Button.new()
-		b.text = ElementLib.display_name(elem)
+		var b := _btn(ElementLib.display_name(elem), 22)
 		b.custom_minimum_size = Vector2(52, 48)
-		b.add_theme_font_override("font", FONT)
-		b.add_theme_font_size_override("font_size", 22)
 		b.add_theme_color_override("font_color", ElementLib.color(elem))
 		row.add_child(b)
 		b.pressed.connect(_on_stage.bind(elem))
