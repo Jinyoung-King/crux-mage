@@ -1,27 +1,26 @@
 name: Deploy Web to GitHub Pages
 
-# main에 푸시하면 Godot로 웹 빌드 후 GitHub Pages에 자동 배포.
-# 최초 1회: 레포 Settings → Pages → Build and deployment → Source = "GitHub Actions" 로 설정해야 함.
+# main에 푸시(또는 수동 실행)하면 Godot로 웹 빌드 후 gh-pages 브랜치에 publish.
+# Pages가 이미 'gh-pages 브랜치'를 서빙하도록 설정돼 있어(legacy) 설정 변경 불필요 —
+# 그동안 수동으로 하던 gh-pages 배포를 자동화한 것.
 
 on:
   push:
     branches: [main]
-  workflow_dispatch:  # 수동 실행 버튼도 제공
+  workflow_dispatch:  # 수동 실행 버튼
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write   # gh-pages 브랜치 푸시용
 
 concurrency:
-  group: pages
+  group: deploy-pages
   cancel-in-progress: true
 
 env:
   GODOT_VERSION: "4.6.3"   # 로컬과 동일(4.6.3.stable). 엔진 올리면 이 값만 바꿀 것
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -44,23 +43,17 @@ jobs:
         run: |
           set -e
           mkdir -p build/web
-          # 임포트 캐시 생성(신규 체크아웃이라 .godot 없음) — 2회로 안정화
+          # 신규 체크아웃이라 .godot 없음 — 임포트 2회로 안정화
           ./godot --headless --import --path . || true
           ./godot --headless --import --path . || true
           ./godot --headless --export-release "Web" build/web/index.html --path .
-          touch build/web/.nojekyll   # GitHub Pages가 파일을 Jekyll로 가공하지 않도록
           test -f build/web/index.wasm && echo "빌드 OK: $(ls -la build/web/index.wasm)"
 
-      - uses: actions/upload-pages-artifact@v3
+      - name: gh-pages 브랜치에 배포
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          path: build/web
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build/web
+          publish_branch: gh-pages
+          # Pages가 Jekyll로 가공하지 않도록(_ 시작 파일 보존). peaceiris가 .nojekyll 자동 생성.
+          enable_jekyll: false
