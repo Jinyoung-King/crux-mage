@@ -9,7 +9,7 @@ const FX_EXPLOSION_EXT := preload("res://assets/sprites/fx_cm_explosion.png")  #
 const FALLING_SKILL := preload("res://scenes/fx/falling_skill.gd")
 const THORN_ERUPT := preload("res://scenes/fx/thorn_erupt.gd")
 const FX_WATER := preload("res://assets/sprites/fx_cm_water.png")  # 물(빙하·서리) — CodeManu 19_freezing, CC0, 10x10=100프레임. 이펙트 통일(2026-06-18)
-const FX_WOOD := preload("res://assets/sprites/fx_wood.png")    # 가시 화살 발사체 미리보기 — DevWizard CC0(발사체는 그대로)
+const FX_WOOD := preload("res://assets/sprites/thorn_arrow.png")    # 가시 화살 발사체 미리보기 — 날카로운 화살(단일 프레임)
 const FX_CM_WOOD := preload("res://assets/sprites/fx_cm_wood.png")  # 가시밭 AoE — CodeManu 17_felspell, CC0, 10x10=100프레임. 이펙트 통일(2026-06-18)
 const FX_METAL := preload("res://assets/sprites/fx_metal.png")  # 쇠(비도) — DevWizard CC0
 const LOOP := 1.7  ## 반복 주기(초)
@@ -63,8 +63,6 @@ func _projectiles() -> void:
 	for i in n:
 		var spr := Sprite2D.new()
 		spr.texture = FX_WOOD
-		spr.hframes = 6
-		spr.frame = 2
 		spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		spr.scale = Vector2(2.4, 2.4)
 		var start := Vector2((i - (n - 1) / 2.0) * 26.0, 150.0)

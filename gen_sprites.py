@@ -384,6 +384,37 @@ CANNONBALL_PAL = {
     "W": (205, 210, 220, 255),  # 하이라이트
 }
 
+# 투척 단검 (12x5, 오른쪽=칼끝 → 발사 방향으로 회전) — 비도술사 평타
+KNIFE = [
+    "....BBB.....",
+    "HHGBBBBBB...",
+    "HHGBBBBBBBBP",
+    "HHGBBBBBB...",
+    "....BBB.....",
+]
+KNIFE_PAL = {
+    "H": (95, 72, 52, 255),    # 손잡이 가죽
+    "G": (190, 160, 90, 255),  # 가드 금
+    "B": (208, 220, 236, 255), # 강철 칼날
+    "P": (248, 252, 255, 255), # 칼끝 광
+}
+
+# 날카로운 화살 (12x7, 오른쪽=화살촉) — 가시 화살 스킬(목)
+THORN_ARROW = [
+    ".......A....",
+    "......AA....",
+    "SSSSSSAAA...",
+    "SSSSSSAAAAAW",
+    "SSSSSSAAA...",
+    "......AA....",
+    ".......A....",
+]
+THORN_ARROW_PAL = {
+    "S": (85, 160, 75, 255),    # 자루(가시 덩굴 초록)
+    "A": (180, 230, 150, 255),  # 화살촉(밝은 초록)
+    "W": (248, 255, 235, 255),  # 촉끝 광(날카로움 강조)
+}
+
 os.makedirs(OUT, exist_ok=True)
 write_png("wizard.png", WIZARD, _wizard_pal((40, 70, 160), (60, 100, 200), (35, 60, 130), (255, 230, 120)))
 write_png("mage_wood.png", WIZARD, _wizard_pal((40, 115, 70), (75, 180, 95), (32, 90, 52), (190, 255, 150)))  # 목=초록 견습
@@ -410,6 +441,8 @@ write_png("bolt.png", BOLT, BOLT_PAL)
 write_png("bolt_wood.png", BOLT, {"Y": (120, 205, 90, 255), "W": (230, 255, 215, 255)})  # 초록 마력탄(목)
 write_png("bolt_skill.png", SKILL_BOLT, SKILL_BOLT_PAL)  # 마력탄 스킬 전용(별/마법구) — 시전 시 속성색 틴트
 write_png("spark.png", BOLT, SPARK_PAL)
+write_png("knife.png", KNIFE, KNIFE_PAL)            # 비도술사 평타(투척 단검)
+write_png("thorn_arrow.png", THORN_ARROW, THORN_ARROW_PAL)  # 가시 화살 스킬
 
 # === 추가 적 (v1.11): 중복 스프라이트 해소 — 잡몹은 신규 그리드, 보스류는 BOSS 그리드+속성색 ===
 RUSHER = [

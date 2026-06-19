@@ -9,7 +9,8 @@ signal took_damage(amount: float)  ## 받는 피해 (빨간 데미지 숫자 표
 
 const BARRIER_DROID := preload("res://scenes/fx/barrier_droid.gd")  ## 방어형 비행체(지속형 동반자)
 const SKILL_BOLT_TEX := preload("res://assets/sprites/bolt_skill.png")  ## (구) 마력탄 절차 발사체 — 가시 화살은 외부 시트로 대체
-const FX_WOOD_BOLT := preload("res://assets/sprites/fx_wood.png")  ## '가시 화살' 외부 발사체(DevWizard Plant Missle, CC0, 96x16=6프레임)
+const KNIFE := preload("res://assets/sprites/knife.png")  ## 비도술사(금속) 평타 = 투척 단검
+const THORN_ARROW := preload("res://assets/sprites/thorn_arrow.png")  ## 가시 화살 스킬 = 날카로운 화살
 const PLAIN_BOLT := preload("res://assets/sprites/bolt_dot.png")  ## 평타 공용 초소형 점(8px, 초경량 — 스킬 발사체와 명확히 구분)
 const FOCUS_SPREAD := PI / 90.0  ## 표적보다 발사 수가 많을 때 같은 표적에 겹쳐 쏘는 발사의 부채 각(≈2°)
 const BASIC_ATTACK_MULT := 0.04  ## 평타 피해 = effective_damage()의 이 비율(약한 베이스라인 — 스킬 쿨과 별개로 연사 주기마다)
@@ -310,12 +311,10 @@ func fire_skill_bolt(target, dmg: float, elem: String, aim_point: Vector2 = Vect
 	if p == null:
 		return  # 발사체 풀/캡 초과 — 드랍
 	var spr: Sprite2D = p.get_node("Sprite2D")
-	spr.texture = FX_WOOD_BOLT  # 외부 식물 발사체(Plant Missle 시트의 한 프레임)
-	spr.hframes = 6
-	spr.frame = 2  # 형성된 미사일 프레임
+	spr.texture = THORN_ARROW  # 가시 화살 — 날카로운 화살 스프라이트(단일 프레임)
 	spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # 픽셀 선명
-	spr.modulate = Color.WHITE  # 외부 시트 원색 유지(틴트 시 탁해짐)
-	spr.scale = Vector2(2.2, 2.2)  # 16px 프레임 → 보이게 확대
+	spr.modulate = Color.WHITE  # 원색 유지
+	spr.scale = Vector2(2.6, 2.6)  # 12px → 보이게 확대
 	p.element = elem  # 스킬 속성으로 상성 판정(시전자 속성 아님)
 	p.enable_trail()  # 스킬 마력탄: 속성색 꼬리 잔광(평타는 없음)
 	if character:
@@ -446,10 +445,16 @@ func _fire_at(target, aim_offset := 0.0) -> void:
 	if p == null:
 		return  # 발사체 풀/캡 초과 — 드랍(평타는 가장 많이 발사 → 여기서 자주 컷)
 	var spr: Sprite2D = p.get_node("Sprite2D")
-	spr.texture = PLAIN_BOLT  # 모든 평타 = 초소형 점(스킬 발사체와 명확히 구분, 최대한 작게)
-	spr.scale = Vector2(1.25, 1.25)  # ~10px
+	if character and character.element == "metal":  # 비도술사: 투척 단검(점 대신 칼날)
+		spr.texture = KNIFE
+		spr.scale = Vector2(2.0, 2.0)
+		spr.modulate = Color.WHITE  # 강철 원색 유지(틴트 안 함)
+	else:
+		spr.texture = PLAIN_BOLT  # 그 외 평타 = 초소형 점(스킬 발사체와 구분)
+		spr.scale = Vector2(1.25, 1.25)  # ~10px
+		if character:
+			spr.modulate = ElementLib.color(character.element)  # 평타 점에 속성색(약한 정체성)
 	if character:
-		spr.modulate = ElementLib.color(character.element)  # 평타 점에 속성색(약한 정체성)
 		# 패시브 효과를 발사체에 실어 보냄
 		p.element = character.element  # 오행 속성(상성 판정)
 		p.crit_chance = character.passive_crit_chance
