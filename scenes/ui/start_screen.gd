@@ -100,6 +100,7 @@ func _ready() -> void:
 	play_button.add_theme_stylebox_override("pressed", _play_style)
 	_build_stage_buttons()
 	_build_beyond_button()  # 저편(엔드게임) 진입 — 최고 웨이브 30+ 해금
+	_build_reverse_button()  # [실험] 리버스 모드 — 스쿼드 vs 마법사
 	_apply_char()  # 텍스처·이름·속성색·배경·오라 적용
 	_build_counter_help()  # 상성 오버레이(최상단으로 마지막에 추가)
 	_build_tips_help()     # 공략 팁 오버레이
@@ -510,6 +511,18 @@ func _on_stage(elem: String) -> void:
 ## 저편(엔드게임) — 로드아웃 준비 화면으로(거기서 정수 스킬 장착 후 '진입').
 func _on_beyond() -> void:
 	get_tree().change_scene_to_file("res://scenes/ui/beyond_loadout.tscn")
+
+## [실험] 리버스 모드 — 플레이어가 스쿼드를 보내고 마법사 AI가 방어(프로토타입)
+func _on_reverse() -> void:
+	GameState.game_mode = "reverse"
+	get_tree().change_scene_to_file("res://scenes/main/main.tscn")
+
+func _build_reverse_button() -> void:
+	var b := _btn("⚔ 리버스 (실험)", 18)
+	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	b.add_theme_color_override("font_color", Color(1.0, 0.7, 0.45))
+	$Center.add_child(b)
+	b.pressed.connect(_on_reverse)
 
 ## 저편 진입 섹션 — 최고 웨이브 BEYOND_WAVE 이상에서만 해금(베테랑 게이트). 미달이면 조건 안내.
 func _build_beyond_button() -> void:

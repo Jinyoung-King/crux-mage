@@ -278,6 +278,9 @@ func _ready() -> void:
 		_beyond_pick_elements()  # 장별 속성 3개 무작위 선정(매 런 다른 여정)
 		_start_wave(0)
 		return
+	if GameState.game_mode == "reverse":  # [실험] 리버스 — 스쿼드(몹) vs 하단 마법사 AI
+		_setup_reverse()
+		return
 	if GameState.game_mode == "stage":
 		wave_index = -1  # 스테이지 모드: Wave 1부터(시작 웨이브 도약 없음)
 	else:
@@ -883,6 +886,9 @@ func _unregister_enemy() -> void:
 	if game_over:
 		return  # 마지막 적 도달로 게임오버가 된 경우 카드 UI를 띄우지 않음
 	if spawned >= spawn_list.size() and alive == 0:
+		if GameState.game_mode == "reverse":  # [실험] 스쿼드 전멸 = 마법사 생존(패배)
+			_reverse_squad_lost()
+			return
 		_on_wave_cleared()
 
 func _on_wave_cleared() -> void:
@@ -1350,10 +1356,54 @@ func _beyond_cleared() -> void:
 	get_tree().paused = true
 	_show_result(true, wave_index + 1, leveled, false)
 
+## ===== [실험] 리버스 모드 — 스쿼드(몹) vs 하단 마법사 AI (프로토타입) =====
+## 플레이어가 보낸 몹이 하단 마법사 HP를 깎음. 마법사 HP 0 = 스쿼드 승리 / 스쿼드 전멸 = 패배.
+## 전투·스폰·발사·풀링 전부 기존 재사용 — 역할·승패 의미만 반전. 조합 편집·진행은 아직 없음(체감용).
+func _setup_reverse() -> void:
+	wave_index = 0
+	endless_hp_scale = 1.0
+	endless_dmg_scale = 1.0
+	GameState.stage_element = GameState.selected.element  # 결과 화면 안전(유효 속성)
+	$Player.max_hp = 500.0   # 마법사(방어자) HP = 스쿼드가 깎아야 할 목표(프로토타입 튜닝값)
+	$Player.hp = $Player.max_hp
+	$Player.hp_changed.emit($Player.hp, $Player.max_hp)
+	wave_label.text = "⚔ 리버스 — 마법사를 무너뜨려라"
+	wave_label.modulate = Color(1.0, 0.72, 0.4)
+	spawn_list = _reverse_squad()
+	spawned = 0
+	alive = 0
+	spawn_timer.wait_time = 0.45
+	spawn_timer.start()
+	$Player.on_wave_start()
+
+## [실험] 고정 스쿼드 — 로스터 잡몹을 섞어 한 부대(조합 편집 없이 고정 40마리)
+func _reverse_squad() -> Array:
+	var grunts: Array = GameState.enemies.filter(func(e): return not e.show_hp_bar)
+	var squad: Array = []
+	if grunts.is_empty():
+		return squad
+	for i in 40:
+		squad.append(grunts[i % grunts.size()])
+	return squad
+
+## [실험] 스쿼드 전멸 = 마법사 생존(패배)
+func _reverse_squad_lost() -> void:
+	game_over = true
+	pause_button.hide()
+	get_tree().paused = true
+	_show_result(false, 0, "", false)
+	result_title.text = "마법사 생존 — 스쿼드 전멸"
+
 func _on_player_died() -> void:
 	game_over = true
 	_end_aim(false)  # 조준 중 사망 시 슬로우모션·레티클 정리
 	pause_button.hide()  # 사망 후엔 일시정지 불가(결과 요약 UI 사용)
+	if GameState.game_mode == "reverse":  # [실험] 마법사 격파 = 스쿼드 승리
+		get_tree().paused = true
+		_show_result(true, 0, "", false)
+		result_title.text = "⚔ 스쿼드 승리! — 마법사 격파"
+		result_title.add_theme_color_override("font_color", Color(0.5, 0.95, 0.6))
+		return
 	var prev_best: int = GameState.best_wave
 	GameState.record_wave(wave_index + 1)  # 최고 기록 갱신·저장 (신규 해금 가능)
 	var unlocked_tabs: Array = GameState.newly_unlocked_tabs(prev_best)  # 이번 런으로 새로 열린 메타 탭
