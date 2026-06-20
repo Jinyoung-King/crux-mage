@@ -16,7 +16,7 @@ const PIXEL_FX := preload("res://scenes/fx/pixel_fx.gd")  # 픽셀 FX 시트 재
 const FX_EXPLOSION_EXT := preload("res://assets/sprites/fx_cm_explosion.png")  # 폭발(외부 CC0 — CodeManu "Free Pixel Effects Pack" 16_sunburn, CC0/PD, 8x8=64프레임 100px). 유성·불바다·흙 폭격 공용. 이펙트 통일(2026-06-18)
 const FX_WATER := preload("res://assets/sprites/fx_cm_water.png")  # 물(빙하·서리) — CodeManu "Free Pixel Effects Pack" 19_freezing, CC0, 100px, 10x10=100프레임. 이펙트 통일(2026-06-18)
 const FX_WOOD := preload("res://assets/sprites/fx_cm_wood.png")    # 목(가시밭) — CodeManu "Free Pixel Effects Pack" 17_felspell, CC0, 100px, 10x10=100프레임. 이펙트 통일(2026-06-18). ※가시 화살 발사체는 player.THORN_ARROW 별도
-const FX_METAL := preload("res://assets/sprites/fx_metal.png")  # 쇠(비도) — DevWizard "Magic Sparks", CC0, 96x16=6프레임. 칼날 클래시 스파크
+const KNIFE := preload("res://assets/sprites/knife.png")  # 비도 연쇄 — 날아가는 칼 스프라이트(player.KNIFE와 동일)
 # (흙=융단폭격·낙석은 FX_EXPLOSION_EXT 재사용 — 폭격 임팩트로 적합)
 # (절차 생성 fx_explosion_fire.png는 외부 폭발로 통일되며 미사용 — gen_fx.py·에셋은 보존)
 const REACTION_HP_PCT := 0.06  ## 격발 반응(증발·빙결파쇄)이 주는 추가 % 최대체력 피해 — 복리 체력 관통
@@ -354,20 +354,61 @@ func _random_enemy_points(count: int, pool: Array) -> Array:
 	return pts
 
 func _skill_chain(count: int, dmg: float, element: String, pool: Array) -> void:
-	var enemies := pool
-	if enemies.is_empty():
+	if pool.is_empty():
 		return
 	var pp: Vector2 = player.global_position
-	enemies.sort_custom(func(a, b): return pp.distance_squared_to(a.global_position) < pp.distance_squared_to(b.global_position))
-	for e in enemies.slice(0, count):
-		if not is_instance_valid(e):
-			continue
+	var by_dist := pool.filter(func(e): return is_instance_valid(e))
+	by_dist.sort_custom(func(a, b): return pp.distance_squared_to(a.global_position) < pp.distance_squared_to(b.global_position))
+	var targets := by_dist.slice(0, count)  # 가장 가까운 count명(대상 선택은 기존과 동일)
+	# 마법사→적→적으로 튕기는 경로(그리디 최근접) — 같은 적들, 칼이 자연스레 연쇄. 피해는 즉시(타이밍 보존), 시각만 비행.
+	var points: Array = []
+	var remaining := targets.duplicate()
+	var cur: Vector2 = pp
+	while not remaining.is_empty():
+		remaining = remaining.filter(func(e): return is_instance_valid(e) and e.hp > 0.0)  # 반응으로 죽은 적 제외
+		if remaining.is_empty():
+			break
+		var bi := 0
+		var bd: float = cur.distance_squared_to(remaining[0].global_position)
+		for i in range(1, remaining.size()):
+			var d: float = cur.distance_squared_to(remaining[i].global_position)
+			if d < bd:
+				bd = d
+				bi = i
+		var e = remaining[bi]
+		remaining.remove_at(bi)
 		var hp: Vector2 = e.global_position  # 명중 좌표 캡처(_skill_hit로 free될 수 있음)
 		_skill_hit(e, dmg, element)
-		var sfx = PIXEL_FX.new()  # 명중마다 외부 금속 스파크(칼날 궤적선 제거 — 외부 시트만)
-		sfx.position = hp
-		fx_root.add_child(sfx)
-		sfx.play(FX_METAL, 6, 64.0, 22.0)
+		points.append(hp)
+		cur = hp
+	_chain_blade_visual(points)
+
+## 비도 연쇄 시각: 칼이 마법사→적→적으로 튕기며 날아가고, 각 구간에 강철 칼날 궤적(_draw_arc).
+## 피해는 _skill_chain에서 이미 즉시 적용됨 — 이 비주얼은 캡처된 좌표를 따라 날아가는 연출 전용(코르프스에도 안전).
+func _chain_blade_visual(points: Array) -> void:
+	if points.is_empty():
+		return
+	var blade := Sprite2D.new()
+	blade.texture = KNIFE
+	blade.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	blade.scale = Vector2(2.4, 2.4)
+	blade.z_index = 8
+	blade.position = player.global_position
+	fx_root.add_child(blade)
+	var tw := blade.create_tween()
+	var prev: Vector2 = player.global_position
+	for pt in points:
+		var seg_from: Vector2 = prev
+		var seg_to: Vector2 = pt
+		tw.tween_callback(_set_blade_rot.bind(blade, seg_from, seg_to))  # 진행 방향으로 칼끝 회전
+		tw.tween_property(blade, "position", seg_to, 0.055).set_trans(Tween.TRANS_LINEAR)
+		tw.tween_callback(_draw_arc.bind(seg_from, seg_to))  # 착지 시 강철 궤적 + 클래시 스파크
+		prev = pt
+	tw.tween_callback(blade.queue_free)
+
+func _set_blade_rot(blade, from: Vector2, to: Vector2) -> void:
+	if is_instance_valid(blade):
+		blade.rotation = (to - from).angle()
 
 ## 비도 연쇄 시각: 두 적 사이를 잇는 금속 칼날 궤적(직선 streak). (물리 콜백 밖 — call_deferred)
 func _on_chain(from: Vector2, to: Vector2) -> void:

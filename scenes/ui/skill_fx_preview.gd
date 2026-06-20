@@ -11,7 +11,7 @@ const THORN_ERUPT := preload("res://scenes/fx/thorn_erupt.gd")
 const FX_WATER := preload("res://assets/sprites/fx_cm_water.png")  # 물(빙하·서리) — CodeManu 19_freezing, CC0, 10x10=100프레임. 이펙트 통일(2026-06-18)
 const FX_WOOD := preload("res://assets/sprites/thorn_arrow.png")    # 가시 화살 발사체 미리보기 — 날카로운 화살(단일 프레임)
 const FX_CM_WOOD := preload("res://assets/sprites/fx_cm_wood.png")  # 가시밭 AoE — CodeManu 17_felspell, CC0, 10x10=100프레임. 이펙트 통일(2026-06-18)
-const FX_METAL := preload("res://assets/sprites/fx_metal.png")  # 쇠(비도) — DevWizard CC0
+const KNIFE := preload("res://assets/sprites/knife.png")  # 비도 — 날아가는 칼
 const LOOP := 1.7  ## 반복 주기(초)
 
 var _id := ""
@@ -42,9 +42,24 @@ func _play_once() -> void:
 			xfx.play(FX_EXPLOSION_EXT, 8, _radius * 2.2, 60.0, Color.WHITE, 8)
 		"barrage", "rockfall":
 			_falling(col, _elem, true)    # 바위 낙하 → 외부 폭발(폭격 임팩트)
-		"chain":  # 비도 — 칼날 클래시 스파크(연쇄 명중 모사)
-			for off in [Vector2.ZERO, Vector2(60, -36), Vector2(-54, 28)]:
-				var sfx = PIXEL_FX.new(); sfx.position = off; add_child(sfx); sfx.play(FX_METAL, 6, 64.0, 22.0)
+		"chain":  # 비도 — 날아가는 칼이 적에서 적으로 튕기며 강철 궤적
+			var pts := [Vector2(0, -10), Vector2(72, -52), Vector2(-52, 30)]
+			var blade := Sprite2D.new()
+			blade.texture = KNIFE
+			blade.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			blade.scale = Vector2(2.6, 2.6)
+			blade.position = Vector2(0, 130)
+			add_child(blade)
+			var ctw := blade.create_tween()
+			var prev := Vector2(0, 130)
+			for pt in pts:
+				var sf: Vector2 = prev
+				var st: Vector2 = pt
+				ctw.tween_callback(_face_blade.bind(blade, sf, st))
+				ctw.tween_property(blade, "position", st, 0.08)
+				ctw.tween_callback(_slash.bind(sf, st))
+				prev = pt
+			ctw.tween_callback(blade.queue_free)
 		"glacier":  # 외부 물 FX(DevWizard CC0)
 			var gfx = PIXEL_FX.new(); add_child(gfx); gfx.play(FX_WATER, 10, _radius * 2.0, 60.0, Color.WHITE, 10)
 		"freeze":  # 외부 물 FX(중앙 대형)
@@ -104,3 +119,21 @@ func _falling(col: Color, elem: String, pixel: bool) -> void:
 			fx.play(FX_EXPLOSION_EXT, 8, _radius * 2.2, 60.0, Color.WHITE, 8)  # 유성도 외부 폭발로 통일(인게임 일치)
 		if is_instance_valid(m):
 			m.queue_free())
+
+## 비도 연쇄 칼날 궤적(강철 2겹, 잔광 후 자멸) — 미리보기 전용
+func _slash(from: Vector2, to: Vector2) -> void:
+	for spec in [[6.0, Color(0.62, 0.66, 0.78, 0.4)], [2.6, Color(0.95, 0.97, 1.0, 0.98)]]:
+		var ln := Line2D.new()
+		ln.points = PackedVector2Array([from, to])
+		ln.width = spec[0]
+		ln.default_color = spec[1]
+		ln.begin_cap_mode = Line2D.LINE_CAP_ROUND
+		ln.end_cap_mode = Line2D.LINE_CAP_ROUND
+		add_child(ln)
+		var t := ln.create_tween()
+		t.tween_property(ln, "modulate:a", 0.0, 0.4)
+		t.tween_callback(ln.queue_free)
+
+func _face_blade(blade, from: Vector2, to: Vector2) -> void:
+	if is_instance_valid(blade):
+		blade.rotation = (to - from).angle()
