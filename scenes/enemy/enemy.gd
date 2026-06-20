@@ -23,6 +23,7 @@ var zigzag_period := 2.0
 var split_count := 0
 var split_enemy: EnemyData
 var base_x := 0.0  ## 지그재그 기준 x
+var march_up := false  ## [리버스] true면 아래→위로 행진(몹이 상단 마법사를 공격)
 var zig_t := 0.0
 # 상태이상 (패시브) — StatusEffects 컴포넌트에 위임. 외부는 apply_burn/apply_slow/is_burning 등으로 접근.
 var status := StatusEffects.new()
@@ -219,12 +220,13 @@ func _physics_process(delta: float) -> void:
 		return
 	# 둔화 적용 이동 (컴포넌트가 둔화 타이머 관리)
 	var spd := status.apply_move(delta, speed)
-	position.y += spd * delta
+	position.y += spd * delta * (-1.0 if march_up else 1.0)  # [리버스] march_up이면 위로 행진
 	if zigzag_amplitude > 0.0:
 		zig_t += delta
 		position.x = clampf(base_x + sin(zig_t * TAU / zigzag_period) * zigzag_amplitude, 30.0, 690.0)
 	_update_visuals()
-	if position.y >= goal_y:
+	var reached := (position.y <= goal_y) if march_up else (position.y >= goal_y)
+	if reached:
 		hp = 0.0  # 도달한 적은 이후 피격/사망 처리에서 제외
 		reached_player.emit(contact_damage, global_position)
 		queue_free()

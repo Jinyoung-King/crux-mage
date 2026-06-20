@@ -158,6 +158,7 @@ var _perf_tier := 0         # 0=풀품질 / 1=중(데미지숫자 치명만·배
 var _fps_ema := 60.0        # 평균 FPS(지수이동평균 — 일시적 끊김에 요동 안 치게)
 var _perf_cd := 3.0         # 단계 변경 쿨다운(초). 시작 3초 워밍업(초기 FPS 측정 불안정 구간 보호)
 var _alive_cap := MAX_ALIVE # 거버너가 낮추는 동시 적 상한(런타임)
+var _spawn_y := SPAWN_Y  ## 스폰 Y(일반=상단 밖). [리버스]는 하단 밖으로 바꿔 몹이 위로 행진
 var quality_button: Button  # 일시정지 설정의 '품질' 순환 버튼(코드 생성)
 var _shop_cards: Array = []
 var _shop_cost: Array = []
@@ -748,7 +749,7 @@ func _wave_interval(index: int) -> float:
 func _spawn_enemy() -> void:
 	if alive >= _alive_cap:
 		return  # 동시 적 수 상한 — 이번 틱 스폰 보류(타이머는 계속 → 적이 줄면 재개). 후반 과밀·렉 방지
-	_spawn_one(spawn_list[spawned], Vector2(randf_range(SPAWN_X_MIN, SPAWN_X_MAX), SPAWN_Y))
+	_spawn_one(spawn_list[spawned], Vector2(randf_range(SPAWN_X_MIN, SPAWN_X_MAX), _spawn_y))
 	spawned += 1
 	if spawned >= spawn_list.size():
 		spawn_timer.stop()
@@ -766,7 +767,11 @@ func _create_enemy(data: EnemyData, pos: Vector2, elite: Dictionary = {}) -> voi
 	var enemy = ENEMY_SCENE.instantiate()
 	enemy.setup(data, endless_hp_scale, endless_dmg_scale, elite)
 	enemy.position = pos
-	enemy.goal_y = $Player.position.y - 30.0 - data.size / 2.0  # 플레이어 반높이 + 적 반높이
+	if GameState.game_mode == "reverse":  # [리버스] 몹이 아래→위로 올라와 상단 마법사에 닿음
+		enemy.march_up = true
+		enemy.goal_y = $Player.position.y + 30.0 + data.size / 2.0
+	else:
+		enemy.goal_y = $Player.position.y - 30.0 - data.size / 2.0  # 플레이어 반높이 + 적 반높이
 	enemy.died.connect(_on_enemy_died)
 	enemy.reached_player.connect(_on_enemy_reached_player)
 	enemy.status.reaction.connect(skill_executor.on_reaction.bind(enemy))  # 원소 반응(과부하 등) 구독(Observer)
@@ -1367,6 +1372,9 @@ func _setup_reverse() -> void:
 	$Player.max_hp = 500.0   # 마법사(방어자) HP = 스쿼드가 깎아야 할 목표(프로토타입 튜닝값)
 	$Player.hp = $Player.max_hp
 	$Player.hp_changed.emit($Player.hp, $Player.max_hp)
+	$Player.position.y = 200.0   # 마법사를 상단으로 — 화면 반전(플레이어가 몹 쪽임을 시각화)
+	$Player.reverse_aim = true   # 위로 오는 몹을 향해 조준 리드
+	_spawn_y = 1340.0            # 몹은 화면 아래에서 스폰 → 위로 행진
 	wave_label.text = "⚔ 리버스 — 마법사를 무너뜨려라"
 	wave_label.modulate = Color(1.0, 0.72, 0.4)
 	spawn_list = _reverse_squad()

@@ -29,6 +29,7 @@ var skills_paused := false  ## 카드 선택(드래프트/상점) 중 스킬 쿨
 var _barrier_droid: Node2D  ## 방어형 비행체 동반자(barrier_droid 스킬 보유 시 생성) — 쿨캐스트 아님
 var hit_modifiers: Array = []  ## 활성 적중 전략(HitModifierLib) — 빌드/유물/캐릭터 변경 시 rebuild_hit_modifiers()로 재구성
 var host  ## main 참조(발사체 풀 acquire_projectile 호출용) — main._ready에서 주입
+var reverse_aim := false  ## [리버스] true면 위로 오는 몹을 향해 조준 리드를 위쪽으로
 
 ## 빌드·유물·캐릭터가 바뀔 때마다 활성 적중 전략 목록을 다시 구성(매 적중이 아닌 변경 시 1회)
 func rebuild_hit_modifiers() -> void:
@@ -326,7 +327,7 @@ func fire_skill_bolt(target, dmg: float, elem: String, aim_point: Vector2 = Vect
 	else:
 		# 적이 아래로 이동 중이므로 비행시간만큼 앞질러 예측 조준
 		var flight_time: float = global_position.distance_to(target.global_position) / p.speed
-		var predicted: Vector2 = target.global_position + Vector2.DOWN * target.speed * flight_time
+		var predicted: Vector2 = target.global_position + (Vector2.UP if reverse_aim else Vector2.DOWN) * target.speed * flight_time
 		p.direction = (predicted - global_position).normalized()
 	p.rotation = p.direction.angle()
 	if relic_levels.has("berserk") and hp < max_hp * RelicLib.BERSERK_HP_RATIO:
@@ -471,7 +472,7 @@ func _fire_at(target, aim_offset := 0.0) -> void:
 	p.position = global_position  # Projectiles 컨테이너가 원점에 있어 전역 좌표와 동일
 	# 적이 아래로 이동 중이므로 비행시간만큼 앞질러 조준 (1회 예측으로 충분)
 	var flight_time: float = global_position.distance_to(target.global_position) / p.speed
-	var predicted: Vector2 = target.global_position + Vector2.DOWN * target.speed * flight_time
+	var predicted: Vector2 = target.global_position + (Vector2.UP if reverse_aim else Vector2.DOWN) * target.speed * flight_time
 	p.direction = (predicted - global_position).normalized()
 	if aim_offset != 0.0:
 		p.direction = p.direction.rotated(aim_offset)  # 집중사격 부채 흩뿌림
