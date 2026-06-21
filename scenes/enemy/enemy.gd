@@ -294,6 +294,12 @@ func is_burning() -> bool:
 func is_slowed() -> bool:
 	return status.is_slowed()
 
+func apply_root(dur: float) -> void:
+	status.apply_root(dur)
+
+func is_rooted() -> bool:
+	return status.is_rooted()
+
 ## 화상 소모(격발: 기폭)
 func consume_burn() -> void:
 	status.consume_burn()

@@ -84,6 +84,9 @@ func execute(s: Dictionary) -> void:
 			if tc != Vector2.INF:
 				_skill_aoe(tc, er, ep, false, element)
 				_ground_field(tc, er, ep, element)
+				for e in EnemyCache.all():  # [목] 속박: 범위 내 적을 잠시 완전 정지(덩굴로 옭아맴). 적별 쿨다운으로 영구정지 방지
+					if is_instance_valid(e) and tc.distance_to(e.global_position) <= er:
+						e.apply_root(1.3)
 				var nfx = PIXEL_FX.new()  # 외부 자연 FX
 				nfx.position = tc
 				fx_root.add_child(nfx)

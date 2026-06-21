@@ -12,9 +12,12 @@ var burn_dps: float = 0.0
 var burn_time_left: float = 0.0
 var slow_factor: float = 1.0
 var slow_time_left: float = 0.0
+var root_time_left: float = 0.0  ## [목] 속박 — 완전 정지(둔화와 독립). is_rooted; 감전·파쇄(둔화 기반)는 안 터짐.
 
 const OVERLOAD_CD_MS := 2000  ## 적별 과부하 재발화 쿨다운(ms) — 화상 만료↔재적용 반복 시 팝업·폭발 폭주(렉) 방지
 var _overload_ms: int = -100000  ## 마지막 과부하 발화 시각(벽시계 ms)
+const ROOT_CD_MS := 2500  ## 적별 재속박 쿨다운 — 평타성 스킬이 매번 묶어 영구 정지되는 것 방지
+var _root_ms: int = -100000
 
 ## 이번 프레임의 화상 피해를 반환하고 화상 타이머를 감소시킨다. 화상이 없으면 0.0.
 ## (기존 enemy._physics_process 화상 블록과 동일 순서·동일 수치)
@@ -26,6 +29,9 @@ func tick_burn(delta: float) -> float:
 
 ## 둔화를 반영한 실효 이동 속도를 반환하고 둔화 타이머를 감소시킨다. 둔화가 없으면 base_speed 그대로.
 func apply_move(delta: float, base_speed: float) -> float:
+	if root_time_left > 0.0:  # [목] 속박: 완전 정지(둔화보다 우선)
+		root_time_left -= delta
+		return 0.0
 	if slow_time_left <= 0.0:
 		return base_speed
 	slow_time_left -= delta
@@ -60,6 +66,17 @@ func is_burning() -> bool:
 
 func is_slowed() -> bool:
 	return slow_time_left > 0.0
+
+## [목] 속박 부여: 적별 쿨다운 내면 무시(영구 정지 방지). 둔화와 독립이라 감전·파쇄는 안 터짐.
+func apply_root(dur: float) -> void:
+	var now: int = Time.get_ticks_msec()
+	if now - _root_ms < ROOT_CD_MS:
+		return
+	_root_ms = now
+	root_time_left = dur
+
+func is_rooted() -> bool:
+	return root_time_left > 0.0
 
 ## 화상 소모(격발: 기폭) — 이후 is_burning()은 false
 func consume_burn() -> void:
