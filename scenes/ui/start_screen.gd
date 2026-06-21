@@ -100,7 +100,7 @@ func _ready() -> void:
 	play_button.add_theme_stylebox_override("pressed", _play_style)
 	_build_stage_buttons()
 	_build_beyond_button()  # 저편(엔드게임) 진입 — 최고 웨이브 30+ 해금
-	_build_reverse_button()  # [실험] 리버스 모드 — 스쿼드 vs 마법사
+	# _build_reverse_button()  # [실험] 리버스 — v3.41에 홈 버튼 숨김(구조적 어색함, 매몰비용 회피). 코드·모드는 보존; 호드 로그라이트로 재설계 시 주석 해제
 	_apply_char()  # 텍스처·이름·속성색·배경·오라 적용
 	_build_counter_help()  # 상성 오버레이(최상단으로 마지막에 추가)
 	_build_tips_help()     # 공략 팁 오버레이
