@@ -868,15 +868,18 @@ func _on_enemy_reached_player(contact_damage: float, pos: Vector2) -> void:
 		_unregister_enemy()  # 무해한 적(보물)은 피해·연출 없이 사라짐(놓치면 코인만 손해)
 		return
 	$SfxPlayerHit.play()
-	_base_impact(pos.x)  # 콰과과광 — 기지 충돌 임팩트
+	if GameState.game_mode == "reverse":
+		_base_impact(pos.x, pos.y)  # [리버스] 몹 도착 지점(상단 마법사)에서 임팩트
+	else:
+		_base_impact(pos.x)  # 콰과과광 — 기지 충돌 임팩트(원래: 하단 성벽, 무영향)
 	_add_shake(16.0)
 	_flash_screen()
 	$Player.take_damage(contact_damage)
 	_unregister_enemy()
 
 ## 기지 충돌 임팩트: 충돌 지점에 큰 폭발 + 충격파 링 2겹
-func _base_impact(x: float) -> void:
-	var p := Vector2(clampf(x, 40.0, 680.0), 1150.0)  # 기지 윗변
+func _base_impact(x: float, y: float = 1150.0) -> void:  # y 기본=기지 윗변(원래 모드 무영향). 리버스만 몹 도착 y 전달.
+	var p := Vector2(clampf(x, 40.0, 680.0), y)
 	var b = DEATH_BURST_SCENE.instantiate()
 	b.position = p
 	b.color = Color(1.0, 0.5, 0.2)
