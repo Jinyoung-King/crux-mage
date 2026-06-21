@@ -512,10 +512,100 @@ func _on_stage(elem: String) -> void:
 func _on_beyond() -> void:
 	get_tree().change_scene_to_file("res://scenes/ui/beyond_loadout.tscn")
 
-## [실험] 리버스 모드 — 플레이어가 스쿼드를 보내고 마법사 AI가 방어(프로토타입)
+## [실험] 리버스 — 스쿼드 편성 화면을 연다(예산 내로 몹 조합 후 출전)
 func _on_reverse() -> void:
-	GameState.game_mode = "reverse"
-	get_tree().change_scene_to_file("res://scenes/main/main.tscn")
+	_open_reverse_setup()
+
+## [실험] 리버스 스쿼드 편성 오버레이 — 예산(포인트) 내로 몹 종류·수를 골라 출전
+func _open_reverse_setup() -> void:
+	var BUDGET := 24
+	var grunts: Array = GameState.enemies.filter(func(e): return not e.show_hp_bar)
+	var counts := {}
+	var cost := {}
+	for e in grunts:
+		cost[e.resource_path] = int(clampf(round((e.hp + e.contact_damage * 2.0) / 24.0), 1.0, 9.0))
+		counts[e.resource_path] = 0
+	var panel := Control.new()
+	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.8)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	panel.add_child(dim)
+	var cc := CenterContainer.new()
+	cc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	panel.add_child(cc)
+	var box := VBoxContainer.new()
+	box.custom_minimum_size = Vector2(600, 0)
+	box.add_theme_constant_override("separation", 8)
+	cc.add_child(box)
+	box.add_child(_label("⚔ 스쿼드 편성", 28, Color(1.0, 0.75, 0.5)))
+	box.add_child(_label("예산 안에서 몹을 골라 상단 마법사에게 보내세요", 14, Color(0.7, 0.74, 0.82)))
+	var budget_lbl := _label("", 18, Color(0.85, 0.9, 1.0))
+	box.add_child(budget_lbl)
+	var refresh := func() -> void:
+		var used := 0
+		for p in counts:
+			used += counts[p] * cost[p]
+		budget_lbl.text = "포인트  %d / %d" % [used, BUDGET]
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(600, 540)
+	box.add_child(scroll)
+	var rows := VBoxContainer.new()
+	rows.custom_minimum_size = Vector2(580, 0)
+	rows.add_theme_constant_override("separation", 6)
+	scroll.add_child(rows)
+	for e in grunts:
+		var ep: String = e.resource_path
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 10)
+		var nm := _label("%s · 비용 %d" % [e.display_name, cost[ep]], 17, Color(0.85, 0.88, 0.95))
+		nm.custom_minimum_size = Vector2(330, 0)
+		nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		row.add_child(nm)
+		var minus := _btn("−", 22)
+		minus.custom_minimum_size = Vector2(46, 46)
+		var cnt_lbl := _label("0", 20, Color.WHITE)
+		cnt_lbl.custom_minimum_size = Vector2(44, 0)
+		var plus := _btn("＋", 22)
+		plus.custom_minimum_size = Vector2(46, 46)
+		minus.pressed.connect(func() -> void:
+			if counts[ep] > 0:
+				counts[ep] -= 1
+				cnt_lbl.text = str(counts[ep])
+				refresh.call())
+		plus.pressed.connect(func() -> void:
+			var used := 0
+			for p in counts:
+				used += counts[p] * cost[p]
+			if used + cost[ep] <= BUDGET:
+				counts[ep] += 1
+				cnt_lbl.text = str(counts[ep])
+				refresh.call())
+		row.add_child(minus)
+		row.add_child(cnt_lbl)
+		row.add_child(plus)
+		rows.add_child(row)
+	refresh.call()
+	var send := _btn("출전 ⚔", 24)
+	send.add_theme_color_override("font_color", Color(1.0, 0.8, 0.5))
+	send.pressed.connect(func() -> void:
+		var squad := []
+		for e in grunts:
+			for i in counts[e.resource_path]:
+				squad.append(e)
+		if squad.is_empty():
+			budget_lbl.text = "몹을 1마리 이상 골라주세요"
+			return
+		squad.shuffle()
+		GameState.reverse_squad = squad
+		GameState.game_mode = "reverse"
+		get_tree().change_scene_to_file("res://scenes/main/main.tscn"))
+	box.add_child(send)
+	var close := _btn("닫기", 18)
+	close.pressed.connect(panel.queue_free)
+	box.add_child(close)
+	add_child(panel)
 
 func _build_reverse_button() -> void:
 	var b := _btn("⚔ 리버스 (실험)", 18)

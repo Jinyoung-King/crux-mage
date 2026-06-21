@@ -1369,11 +1369,24 @@ func _setup_reverse() -> void:
 	endless_hp_scale = 1.0
 	endless_dmg_scale = 1.0
 	GameState.stage_element = GameState.selected.element  # 결과 화면 안전(유효 속성)
-	$Player.max_hp = 500.0   # 마법사(방어자) HP = 스쿼드가 깎아야 할 목표(프로토타입 튜닝값)
+	# 마법사(방어자) = 독립 고정 스탯 — 플레이어 능력치(숙련·강화·유물·스킬) 미반영
+	$Player.build.damage = 16.0
+	$Player.build.fire_rate = 1.1
+	$Player.lifesteal = 0.0
+	$Player.skills = []           # 스킬 없음(평타만) — 고정 난이도
+	$Player.relic_levels = {}     # 유물 효과 제거
+	$Player.rebuild_hit_modifiers()
+	$Player.max_hp = 500.0        # 마법사 HP = 스쿼드가 깎아야 할 목표(프로토타입 튜닝값)
 	$Player.hp = $Player.max_hp
 	$Player.hp_changed.emit($Player.hp, $Player.max_hp)
-	$Player.position.y = 200.0   # 마법사를 상단으로 — 화면 반전(플레이어가 몹 쪽임을 시각화)
+	# 화면 반전 — 마법사·성벽·HP바 모두 상단으로
+	$Player.position.y = 200.0
 	$Player.reverse_aim = true   # 위로 오는 몹을 향해 조준 리드
+	$Base.position.y = -1000.0   # 성벽도 상단으로
+	base_hp_bar.anchor_top = 0.0
+	base_hp_bar.anchor_bottom = 0.0
+	base_hp_bar.offset_top = 18.0
+	base_hp_bar.offset_bottom = 48.0
 	_spawn_y = 1340.0            # 몹은 화면 아래에서 스폰 → 위로 행진
 	wave_label.text = "⚔ 리버스 — 마법사를 무너뜨려라"
 	wave_label.modulate = Color(1.0, 0.72, 0.4)
@@ -1384,8 +1397,10 @@ func _setup_reverse() -> void:
 	spawn_timer.start()
 	$Player.on_wave_start()
 
-## [실험] 고정 스쿼드 — 로스터 잡몹을 섞어 한 부대(조합 편집 없이 고정 40마리)
+## [실험] 스쿼드 — 편성 화면이 채운 GameState.reverse_squad 사용. 비었으면 폴백(잡몹 40).
 func _reverse_squad() -> Array:
+	if not GameState.reverse_squad.is_empty():
+		return GameState.reverse_squad.duplicate()
 	var grunts: Array = GameState.enemies.filter(func(e): return not e.show_hp_bar)
 	var squad: Array = []
 	if grunts.is_empty():
