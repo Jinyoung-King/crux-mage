@@ -519,7 +519,7 @@ func _on_reverse() -> void:
 ## [실험] 리버스 스쿼드 편성 오버레이 — 예산(포인트) 내로 몹 종류·수를 골라 출전
 func _open_reverse_setup() -> void:
 	var BUDGET := 24
-	var grunts: Array = GameState.enemies.filter(func(e): return not e.show_hp_bar)
+	var grunts: Array = GameState.enemies.filter(func(e): return not e.show_hp_bar and e.contact_damage > 0.0)  # 보스·무해(보물) 제외 — 실제 공격수만
 	var counts := {}
 	var cost := {}
 	for e in grunts:

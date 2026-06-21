@@ -1407,7 +1407,7 @@ func _setup_reverse() -> void:
 func _reverse_squad() -> Array:
 	if not GameState.reverse_squad.is_empty():
 		return GameState.reverse_squad.duplicate()
-	var grunts: Array = GameState.enemies.filter(func(e): return not e.show_hp_bar)
+	var grunts: Array = GameState.enemies.filter(func(e): return not e.show_hp_bar and e.contact_damage > 0.0)  # 보스·무해(보물) 제외
 	var squad: Array = []
 	if grunts.is_empty():
 		return squad
