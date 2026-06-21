@@ -1376,8 +1376,9 @@ func _setup_reverse() -> void:
 	$Player.build.damage = 16.0
 	$Player.build.fire_rate = 1.1
 	$Player.build.defense = 0.0   # 방어 0 — 플레이어 강화 미반영(접촉피해 그대로 들어감)
+	$Player.build.skill_power_mult = 1.0  # 스킬 위력 고정(특성 미반영)
 	$Player.lifesteal = 0.0
-	$Player.skills = []           # 스킬 없음(평타만) — 고정 난이도
+	$Player.skills = [$Player._make_skill("meteor", "유성", 5.5, 36.0, 90.0, 0)]  # 고정 광역기 1개 — 뭉친 몹 견제(편성 깊이 부여)
 	$Player.relic_levels = {}     # 유물 효과 제거
 	$Player.rebuild_hit_modifiers()
 	$Player.max_hp = 100.0        # 마법사(성) HP — 초반 체감용 낮은 값
