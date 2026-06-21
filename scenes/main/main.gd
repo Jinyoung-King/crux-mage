@@ -1393,7 +1393,7 @@ func _setup_reverse() -> void:
 	base_hp_bar.offset_top = 238.0   # 마법사 아래 — 성벽에 안 가리게
 	base_hp_bar.offset_bottom = 266.0
 	_spawn_y = 1340.0            # 몹은 화면 아래에서 스폰 → 위로 행진
-	wave_label.text = "⚔ 리버스 — 마법사를 무너뜨려라"
+	wave_label.text = "리버스 — 마법사를 무너뜨려라"
 	wave_label.modulate = Color(1.0, 0.72, 0.4)
 	spawn_list = _reverse_squad()
 	spawned = 0
@@ -1429,7 +1429,7 @@ func _on_player_died() -> void:
 	if GameState.game_mode == "reverse":  # [실험] 마법사 격파 = 스쿼드 승리
 		get_tree().paused = true
 		_show_result(true, 0, "", false)
-		result_title.text = "⚔ 스쿼드 승리! — 마법사 격파"
+		result_title.text = "스쿼드 승리! — 마법사 격파"
 		result_title.add_theme_color_override("font_color", Color(0.5, 0.95, 0.6))
 		return
 	var prev_best: int = GameState.best_wave

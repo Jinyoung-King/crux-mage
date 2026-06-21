@@ -540,7 +540,7 @@ func _open_reverse_setup() -> void:
 	box.custom_minimum_size = Vector2(600, 0)
 	box.add_theme_constant_override("separation", 8)
 	cc.add_child(box)
-	box.add_child(_label("⚔ 스쿼드 편성", 28, Color(1.0, 0.75, 0.5)))
+	box.add_child(_label("스쿼드 편성", 28, Color(1.0, 0.75, 0.5)))
 	box.add_child(_label("예산 안에서 몹을 골라 상단 마법사에게 보내세요", 14, Color(0.7, 0.74, 0.82)))
 	var budget_lbl := _label("", 18, Color(0.85, 0.9, 1.0))
 	box.add_child(budget_lbl)
@@ -597,7 +597,7 @@ func _open_reverse_setup() -> void:
 		row.add_child(plus)
 		rows.add_child(row)
 	refresh.call()
-	var send := _btn("출전 ⚔", 24)
+	var send := _btn("출전", 24)
 	send.add_theme_color_override("font_color", Color(1.0, 0.8, 0.5))
 	send.pressed.connect(func() -> void:
 		var squad := []
@@ -618,7 +618,7 @@ func _open_reverse_setup() -> void:
 	add_child(panel)
 
 func _build_reverse_button() -> void:
-	var b := _btn("⚔ 리버스 (실험)", 18)
+	var b := _btn("리버스 (실험)", 18)
 	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	b.add_theme_color_override("font_color", Color(1.0, 0.7, 0.45))
 	$Center.add_child(b)
@@ -629,7 +629,7 @@ func _build_beyond_button() -> void:
 	var lbl := _label("─ 저편 (멀티속성 여정 · 수동 조작) ─", 15, Color(0.74, 0.66, 0.92))
 	$Center.add_child(lbl)
 	if GameState.best_wave >= GameState.BEYOND_WAVE:
-		var b := _btn("⟡ 저편 진입", 22)
+		var b := _btn("저편 진입", 22)
 		b.custom_minimum_size = Vector2(220, 52)
 		b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		b.add_theme_color_override("font_color", Color(0.92, 0.88, 1.0))
