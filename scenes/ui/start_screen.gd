@@ -525,6 +525,7 @@ func _open_reverse_setup() -> void:
 	for e in grunts:
 		cost[e.resource_path] = int(clampf(round((e.hp + e.contact_damage * 2.0) / 24.0), 1.0, 9.0))
 		counts[e.resource_path] = 0
+	grunts.sort_custom(func(a, b): return cost[a.resource_path] < cost[b.resource_path])  # 싼 졸개 먼저
 	var panel := Control.new()
 	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var dim := ColorRect.new()
@@ -559,8 +560,17 @@ func _open_reverse_setup() -> void:
 		var ep: String = e.resource_path
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 10)
-		var nm := _label("%s · 비용 %d" % [e.display_name, cost[ep]], 17, Color(0.85, 0.88, 0.95))
-		nm.custom_minimum_size = Vector2(330, 0)
+		var icon := TextureRect.new()
+		icon.texture = e.sprite
+		icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		icon.custom_minimum_size = Vector2(50, 50)
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		if e.sprite and e.sprite.resource_path.ends_with("enemy_basic.png"):
+			icon.modulate = ElementLib.color(e.element)  # 흑백 졸개는 속성색 틴트
+		row.add_child(icon)
+		var nm := _label("%s · %d" % [e.display_name, cost[ep]], 16, Color(0.85, 0.88, 0.95))
+		nm.custom_minimum_size = Vector2(270, 0)
 		nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		row.add_child(nm)
 		var minus := _btn("−", 22)

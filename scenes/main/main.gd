@@ -758,7 +758,7 @@ func _spawn_enemy() -> void:
 func _spawn_one(data: EnemyData, pos: Vector2) -> void:
 	alive += 1
 	# 무한 모드 잡몹(보스·중간보스 제외)은 일정 확률로 엘리트 수식어를 달고 등장. 보너스 웨이브 보물은 제외.
-	var elite := _roll_elite() if (not data.show_hp_bar and _wave_kind(wave_index) != "bonus") else {}
+	var elite := {} if GameState.game_mode == "reverse" else (_roll_elite() if (not data.show_hp_bar and _wave_kind(wave_index) != "bonus") else {})
 	_create_enemy(data, pos, elite)
 
 func _create_enemy(data: EnemyData, pos: Vector2, elite: Dictionary = {}) -> void:
@@ -1372,11 +1372,12 @@ func _setup_reverse() -> void:
 	# 마법사(방어자) = 독립 고정 스탯 — 플레이어 능력치(숙련·강화·유물·스킬) 미반영
 	$Player.build.damage = 16.0
 	$Player.build.fire_rate = 1.1
+	$Player.build.defense = 0.0   # 방어 0 — 플레이어 강화 미반영(접촉피해 그대로 들어감)
 	$Player.lifesteal = 0.0
 	$Player.skills = []           # 스킬 없음(평타만) — 고정 난이도
 	$Player.relic_levels = {}     # 유물 효과 제거
 	$Player.rebuild_hit_modifiers()
-	$Player.max_hp = 500.0        # 마법사 HP = 스쿼드가 깎아야 할 목표(프로토타입 튜닝값)
+	$Player.max_hp = 100.0        # 마법사(성) HP — 초반 체감용 낮은 값
 	$Player.hp = $Player.max_hp
 	$Player.hp_changed.emit($Player.hp, $Player.max_hp)
 	# 화면 반전 — 마법사·성벽·HP바 모두 상단으로
