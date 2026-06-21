@@ -1384,13 +1384,14 @@ func _setup_reverse() -> void:
 	$Player.hp = $Player.max_hp
 	$Player.hp_changed.emit($Player.hp, $Player.max_hp)
 	# 화면 반전 — 마법사·성벽·HP바 모두 상단으로
-	$Player.position.y = 200.0
+	$Player.position.y = 180.0   # 마법사 — 반전 성벽 바로 아래 턱(성 위에 선 모양, 전장=아래를 향함)
 	$Player.reverse_aim = true   # 위로 오는 몹을 향해 조준 리드
-	$Base.position.y = -1000.0   # 성벽도 상단으로
+	$Base.scale.y = -1.0         # 성벽 상하 반전 — 본체가 화면 최상단, 총안이 아래(전장)를 향함
+	$Base.position.y = 1280.0    # 반전된 성벽을 상단에 배치(정상 모드의 거울상)
 	base_hp_bar.anchor_top = 0.0
 	base_hp_bar.anchor_bottom = 0.0
-	base_hp_bar.offset_top = 18.0
-	base_hp_bar.offset_bottom = 48.0
+	base_hp_bar.offset_top = 238.0   # 마법사 아래 — 성벽에 안 가리게
+	base_hp_bar.offset_bottom = 266.0
 	_spawn_y = 1340.0            # 몹은 화면 아래에서 스폰 → 위로 행진
 	wave_label.text = "⚔ 리버스 — 마법사를 무너뜨려라"
 	wave_label.modulate = Color(1.0, 0.72, 0.4)
