@@ -147,13 +147,15 @@ func _skill_hit(e, dmg: float, element: String) -> void:
 func _apply_element_reactions(e, element: String) -> void:
 	if not is_instance_valid(e) or e.hp <= 0.0:
 		return
-	if element == "water" and e.is_burning():  # 증발: 물로 화상 적 타격 → 화상 소모 + 광역 + %체력
+	if element == "water" and e.is_burning():  # 증발(수극화): 화상 소모 + 광역. 물 어피니티로 강화
 		var pos: Vector2 = e.global_position  # take_percent_damage로 free될 수 있어 먼저 캡처
+		var aff: float = float(player.build.affinity.get("water", 0.0))
 		e.consume_burn()
-		e.take_percent_damage(REACTION_HP_PCT)  # 복리 체력 관통(% 최대체력)
-		_explode(pos, _hit_ctx.dealt * 1.5, element)  # 베이스라인 강화(제거된 기폭 카드 보전, v3.28)
-	elif element == "earth" and e.is_slowed():  # 빙결파쇄: 흙으로 둔화 적 → 강한 추가타 + 복리관통(토극수=상극). (금속 폭발은 오행상 금극목=속박 적 — 향후)
-		e.take_damage(_hit_ctx.dealt * 1.0)  # 베이스라인 강화(제거된 파쇄 카드 보전, 0.6→1.0 v3.28)
+		e.take_percent_damage(REACTION_HP_PCT)  # 복리 체력 관통
+		_explode(pos, _hit_ctx.dealt * (1.5 + aff), element)
+	elif element == "earth" and e.is_slowed():  # 빙결파쇄(토극수): 추가타 + 복리관통. 흙 어피니티로 강화. (금속 폭발은 금극목=속박 적 — 향후)
+		var aff2: float = float(player.build.affinity.get("earth", 0.0))
+		e.take_damage(_hit_ctx.dealt * (1.0 + aff2))
 		if is_instance_valid(e):
 			e.take_percent_damage(REACTION_HP_PCT)
 
