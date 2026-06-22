@@ -96,7 +96,7 @@ func execute(s: Dictionary) -> void:
 				var xfx = PIXEL_FX.new()  # 외부 픽셀 폭발
 				xfx.position = fc
 				fx_root.add_child(xfx)
-				xfx.play(FX_EXPLOSION_EXT, 8, er * 2.2, 60.0, Color.WHITE, 8)  # 8x8=64프레임 격자(CodeManu)
+				xfx.play(FX_EXPLOSION_EXT, 8, er * 2.2 * _fire_fx_scale(), 60.0, Color.WHITE, 8)  # 화 어피니티로 폭발 확대(가시적 진화)
 		"rockfall":  # 낙석: 여러 바위가 흩어진 적 위로 분산 낙하(각 중간 폭발). count=바위 수
 			var pts := _random_enemy_points(count, pool)
 			for pt in pts:
@@ -252,6 +252,14 @@ func _thorn_erupt(pos: Vector2, radius: float) -> void:
 ## 하늘에서 떨어지는 광역 스킬(메테오·융단): 화면 위에서 낙하 비주얼 → 도달 지점에 폭발+피해.
 ## burst_amt=폭발 파편 수(다발일 때 작게), do_shake=폭탄별 화면 흔들림(다발은 호출측이 1회만).
 ## giant=true면 낙하체를 크게(거대한 돌 — 융단폭격 단일 강타용).
+## [어피니티] 화 affinity → 불 폭발 FX 배율(가시적 진화). 0.4/0.7/1.0 경계.
+func _fire_fx_scale() -> float:
+	var a: float = float(player.build.affinity.get("fire", 0.0))
+	if a >= 1.0: return 1.5
+	if a >= 0.7: return 1.3
+	if a >= 0.4: return 1.15
+	return 1.0
+
 func _drop_aoe(center: Vector2, radius: float, ep: float, element: String, col: Color, burn: bool, burst_amt: int = 64, do_shake: bool = true, giant: bool = false) -> void:
 	var m = FALLING_SKILL.new()
 	m.position = center + Vector2(randf_range(-30.0, 30.0), -720.0)  # 화면 위에서 시작
@@ -266,7 +274,7 @@ func _drop_aoe(center: Vector2, radius: float, ep: float, element: String, col: 
 			var fx = PIXEL_FX.new()  # 외부 픽셀 폭발(불·흙 공용) — 절차 링·입자·그을음 제거
 			fx.position = center
 			fx_root.add_child(fx)
-			fx.play(FX_EXPLOSION_EXT, 8, radius * 2.2, 60.0, Color.WHITE, 8)  # 8x8=64프레임 격자(CodeManu)
+			fx.play(FX_EXPLOSION_EXT, 8, radius * 2.2 * (_fire_fx_scale() if element == "fire" else 1.0), 60.0, Color.WHITE, 8)  # 화 어피니티로 폭발 확대(불 한정)
 			if player.build.ground_field:
 				_ground_field(center, radius, ep * player.build.field_mult(), element)  # 누적 시 장판 피해↑
 			if do_shake:
