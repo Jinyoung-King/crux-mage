@@ -16,6 +16,8 @@ const FOCUS_SPREAD := PI / 90.0  ## 표적보다 발사 수가 많을 때 같은
 const BASIC_ATTACK_MULT := 0.04  ## 평타 피해 = effective_damage()의 이 비율(약한 베이스라인 — 스킬 쿨과 별개로 연사 주기마다)
 const MAX_SKILL_SLOTS := 5  ## 스킬 슬롯 제한(캐릭터 고유 1 포함) — 다 쓰기 방지·슬롯 차면 진화 유도. v1.95 4→5(원소 균열 몰빵 여유, 성능은 발사체/FX 상한이 보장)
 const EVOLVE_COST := 3  ## 같은 스킬 카드를 이만큼 모으면 1단계 진화(분기 선택)
+const ANCHOR_AFFINITY := 0.30   ## [어피니티] 마법사 속성(앵커) 기본 어피니티
+const PER_SKILL_AFFINITY := 0.20  ## [어피니티] 장착 스킬 1개당 그 속성 어피니티 가산
 
 @export var max_hp: float = 100.0
 
@@ -33,7 +35,18 @@ var reverse_aim := false  ## [리버스] true면 위로 오는 몹을 향해 조
 
 ## 빌드·유물·캐릭터가 바뀔 때마다 활성 적중 전략 목록을 다시 구성(매 적중이 아닌 변경 시 1회)
 func rebuild_hit_modifiers() -> void:
+	recompute_affinity()  # [어피니티] 빌드 변경 시 재계산
 	hit_modifiers = HitModifierLib.build_for(self)
+
+## [어피니티] 장착 스킬+앵커로 affinity 재계산. 빌드 변경 시(rebuild_hit_modifiers) 호출.
+func recompute_affinity() -> void:
+	build.affinity.clear()
+	if character:
+		build.affinity[character.element] = ANCHOR_AFFINITY
+	for s in skills:
+		var e: String = SkillLib.DEFS.get(s.id, {}).get("element", "")
+		if e != "":
+			build.affinity[e] = float(build.affinity.get(e, 0.0)) + PER_SKILL_AFFINITY
 
 ## 유물 획득 (중복 없음)
 func grant_relic(id: String, level: int = 1) -> void:
@@ -281,9 +294,10 @@ func eff_power(s: Dictionary) -> float:
 	var p: float = s.power * build.skill_power_mult
 	if character != null and character.base_damage > 0.0:
 		p = s.power * (build.damage / character.base_damage) * build.skill_power_mult
-	var elem: String = SkillLib.DEFS.get(s.id, {}).get("element", "")  # 원소 균열: 해당 속성 스킬 위력↑
-	if build.element_empower.has(elem):
-		p *= 1.0 + float(build.element_empower[elem])
+	var elem: String = SkillLib.DEFS.get(s.id, {}).get("element", "")  # 균열 + 어피니티: 속성 일치 스킬 위력↑
+	var bonus: float = float(build.element_empower.get(elem, 0.0)) + float(build.affinity.get(elem, 0.0))
+	if bonus != 0.0:
+		p *= 1.0 + bonus
 	return p * fire_overflow_mult(s)
 
 ## 범위 상한 — 범위 카드·진화로 광역이 화면 전체를 도배하면 렉↑·밀집타겟팅 무의미·재미↓.

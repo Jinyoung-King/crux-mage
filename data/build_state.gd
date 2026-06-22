@@ -31,6 +31,7 @@ extends Resource
 @export var field_level: int = 0  ## 잔류 장판 누적 → 장판 피해 ↑
 # 원소 균열(이벤트) — 이번 런 한정 속성별 스킬 위력 보너스 {원소: 보너스합}. BuildState.new()마다 새 dict(런 시작 시 초기화).
 var element_empower: Dictionary = {}  ## eff_power에서 스킬 속성 일치 시 ×(1+보너스). 균열 중복 시 누적
+var affinity: Dictionary = {}  ## [어피니티] {속성:값} — 장착 스킬+앵커로 계산. eff_power·반응 강도·FX 티어에 반영
 
 ## 부여형 누적 스케일 — 레벨 1=기본, 이후 레벨당 증가(과누적 방지로 상한). 소비 지점에서 곱/가산해 사용.
 # 임의 레벨의 효과값(_at) + 현재 레벨 래퍼(전투용). 카드 미리보기가 현재/다음 레벨 효과를 같은 식으로 표시.
