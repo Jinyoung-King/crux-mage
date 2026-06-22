@@ -48,6 +48,17 @@ func recompute_affinity() -> void:
 		if e != "":
 			build.affinity[e] = float(build.affinity.get(e, 0.0)) + PER_SKILL_AFFINITY
 
+## [어피니티] 현재 빌드 아키타입 라벨. 최고 어피니티=전문화, 2위가 0.4↑면 콤보.
+func archetype_label() -> String:
+	var sorted: Array = build.affinity.keys()
+	sorted.sort_custom(func(a, b): return float(build.affinity[a]) > float(build.affinity[b]))
+	if sorted.is_empty():
+		return ""
+	var hi: String = sorted[0]
+	if sorted.size() >= 2 and float(build.affinity[sorted[1]]) >= 0.4:
+		return "%s+%s 콤보" % [ElementLib.display_name(hi), ElementLib.display_name(sorted[1])]
+	return "%s 전문화" % ElementLib.display_name(hi)
+
 ## 유물 획득 (중복 없음)
 func grant_relic(id: String, level: int = 1) -> void:
 	relic_levels[id] = level

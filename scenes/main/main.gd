@@ -1807,6 +1807,15 @@ func _open_cards() -> void:
 		return
 	for ch in cards_list.get_children():
 		ch.queue_free()
+	# [어피니티] 빌드 아키타입 + 속성별 막대 — "내 빌드가 무엇인지" 한눈에
+	var arch: String = $Player.archetype_label()
+	cards_list.add_child(_section_header("빌드 — %s" % (arch if arch != "" else "미정")))
+	for ae in ["fire", "water", "wood", "metal", "earth"]:
+		var av: float = float($Player.build.affinity.get(ae, 0.0))
+		if av <= 0.0:
+			continue
+		var bars: int = int(round(av / 0.2))
+		cards_list.add_child(_section_sub("%s  %s  (%d%%)" % [ElementLib.display_name(ae), "▮".repeat(bars), int(round(av * 100.0))], ElementLib.color(ae)))
 	# 보유 스킬 — 실효 수치(피해·쿨·사거리·대상). 스킬 수치는 여기 말고는 볼 곳이 없어 정리해 보여줌.
 	if not $Player.skills.is_empty():
 		cards_list.add_child(_section_header("보유 스킬"))
