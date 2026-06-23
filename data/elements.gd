@@ -43,3 +43,17 @@ static func color(elem: String) -> Color:
 ## 이 속성이 강한 대상의 표시명 (카드 안내용)
 static func strong_against(elem: String) -> String:
 	return display_name(COUNTERS.get(elem, ""))
+
+## 현존 반응(증발·과부하·빙결파쇄)의 콤보 상대 — 어피니티 콤보 길 판정용(드래프트 가중·표시 공용).
+## (생-증폭·금극목 등 미구현은 제외 — 반응 웹 완성 시 확장)
+const REACTION_PARTNER := {"fire": ["water"], "water": ["fire", "earth"], "earth": ["water"], "wood": [], "metal": []}
+
+## 앵커(현재 주력) 속성 대비 카드 속성 ce가 빌드를 어디로 끄는지: "specialize" | "combo" | "branch" | ""
+static func build_direction(anchor: String, ce: String) -> String:
+	if anchor == "" or ce == "":
+		return ""
+	if ce == anchor:
+		return "specialize"
+	if REACTION_PARTNER.get(anchor, []).has(ce):
+		return "combo"
+	return "branch"

@@ -1131,9 +1131,7 @@ func _card_weight(card: CardData) -> float:
 
 ## 빌드 시너지 배율(>=1.0). 기본 1.0, 보유 빌드와 맞물리는 카드를 선호.
 ## (쓸모없는 카드는 _is_card_useful이 이미 제외하므로 여기선 '얼마나 잘 맞는가'만 가산)
-## 현존 반응(증발·과부하·빙결파쇄)의 극-콤보 상대 — 어피니티 빌드의 콤보 길 가중용.
-## (생-증폭·금극목 등은 미구현이라 제외 — 반응 웹 완성 시 확장)
-const REACTION_PARTNER := {"fire": ["water"], "water": ["fire", "earth"], "earth": ["water"], "wood": [], "metal": []}
+## 반응 콤보 상대 매핑은 ElementLib.REACTION_PARTNER로 일원화(드래프트 가중·카드 표시 공용).
 
 ## 드래프트 가중치 — 어피니티 기반. 앵커 심화(전문화) vs 반응 콤보 상대(다른 속성)로 분기.
 func _card_synergy(card: CardData) -> float:
@@ -1152,7 +1150,7 @@ func _card_synergy(card: CardData) -> float:
 		if ce != "" and top != "":
 			if ce == top:
 				m *= 1.8  # 전문화 심화(앵커 속성)
-			elif REACTION_PARTNER.get(top, []).has(ce):
+			elif ElementLib.REACTION_PARTNER.get(top, []).has(ce):
 				m *= 1.6  # 반응 콤보 상대(증발 등 — 극)
 			else:
 				m *= 1.2  # 그 외 분기
