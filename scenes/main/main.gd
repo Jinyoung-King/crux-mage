@@ -4,6 +4,7 @@ extends Node2D
 const ENEMY_SCENE := preload("res://scenes/enemy/enemy.tscn")
 const DEATH_BURST_SCENE := preload("res://scenes/fx/death_burst.tscn")
 const DEATH_REMAINS := preload("res://scenes/fx/death_remains.gd")
+const BLOOD_SPLAT := preload("res://scenes/fx/blood_splat.gd")  # 사망 혈흔(붉은 핏자국, 잠깐 남음)
 const DAMAGE_NUMBER := preload("res://scenes/fx/damage_number.gd")
 const SKILL_RING := preload("res://scenes/fx/skill_ring.gd")  # 광역 스킬 범위 링 (적 사망 연출 등 공용)
 const HIT_SPARK := preload("res://scenes/fx/hit_spark.gd")  # 명중·착탄 별 섬광
@@ -932,6 +933,11 @@ func _on_enemy_died(pos: Vector2, color: Color, size: float, tex: Texture2D, coi
 	burst.color = color
 	burst.amount = 12 + int(size / 4.0)  # 큰 적일수록 파편 많이 (보스 30개)
 	$Fx.add_child(burst)
+	if _wave_kind(wave_index) != "bonus":  # 붉은 혈흔: 촥 터지고 잠깐 남음(보물은 피 안 남김)
+		var blood = BLOOD_SPLAT.new()
+		blood.position = pos
+		$Fx.add_child(blood)
+		blood.setup(size)
 	# 찢긴 사체(좌/우 절반)를 남긴다 — 약 1.5초 후 스스로 사라짐
 	var remains = DEATH_REMAINS.new()
 	remains.position = pos
