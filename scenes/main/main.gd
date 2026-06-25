@@ -13,6 +13,10 @@ const FONT := preload("res://assets/fonts/NotoSansKR.ttf")
 const SKILL_ICON := preload("res://scenes/ui/skill_icon.gd")  # 스킬 쿨타임 아이콘
 const RANGE_RING := preload("res://scenes/fx/range_ring.gd")  # 스킬 사거리 표시 링(아이콘 누름)
 var _skill_icons: Array = []  # 스킬별 쿨타임 아이콘(쿨 중 어둡고, 준비되면 활성화)
+var _sig_gauge: Control       # [능동] 시그니처 충전 게이지(스킬 아이콘 위, 준비되면 "탭하여 발동")
+var _sig_fill: ColorRect      # 게이지 채움(주력 속성색, 너비 ∝ 충전율)
+var _sig_label: Label         # 게이지 라벨(충전/준비 안내)
+var _sig_pulse := 0.0         # 준비 시 라벨 점멸용 위상
 var _range_ring: Node2D  # 사거리 링(마법사 자식, 평소 숨김)
 var base_hp_bar: ProgressBar  # 성벽(기지) 내구도 바 — 스킬 아이콘 하단, 바 안에 숫자
 var base_hp_label: Label      # 위 바 안의 현재/최대 수치
@@ -205,6 +209,7 @@ func _ready() -> void:
 	_aim_reticle.visible = false
 	_aim_reticle.z_index = 8
 	add_child(_aim_reticle)
+	_build_sig_gauge()  # [능동] 시그니처 충전 게이지(스킬 아이콘 위)
 	for id in GameState.relic_levels:  # 모은 유물 전부 적용(런 시작, 레벨=강화)
 		$Player.grant_relic(id, GameState.relic_levels[id])
 	$SfxShoot.stream = ch.shoot_sound  # 캐릭터 전용 발사음
@@ -354,6 +359,7 @@ func _process(delta: float) -> void:
 		var elem: String = SkillLib.DEFS.get(s.id, {}).get("element", "")
 		var ratio: float = 1.0 if s.id == "barrier_droid" else pl.cd_ratio(s)  # 비행체는 지속형 → 항상 활성 표시
 		_skill_icons[i].update_cd(s.name, ElementLib.color(elem), ratio, delta)
+	_update_sig_gauge(pl, delta)  # [능동] 시그니처 충전 게이지
 	_update_remaining_label()  # 좌상단: 이번 웨이브 남은 적 수
 	_govern_fps(delta)  # 50 사수: 평균 FPS에 따라 품질 단계 조정
 	# 버전 + FPS 표시(우하단) — 실제 렌더 FPS(배속 무관). 적/발사체 수(후반 렉 진단용)는 성벽 체력바와
@@ -403,6 +409,85 @@ func _on_quality_pressed() -> void:
 func _update_quality_label() -> void:
 	if quality_button:
 		quality_button.text = "품질: %s" % GameState.quality_label()
+
+## [능동] 시그니처 충전 게이지 — 스킬 아이콘 바로 위, 바닥 중앙. 충전율 막대 + 안내 라벨.
+func _build_sig_gauge() -> void:
+	_sig_gauge = Control.new()
+	_sig_gauge.mouse_filter = Control.MOUSE_FILTER_IGNORE  # 게이지는 탭을 막지 않음(전장 탭이 통과해 시전)
+	_sig_gauge.anchor_left = 0.5; _sig_gauge.anchor_right = 0.5
+	_sig_gauge.anchor_top = 1.0; _sig_gauge.anchor_bottom = 1.0
+	_sig_gauge.offset_left = -150.0; _sig_gauge.offset_right = 150.0
+	_sig_gauge.offset_top = -168.0; _sig_gauge.offset_bottom = -132.0  # SkillUI(-126~-60) 바로 위
+	$HUD.add_child(_sig_gauge)
+	var bg := ColorRect.new()
+	bg.color = Color(0.08, 0.09, 0.13, 0.85)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_sig_gauge.add_child(bg)
+	_sig_fill = ColorRect.new()
+	_sig_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_sig_fill.anchor_top = 0.0; _sig_fill.anchor_bottom = 1.0
+	_sig_fill.offset_left = 0.0; _sig_fill.offset_top = 0.0; _sig_fill.offset_bottom = 0.0
+	_sig_gauge.add_child(_sig_fill)
+	_sig_label = Label.new()
+	_sig_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_sig_label.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_sig_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_sig_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_sig_label.add_theme_font_override("font", FONT)
+	_sig_label.add_theme_font_size_override("font_size", 18)
+	_sig_gauge.add_child(_sig_label)
+
+## [능동] 매 프레임 게이지 갱신: 충전율 막대 너비 + 준비/충전 라벨(준비 시 점멸·속성색).
+func _update_sig_gauge(pl, delta: float) -> void:
+	if _sig_gauge == null:
+		return
+	if game_over:
+		_sig_gauge.visible = false
+		return
+	_sig_gauge.visible = true
+	var elem: String = pl.signature_element()
+	var col: Color = ElementLib.color(elem)
+	var ratio: float = clampf(1.0 - pl.signature_cd_left / pl.SIGNATURE_CD, 0.0, 1.0)
+	_sig_fill.offset_right = 300.0 * ratio  # 게이지 폭 300
+	if pl.signature_ready():
+		_sig_pulse += delta * 4.0
+		var a: float = 0.65 + 0.35 * sin(_sig_pulse)  # 준비됨 — 점멸로 시선 유도
+		_sig_fill.color = Color(col.r, col.g, col.b, 0.55)
+		_sig_label.text = "▶ %s 시그니처 — 탭하여 발동" % ElementLib.display_name(elem)
+		_sig_label.add_theme_color_override("font_color", Color(1, 1, 1, a))
+	else:
+		_sig_fill.color = Color(col.r, col.g, col.b, 0.40)
+		_sig_label.text = "시그니처 충전… %d%%" % int(round(ratio * 100.0))
+		_sig_label.add_theme_color_override("font_color", Color(0.8, 0.82, 0.9, 0.9))
+
+## [능동] 전장 탭 → 준비된 시그니처를 탭 지점에 시전. HUD 버튼·패널이 먼저 소비(_unhandled_input).
+## 자동 시전과 별개로 '돌파 위협을 직접 끊는' 방어 입력(자동이 못 하는 결정).
+func _unhandled_input(event: InputEvent) -> void:
+	if game_over or get_tree().paused:
+		return
+	var pos := Vector2.INF
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		pos = event.position
+	elif event is InputEventScreenTouch and event.pressed:
+		pos = event.position
+	else:
+		return
+	if $Player.cast_signature(pos):  # pos를 전장 좌표로 사용(저편 조준과 동일 관례)
+		_flash_sig_reticle(pos)
+		get_viewport().set_input_as_handled()
+
+## 시그니처 발동 지점에 레티클을 잠깐 비춰 '내가 여기 쐈다' 피드백(0.35초 후 사라짐).
+func _flash_sig_reticle(pos: Vector2) -> void:
+	var elem: String = $Player.signature_element()
+	_aim_reticle.origin = $Player.global_position
+	_aim_reticle.setup(false, 80.0, ElementLib.color(elem))  # 원형 레티클(발사형 false)
+	_aim_reticle.global_position = pos
+	_aim_reticle.visible = true
+	_aim_reticle.queue_redraw()
+	get_tree().create_timer(0.35).timeout.connect(func() -> void:
+		if _aim_idx < 0:  # 저편 조준 중이 아니면 숨김(공용 레티클 충돌 방지)
+			_aim_reticle.visible = false)
 
 ## 보유 스킬 수가 바뀌면 스킬 아이콘을 다시 만든다(이름·색·쿨은 매 프레임 update_cd로 갱신 → 진화 반영)
 func _rebuild_skill_icons(skills: Array) -> void:

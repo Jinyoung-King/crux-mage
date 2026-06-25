@@ -65,7 +65,7 @@ func execute(s: Dictionary) -> void:
 				var giant_r: float = minf(er * (1.4 + 0.1 * float(maxi(count - 3, 0))), player.MAX_SKILL_RADIUS)
 				_drop_aoe(center, giant_r, ep * 2.0, element, col, false, 80, true, true)  # 거대 낙하체·풀FX·흔들림
 		"chain":
-			_skill_chain(count, ep, element, pool)
+			_skill_chain(count, ep, element, pool, aim)  # aim 주어지면(시그니처) 그 지점 주변부터 연쇄
 		"freeze":
 			for e in pool:
 				if is_instance_valid(e):
@@ -323,13 +323,15 @@ func _random_enemy_points(count: int, pool: Array) -> Array:
 			pts.append(e.global_position)
 	return pts
 
-func _skill_chain(count: int, dmg: float, element: String, pool: Array) -> void:
+## focus가 주어지면(시그니처 조준) 그 지점 기준 최근접 적부터 연쇄 — 자동(focus=INF)은 마법사 기준 최근접.
+func _skill_chain(count: int, dmg: float, element: String, pool: Array, focus: Vector2 = Vector2.INF) -> void:
 	if pool.is_empty():
 		return
 	var pp: Vector2 = player.global_position
+	var anchor: Vector2 = focus if focus != Vector2.INF else pp  # 대상 선택 기준점
 	var by_dist := pool.filter(func(e): return is_instance_valid(e))
-	by_dist.sort_custom(func(a, b): return pp.distance_squared_to(a.global_position) < pp.distance_squared_to(b.global_position))
-	var targets := by_dist.slice(0, count)  # 가장 가까운 count명(대상 선택은 기존과 동일)
+	by_dist.sort_custom(func(a, b): return anchor.distance_squared_to(a.global_position) < anchor.distance_squared_to(b.global_position))
+	var targets := by_dist.slice(0, count)  # 기준점에서 가장 가까운 count명
 	# 마법사→적→적으로 튕기는 경로(그리디 최근접) — 같은 적들, 칼이 자연스레 연쇄. 피해는 즉시(타이밍 보존), 시각만 비행.
 	var points: Array = []
 	var remaining := targets.duplicate()
