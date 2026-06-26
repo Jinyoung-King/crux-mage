@@ -475,14 +475,38 @@ func _unhandled_input(event: InputEvent) -> void:
 	else:
 		return
 	if $Player.cast_signature(pos):  # pos를 전장 좌표로 사용(저편 조준과 동일 관례)
-		_flash_sig_reticle(pos)
+		_signature_cast_fx(pos)
 		get_viewport().set_input_as_handled()
 
 ## 시그니처 발동 지점에 레티클을 잠깐 비춰 '내가 여기 쐈다' 피드백(0.35초 후 사라짐).
-func _flash_sig_reticle(pos: Vector2) -> void:
-	var elem: String = $Player.signature_element()
+## 시그니처 발동 연출 — 마법사→조준점 빛줄기 + 조준점 충격파 2겹 + 흰 섬광 + 속성색 화면 플래시 + 흔들림.
+## 새 핵심 입력(능동 시그니처)이 '강한 한 방'으로 느껴지도록(히트스톱 없이 로컬 연출만 — 끊김 회피).
+func _signature_cast_fx(pos: Vector2) -> void:
+	var col: Color = ElementLib.color($Player.signature_element())
+	# ① 시전 빛줄기(마법사 → 조준점) — 굵게 떴다가 가늘어지며 사라짐
+	var beam := Line2D.new()
+	beam.add_point($Player.global_position)
+	beam.add_point(pos)
+	beam.width = 16.0
+	beam.default_color = Color(col.r, col.g, col.b, 0.9)
+	beam.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	beam.end_cap_mode = Line2D.LINE_CAP_ROUND
+	beam.z_index = 7
+	$Fx.add_child(beam)
+	var bt := create_tween().set_parallel(true)
+	bt.tween_property(beam, "width", 0.0, 0.28).set_ease(Tween.EASE_IN)
+	bt.tween_property(beam, "modulate:a", 0.0, 0.28)
+	get_tree().create_timer(0.33).timeout.connect(beam.queue_free)
+	# ② 조준점 충격파 2겹 + 중심 흰 섬광
+	_skill_ring(pos, 70.0, col)
+	_skill_ring(pos, 120.0, Color(col.r, col.g, col.b, 0.7))
+	# ③ 속성색 화면 플래시(은은) + 흔들림
+	flash_overlay.color = Color(col.r, col.g, col.b, 0.22)
+	create_tween().tween_property(flash_overlay, "color:a", 0.0, 0.3)
+	_add_shake(7.0)
+	# ④ 조준점 레티클 잠깐 표시
 	_aim_reticle.origin = $Player.global_position
-	_aim_reticle.setup(false, 80.0, ElementLib.color(elem))  # 원형 레티클(발사형 false)
+	_aim_reticle.setup(false, 80.0, col)
 	_aim_reticle.global_position = pos
 	_aim_reticle.visible = true
 	_aim_reticle.queue_redraw()
@@ -605,7 +629,7 @@ func _add_shake(amount: float) -> void:
 
 ## 화면 붉은 플래시 (플레이어 피격 피드백)
 func _flash_screen() -> void:
-	flash_overlay.color.a = 0.35
+	flash_overlay.color = Color(1.0, 0.15, 0.15, 0.35)  # 피격=빨강(시그니처가 속성색으로 바꿔놔도 매번 복원)
 	create_tween().tween_property(flash_overlay, "color:a", 0.0, 0.25)
 
 ## 웨이브 종류: 끝자리 0(10,20…)=보스, 3·5·7=중간보스, 그 외=일반. 무한에서도 10단위 반복.
@@ -949,6 +973,10 @@ func _on_enemy_died(pos: Vector2, color: Color, size: float, tex: Texture2D, coi
 	remains.setup(tex, size)
 	if size >= 42.0:
 		_add_shake(size / 8.0)  # 큰 적이 죽을수록 화면이 더 울리도록 (보스 9)
+		# 큰 적(보스·정예) 처치 — 폭발 충격파 2겹 + 큰 섬광으로 화끈하게
+		_skill_ring(pos, size * 1.6, color)
+		_skill_ring(pos, size * 2.6, Color(color.r, color.g, color.b, 0.6))
+		_hit_spark(pos, Color(1, 1, 1), minf(size * 1.4, 90.0))
 	var gain := coins  # 처치 코인 (엘리트 보너스 포함, 도달한 적은 _unregister만)
 	if $Player.relic_levels.has("greed"):
 		gain = int(round(gain * RelicLib.greed_mult($Player.relic_levels["greed"])))  # 황금의 룬(레벨별)
