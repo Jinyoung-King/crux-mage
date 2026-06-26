@@ -460,22 +460,27 @@ func _update_sig_gauge(pl, delta: float) -> void:
 	_sig_gauge.visible = true
 	var elem: String = pl.signature_element()
 	var col: Color = ElementLib.color(elem)
-	var ratio: float = clampf(1.0 - pl.signature_cd_left / pl.SIGNATURE_CD, 0.0, 1.0)
-	_sig_fill.offset_right = 300.0 * ratio  # 게이지 폭 300
+	var charge: float = pl.signature_charge
 	var ready: bool = pl.signature_ready()
-	if ready and not _sig_was_ready:  # 방금 충전 완료 — 게이지 팝으로 '준비됨' 알림(놓치지 않게)
+	_sig_fill.offset_right = 300.0 * clampf(charge, 0.0, 1.0)  # 0~1 채움(과충전은 색으로 표현)
+	if ready and not _sig_was_ready:  # 방금 발동 가능 — 게이지 팝으로 알림(놓치지 않게)
 		_sig_gauge.scale = Vector2(1.18, 1.18)
 		create_tween().tween_property(_sig_gauge, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	_sig_was_ready = ready
 	if ready:
 		_sig_pulse += delta * 4.0
-		var a: float = 0.65 + 0.35 * sin(_sig_pulse)  # 준비됨 — 점멸로 시선 유도
-		_sig_fill.color = Color(col.r, col.g, col.b, 0.55)
-		_sig_label.text = "▶ %s 시그니처 — 탭하여 발동" % ElementLib.display_name(elem)
+		var a: float = 0.65 + 0.35 * sin(_sig_pulse)  # 점멸로 시선 유도
+		var oc: float = clampf((charge - 1.0) / (pl.SIG_MAX - 1.0), 0.0, 1.0)  # 과충전 진행 0~1
+		_sig_fill.color = col.lerp(Color(1.0, 0.85, 0.3), oc)  # 과충전될수록 금빛으로
+		_sig_fill.color.a = 0.6
+		if oc > 0.02:
+			_sig_label.text = "▶ 탭! 과충전 +%d%%" % int(round(oc * 100.0))  # 모을수록 강함 — 지금 쏠까/더 모을까
+		else:
+			_sig_label.text = "▶ %s 시그니처 — 탭하여 발동" % ElementLib.display_name(elem)
 		_sig_label.add_theme_color_override("font_color", Color(1, 1, 1, a))
 	else:
 		_sig_fill.color = Color(col.r, col.g, col.b, 0.40)
-		_sig_label.text = "시그니처 충전… %d%%" % int(round(ratio * 100.0))
+		_sig_label.text = "시그니처 충전… %d%%" % int(round(charge * 100.0))
 		_sig_label.add_theme_color_override("font_color", Color(0.8, 0.82, 0.9, 0.9))
 
 ## 연속 처치 콤보 라벨 — 화면 상단 중앙, 처치마다 팝업·색 상승.
@@ -533,20 +538,22 @@ func _unhandled_input(event: InputEvent) -> void:
 		pos = event.position
 	else:
 		return
+	var over: float = clampf($Player.signature_charge, 1.0, $Player.SIG_MAX)  # 발동 전 과충전 정도(연출 스케일용)
 	if $Player.cast_signature(pos):  # pos를 전장 좌표로 사용(저편 조준과 동일 관례)
-		_signature_cast_fx(pos)
+		_signature_cast_fx(pos, over)
 		get_viewport().set_input_as_handled()
 
 ## 시그니처 발동 지점에 레티클을 잠깐 비춰 '내가 여기 쐈다' 피드백(0.35초 후 사라짐).
 ## 시그니처 발동 연출 — 마법사→조준점 빛줄기 + 조준점 충격파 2겹 + 흰 섬광 + 속성색 화면 플래시 + 흔들림.
 ## 새 핵심 입력(능동 시그니처)이 '강한 한 방'으로 느껴지도록(히트스톱 없이 로컬 연출만 — 끊김 회피).
-func _signature_cast_fx(pos: Vector2) -> void:
-	var col: Color = ElementLib.color($Player.signature_element())
-	# ① 시전 빛줄기(마법사 → 조준점) — 굵게 떴다가 가늘어지며 사라짐
+func _signature_cast_fx(pos: Vector2, over: float = 1.0) -> void:
+	var oc: float = clampf(over - 1.0, 0.0, 1.0)  # 0=기본, 1=완전 과충전 → 연출 스케일
+	var col: Color = ElementLib.color($Player.signature_element()).lerp(Color(1.0, 0.85, 0.3), oc)  # 과충전이면 금빛
+	# ① 시전 빛줄기(마법사 → 조준점) — 과충전일수록 굵게
 	var beam := Line2D.new()
 	beam.add_point($Player.global_position)
 	beam.add_point(pos)
-	beam.width = 16.0
+	beam.width = 16.0 + 14.0 * oc
 	beam.default_color = Color(col.r, col.g, col.b, 0.9)
 	beam.begin_cap_mode = Line2D.LINE_CAP_ROUND
 	beam.end_cap_mode = Line2D.LINE_CAP_ROUND
@@ -556,13 +563,13 @@ func _signature_cast_fx(pos: Vector2) -> void:
 	bt.tween_property(beam, "width", 0.0, 0.28).set_ease(Tween.EASE_IN)
 	bt.tween_property(beam, "modulate:a", 0.0, 0.28)
 	get_tree().create_timer(0.33).timeout.connect(beam.queue_free)
-	# ② 조준점 충격파 2겹 + 중심 흰 섬광
-	_skill_ring(pos, 70.0, col)
-	_skill_ring(pos, 120.0, Color(col.r, col.g, col.b, 0.7))
-	# ③ 속성색 화면 플래시(은은) + 흔들림
-	flash_overlay.color = Color(col.r, col.g, col.b, 0.22)
+	# ② 조준점 충격파 2겹 + 중심 흰 섬광(과충전이면 더 크게)
+	_skill_ring(pos, 70.0 * (1.0 + 0.5 * oc), col)
+	_skill_ring(pos, 120.0 * (1.0 + 0.5 * oc), Color(col.r, col.g, col.b, 0.7))
+	# ③ 속성색 화면 플래시(은은) + 흔들림(과충전이면 강하게)
+	flash_overlay.color = Color(col.r, col.g, col.b, 0.22 + 0.12 * oc)
 	create_tween().tween_property(flash_overlay, "color:a", 0.0, 0.3)
-	_add_shake(7.0)
+	_add_shake(7.0 + 5.0 * oc)
 	# ④ 조준점 레티클 잠깐 표시
 	_aim_reticle.origin = $Player.global_position
 	_aim_reticle.setup(false, 80.0, col)
@@ -1027,6 +1034,7 @@ func _on_enemy_died(pos: Vector2, color: Color, size: float, tex: Texture2D, coi
 		$Fx.add_child(blood)
 		blood.setup(size)
 		_add_combo()  # 연속 처치 콤보(보물 픽업은 제외)
+		$Player.gain_signature_charge()  # [능동] 처치로 시그니처 충전(공격적일수록 빨리 참)
 	# 찢긴 사체(좌/우 절반)를 남긴다 — 약 1.5초 후 스스로 사라짐
 	var remains = DEATH_REMAINS.new()
 	remains.position = pos
