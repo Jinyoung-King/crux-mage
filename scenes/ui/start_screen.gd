@@ -435,8 +435,11 @@ func _apply_char() -> void:
 	elem_lbl.text = "%s 속성 · %s에 강함" % [ElementLib.display_name(c.element), ElementLib.strong_against(c.element)]
 	elem_lbl.add_theme_color_override("font_color", col)
 	desc_lbl.text = c.description
-	# 배경 속성색 테마
-	bg.set_theme_color(col)
+	# 배경: 선택 캐릭터 속성의 바이옴 풍경(인게임과 동일 — 숲/용암/사막/설원/늪)
+	if bg.has_method("set_biome"):
+		bg.set_biome(c.element)
+	else:
+		bg.set_theme_color(col)
 	# 시작 버튼 속성색
 	_play_style.bg_color = Color(col.r, col.g, col.b, 0.22)
 	_play_style.border_color = col

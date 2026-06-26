@@ -694,7 +694,8 @@ func _start_wave(index: int) -> void:
 	$Player.skills_paused = false  # 웨이브 진행 중에는 스킬 쿨타임 재개
 	var _bg := $Background/Bg  # 스테이지 속성에 맞춰 배경 바이옴 전환(목=숲/화=용암/토=사막/금=설원/수=늪)
 	if _bg.has_method("set_biome"):
-		_bg.set_biome(_stage_element(index))
+		var _variant := (index / WAVES_PER_STAGE) / ELEMENT_ORDER.size()  # 속성 순환 한 바퀴마다 변형 교체(숲→정글, 용암→화산재…)
+		_bg.set_biome(_stage_element(index), _variant)
 	if _wave_kind(index) == "boss":  # 보스 웨이브엔 긴장 음악, 그 외엔 전투 음악(같은 트랙이면 끊김 없음)
 		Music.play_boss()
 	else:
