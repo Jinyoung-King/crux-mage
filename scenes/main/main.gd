@@ -491,7 +491,7 @@ func _build_combo_label() -> void:
 	_combo_label.add_theme_constant_override("outline_size", 8)
 	_combo_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.7))
 	_combo_label.modulate.a = 0.0
-	_combo_label.pivot_offset = Vector2(W * 0.5, 36.0)  # 가운데 기준 스케일 팝
+	_combo_label.pivot_offset = Vector2(360.0, 36.0)  # 화면 폭 720의 절반 — 가운데 기준 스케일 팝
 	$HUD.add_child(_combo_label)
 
 ## 처치 1회 — 콤보 누적. 창 안에 연속이면 숫자가 오르고 팝업·색이 세진다(2연속부터 표시).
