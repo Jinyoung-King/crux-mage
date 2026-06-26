@@ -548,6 +548,8 @@ func _fire_at(target, aim_offset := 0.0) -> void:
 		p.direction = p.direction.rotated(aim_offset)  # 집중사격 부채 흩뿌림
 	p.rotation = p.direction.angle()
 	p.damage = effective_damage() * BASIC_ATTACK_MULT  # 평타 = 공격력의 일부(약한 베이스라인). 스킬은 별도(eff_power)
+	if host._perf_tier < 2:
+		p.enable_trail(true)  # 평타도 은은한 잔광(얇고 짧게) — 저성능 단계에선 생략
 	p.lifesteal = lifesteal  # dealt→_on_lifesteal는 acquire에서 1회 연결(방출은 lifesteal>0일 때만)
 	_apply_relics_to(p)
 	fired.emit(p)

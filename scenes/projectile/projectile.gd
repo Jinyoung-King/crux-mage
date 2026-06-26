@@ -30,7 +30,8 @@ var splash_radius := 90.0
 var element := ""  ## 오행 속성 (적 속성과 상성 판정 — ElementLib)
 var pierce := 0  ## 관통: 이 수만큼 적을 추가로 꿰뚫고 비행 (소진 시 소멸)
 
-const TRAIL_LEN := 8  ## 꼬리 잔광 점 개수
+const TRAIL_LEN := 8  ## 꼬리 잔광 점 개수(스킬 마력탄). 평타 light는 더 짧음.
+var _trail_len := TRAIL_LEN  ## 현재 트레일 점 상한(enable_trail에서 light면 줄임)
 var _trail: Line2D  ## 비행 잔광(스킬 마력탄만 visible — 평타는 숨김). 노드는 1회 생성 후 재사용
 var _trail_grad: Gradient  ## 트레일 색 갱신용(재사용 시 속성색 변경)
 var active := false  ## 비행 중(true) / 풀 대기(false) — 중복 반환·오발 방지
@@ -62,11 +63,13 @@ func _make_trail() -> void:
 	_trail.end_cap_mode = Line2D.LINE_CAP_ROUND
 	add_child(_trail)
 
-## 스킬 마력탄용 트레일 켜기(속성색). 평타는 호출하지 않아 숨김 유지.
-func enable_trail() -> void:
+## 트레일 켜기(속성색). light=평타용(얇고 짧고 흐리게) / 기본=스킬 마력탄용(진한 잔광).
+func enable_trail(light := false) -> void:
 	var col := ElementLib.color(element) if element != "" else Color(1.0, 0.95, 0.7)
+	_trail.width = 4.0 if light else 6.0
+	_trail_len = 5 if light else TRAIL_LEN
 	_trail_grad.set_color(0, Color(col.r, col.g, col.b, 0.0))  # 꼬리 끝 투명
-	_trail_grad.set_color(1, Color(col.r, col.g, col.b, 0.55))  # 머리 쪽 진함
+	_trail_grad.set_color(1, Color(col.r, col.g, col.b, 0.30 if light else 0.55))  # 머리 쪽 진함
 	_trail.clear_points()
 	_trail.visible = true
 
@@ -116,7 +119,7 @@ func _physics_process(delta: float) -> void:
 	position += direction * speed * delta
 	if _trail.visible:
 		_trail.add_point(global_position)
-		if _trail.get_point_count() > TRAIL_LEN:
+		if _trail.get_point_count() > _trail_len:
 			_trail.remove_point(0)
 
 func _on_area_entered(area) -> void:
