@@ -852,9 +852,11 @@ func _start_wave(index: int) -> void:
 	spawn_list = _build_spawn_list(index)
 	var _cmul: float = float(_run_mod.get("count", 1.0))  # [모디파이어] 적 수 배율
 	if _cmul > 1.0 and spawn_list.size() > 0:
-		for i in int(spawn_list.size() * (_cmul - 1.0)):
-			spawn_list.append(spawn_list[randi() % spawn_list.size()])
-		spawn_list.shuffle()
+		var cpool := spawn_list.filter(func(e): return not e.show_hp_bar)  # 보스 복제 제외(1마리)
+		if not cpool.is_empty():
+			for i in int(spawn_list.size() * (_cmul - 1.0)):
+				spawn_list.append(cpool[randi() % cpool.size()])
+			spawn_list.shuffle()
 	endless_hp_scale = pow(1.0 + ENDLESS_HP_GROWTH, _endless_level(index))  # 복리: 후반 빌드 성장을 따라잡도록
 	var dmg_cap: float = ENDLESS_DMG_CAP + ENDLESS_DMG_CAP_GROWTH * _endless_level(index)  # 단계 비례 완화 상한
 	endless_dmg_scale = minf(pow(1.0 + ENDLESS_DMG_GROWTH, _endless_level(index)), dmg_cap)  # 적 피해 상승(상한도 단계마다 상승)
@@ -928,8 +930,10 @@ func _build_spawn_list(index: int) -> Array:
 	else:  # bonus
 		base = bonus_wave.build_spawn_list()  # 무한 단계만큼 보물도 증원 → 후반일수록 코인 多
 	var extra := int(base.size() * 0.25 * mini(_endless_level(index), COUNT_SCALE_CAP))  # 수 증가 상한(과밀 방지)
-	for i in extra:
-		base.append(base[randi() % base.size()])  # 기존 구성 비율대로 증원
+	var dup_pool := base.filter(func(e): return not e.show_hp_bar)  # 보스·중간보스는 복제 제외(1마리 보장)
+	if not dup_pool.is_empty():
+		for i in extra:
+			base.append(dup_pool[randi() % dup_pool.size()])  # 잡몹만 증원
 	base.shuffle()
 	return base
 
