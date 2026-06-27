@@ -876,7 +876,12 @@ func _start_wave(index: int) -> void:
 	wave_label.modulate = Color(1, 1, 1)  # 종류별 색 초기화
 	if kind == "boss":
 		wave_label.text = "Wave %d - 보스" % (index + 1)
-		_add_shake(6.0)  # 보스 등장 예고
+		if GameState.game_mode != "beyond":  # 거대 보스(마룡왕) 등장 — 강한 흔들림 + 붉은 암전 펄스(위압)
+			_add_shake(13.0)
+			flash_overlay.color = Color(0.5, 0.0, 0.0, 0.45)
+			create_tween().tween_property(flash_overlay, "color:a", 0.0, 0.7)
+		else:
+			_add_shake(6.0)
 		_show_boss_banner(_boss_enemy_name(index))  # 보스 이름 등장 배너
 	elif kind == "midboss":
 		var mbn: String = _eboss[_stage_element(index)].display_name if _eboss.has(_stage_element(index)) else "중간보스"

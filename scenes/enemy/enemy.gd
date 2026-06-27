@@ -249,10 +249,15 @@ func _physics_process(delta: float) -> void:
 		queue_free()
 
 ## 상태 색조(피격 플래시·예고 중이 아닐 때만) + HP바 갱신 — 일반 이동·돌진 공통
-## 발밑 그림자 — 적이 '땅에 서 있다'를 표현(하늘 낙하감 해소). 납작한 타원, 루트 변환에 자동 추종.
+## 발밑 그림자 + (보스) 위협 오라 — '땅에 서 있다' + 거대 보스의 압박감. 스프라이트 뒤에 그려짐.
 func _draw() -> void:
 	if march_up:
-		return  # [리버스] 별도 구도 — 그림자 생략
+		return  # [리버스] 별도 구도 — 생략
+	if is_huge:  # 보스·중간보스: 속성색 짙은 발광 헤일로(겹쳐 부드럽게)
+		var ac := effect_color
+		for k in range(4):
+			var rr: float = body_size * (0.58 + 0.13 * k)
+			draw_circle(Vector2(0.0, body_size * 0.04), rr, Color(ac.r, ac.g, ac.b, 0.10))
 	draw_set_transform(Vector2(0.0, body_size * 0.42), 0.0, Vector2(1.0, 0.34))
 	draw_circle(Vector2.ZERO, body_size * 0.5, Color(0.0, 0.0, 0.0, 0.32))
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)

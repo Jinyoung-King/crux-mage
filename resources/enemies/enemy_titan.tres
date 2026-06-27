@@ -7,10 +7,10 @@
 [resource]
 script = ExtResource("1")
 display_name = "마룡왕"
-hp = 1000.0
-speed = 16.0
-contact_damage = 60.0
-size = 240.0
+hp = 1400.0
+speed = 15.0
+contact_damage = 75.0
+size = 320.0
 sprite = ExtResource("2")
 effect_color = Color(1.0, 0.5, 0.2, 1)
 show_hp_bar = true
