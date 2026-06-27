@@ -8,6 +8,11 @@ signal ranged_attack(damage: float, from_pos: Vector2, count: int, spread_deg: f
 signal charge_hit(damage: float)  ## 보스 돌진이 플레이어에 닿을 때
 
 const HUGE_PCT_RESIST := 0.2  ## 거대(보스)는 %체력 피해를 이 비율로만 받음(보스전 트리비얼화 방지)
+# [원근] 멀리(위)에선 작게·성 가까이(아래)면 크게 — "땅 위를 가로질러 다가온다" 느낌(루트 스케일=시각+히트박스 동시).
+const PERSP_FAR := 0.55     ## 스폰(맨 위·멀리) 크기 배율
+const PERSP_NEAR := 1.0     ## 성 근처(아래·가까이) 배율 — 도달 시 기존 크기 유지(밸런스 보존)
+const PERSP_TOP := -60.0    ## 보간 기준 상단 y(스폰)
+const PERSP_BOTTOM := 1080.0  ## 보간 기준 하단 y(성·마법사 근처)
 
 @export var max_hp: float = 30.0
 @export var speed: float = 60.0  ## 이동 속도(px/s)
@@ -238,6 +243,14 @@ func _update_visuals() -> void:
 		$Sprite2D.modulate = _tint
 	if hp_fill:
 		hp_fill.size.x = HP_BAR_W * maxf(hp / max_hp, 0.0)
+	scale = Vector2.ONE * _persp_scale()  # [원근] y에 따라 크기 변화(다가올수록 커짐)
+
+## [원근] 현재 y의 크기 배율 — 위(멀리)=PERSP_FAR, 성 근처(아래)=PERSP_NEAR. 리버스는 미적용.
+func _persp_scale() -> float:
+	if march_up:
+		return 1.0
+	var t: float = clampf((position.y - PERSP_TOP) / (PERSP_BOTTOM - PERSP_TOP), 0.0, 1.0)
+	return lerpf(PERSP_FAR, PERSP_NEAR, t)
 
 ## 돌진 이동: 아래로 내려가 goal_y에 닿으면 피해를 주고 복귀
 func _process_charge(delta: float) -> void:
