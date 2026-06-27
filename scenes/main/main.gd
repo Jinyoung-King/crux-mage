@@ -164,6 +164,16 @@ var alive := 0
 var run_coins := 0  # 이번 런 누적 코인 (사망 시 GameState에 정산)
 var run_essence := 0  # 이번 저편 런 누적 정수 (종료 시 GameState에 정산)
 var run_kills := 0  # 이번 런 처치 수 (결과 요약용)
+# [경험치] 카드는 웨이브가 아니라 레벨업으로 획득. 킬=XP, 레벨업마다 드래프트.
+const XP_BASE := 18.0       # Lv1→2 필요 경험치
+const XP_GROWTH := 1.15     # 레벨당 필요 경험치 증가율(초반 빠르게, 후반 완만)
+var run_xp := 0.0           # 현재 레벨 내 누적 경험치
+var run_level := 1          # 현재 레벨
+var xp_to_next := XP_BASE   # 다음 레벨까지 필요 경험치
+var _pending_levelups := 0  # 처리 대기 중인 레벨업(드래프트) 수
+var _levelup_draft := false # 현재 드래프트가 레벨업 드래프트인가(완료 시 웨이브 안 넘기고 전투 재개)
+var _xp_fill: ColorRect     # 상단 XP 바 채움
+var _xp_label: Label        # "Lv N" 표기
 # 결과 요약 패널(사망·클리어 리캡)
 var result_panel: Control
 var result_title: Label
@@ -258,6 +268,7 @@ func _ready() -> void:
 	card_select.reroll_card_requested.connect(_on_reroll_card)  # 카드별 새로고침
 	card_select.view_cards_requested.connect(_open_cards)  # 선택창에서 획득 카드 보기
 	card_select.player = $Player  # 보유 스킬 진화명을 카드에 표시하기 위해 주입
+	card_select.process_mode = Node.PROCESS_MODE_ALWAYS  # [경험치] 레벨업 드래프트는 일시정지 중 열림 → 픽 연출·입력 동작 보장
 	restart_button.pressed.connect(_on_restart_pressed)
 	char_select_button.pressed.connect(_on_char_select_pressed)
 	speed_button.pressed.connect(_on_speed_pressed)
@@ -317,6 +328,8 @@ func _ready() -> void:
 		_setup_reverse()
 		return
 	_roll_run_mod()  # [매 판 다르게] 이번 런 무작위 룰 1개(stage·endless)
+	run_xp = 0.0; run_level = 1; xp_to_next = XP_BASE; _pending_levelups = 0  # [경험치] 런 초기화
+	_build_xp_bar()  # [경험치] 상단 XP 바(카드는 레벨업으로)
 	if GameState.game_mode == "stage":
 		wave_index = -1  # 스테이지 모드: Wave 1부터(시작 웨이브 도약 없음)
 	else:
@@ -911,6 +924,7 @@ func _start_wave(index: int) -> void:
 	spawn_timer.wait_time = _wave_interval(index)
 	spawn_timer.start()
 	$Player.on_wave_start()  # 패시브: 웨이브 시작 회복
+	_try_levelup_draft()  # [경험치] 직전 전환에서 밀린 레벨업이 있으면 처리
 	if not _build_summary_shown and not _start_build_summary.is_empty():
 		_build_summary_shown = true
 		_show_start_build_summary()  # 시작 도약 빌드 요약(첫 진입 1회)
@@ -1119,6 +1133,8 @@ func _on_enemy_died(pos: Vector2, color: Color, size: float, tex: Texture2D, coi
 		blood.setup(size)
 		_add_combo()  # 연속 처치 콤보(보물 픽업은 제외)
 		$Player.gain_signature_charge()  # [능동] 처치로 시그니처 충전(공격적일수록 빨리 참)
+		if GameState.game_mode != "beyond" and GameState.game_mode != "reverse":
+			_gain_xp(maxf(2.0, size / 9.0))  # [경험치] 처치 XP(적 클수록↑) → 레벨업 시 카드
 	# 찢긴 사체(좌/우 절반)를 남긴다 — 약 1.5초 후 스스로 사라짐
 	var remains = DEATH_REMAINS.new()
 	remains.position = pos
@@ -1210,7 +1226,7 @@ func _on_wave_cleared() -> void:
 		if ev != "":
 			_open_event(ev)
 		else:
-			_open_draft(_wave_kind(wave_index) == "boss")
+			_start_next_wave()  # [경험치] 카드는 레벨업으로만 — 일반 웨이브는 바로 다음 웨이브
 
 ## 이번 클리어 웨이브 뒤 띄울 중간 이벤트 종류("" = 일반 드래프트). wave EVENT_FROM_WAVE+ 부터(온보딩 보호).
 ## 끝자리4 = 원소 균열. (v1.95 제단=끝자리2, v1.96 갈림길=보스후 추가 예정 — 상점6·보스0·중간보스3/5/7·보너스8과 안 겹침)
@@ -1511,11 +1527,12 @@ func _on_card_chosen(card: CardData) -> void:
 		_start_wave(wave_index + 1)
 		return
 	$SfxCardPick.play()
-	if _consume_skill_pick(card, _after_pick):  # 스킬 진화 스택/분기면 흐름 위임
+	var cont: Callable = _after_levelup if _levelup_draft else _after_pick  # 레벨업 드래프트면 웨이브 안 넘김
+	if _consume_skill_pick(card, cont):  # 스킬 진화 스택/분기면 흐름 위임
 		return
 	$Player.apply_card(card)
 	_record_card(card)
-	_after_pick()
+	cont.call()
 
 ## 다음 웨이브로(상점/분기 이후 이어가기용)
 func _start_next_wave() -> void:
@@ -1764,6 +1781,93 @@ func _panel_card_behind(center: Control, pad := 20.0) -> void:
 		card.size = center.size + Vector2(pad * 2.0, pad * 2.0)
 	center.item_rect_changed.connect(fit)  # center 크기·위치 변할 때마다 카드 재맞춤
 	fit.call_deferred()  # 초기 레이아웃 후 1회
+
+## [경험치] 상단 XP 바(레벨 + 진행). UI 키트 톤.
+func _build_xp_bar() -> void:
+	var bg := Panel.new()
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bg.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	bg.offset_left = 14.0; bg.offset_right = -14.0; bg.offset_top = 166.0; bg.offset_bottom = 188.0  # 상단 버튼 줄 아래
+	var sb := UIKit.panel(Color(0, 0, 0, 0), 8, false, 0)
+	sb.bg_color = Color(0.09, 0.09, 0.13, 0.85)
+	bg.add_theme_stylebox_override("panel", sb)
+	$HUD.add_child(bg)
+	_xp_fill = ColorRect.new()
+	_xp_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_xp_fill.color = Color(0.45, 0.8, 1.0, 0.9)  # XP = 하늘색
+	_xp_fill.position = Vector2(2.0, 2.0)
+	_xp_fill.size = Vector2(0.0, 18.0)
+	bg.add_child(_xp_fill)
+	_xp_label = Label.new()
+	_xp_label.text = "Lv 1"
+	_xp_label.add_theme_font_override("font", FONT)
+	_xp_label.add_theme_font_size_override("font_size", 13)
+	_xp_label.add_theme_color_override("font_color", Color.WHITE)
+	_xp_label.add_theme_constant_override("outline_size", 4)
+	_xp_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	_xp_label.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_xp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_xp_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_xp_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bg.add_child(_xp_label)
+	_update_xp_bar()
+
+func _update_xp_bar() -> void:
+	if _xp_fill == null:
+		return
+	var ratio: float = clampf(run_xp / xp_to_next, 0.0, 1.0) if xp_to_next > 0.0 else 0.0
+	_xp_fill.size.x = maxf(_xp_fill.get_parent().size.x - 4.0, 0.0) * ratio
+	_xp_label.text = "Lv %d" % run_level
+
+## [경험치] 처치 시 XP 획득 → 레벨업 누적. 적이 강할수록(클수록) XP↑.
+func _gain_xp(amount: float) -> void:
+	if game_over:
+		return
+	run_xp += amount
+	while run_xp >= xp_to_next:
+		run_xp -= xp_to_next
+		run_level += 1
+		xp_to_next = XP_BASE * pow(XP_GROWTH, float(run_level - 1))
+		_pending_levelups += 1
+	_update_xp_bar()
+	_try_levelup_draft()
+
+## 대기 중인 레벨업이 있고 다른 UI가 안 떠 있으면 레벨업 드래프트 시작.
+func _try_levelup_draft() -> void:
+	if _pending_levelups <= 0 or game_over:
+		return
+	if card_select.visible or _shop_active or _active_event != null or _evo_id != "" or cards_panel.visible:
+		return  # 다른 드래프트/패널 중 — 끝나면 다시 시도(_after_pick·_after_levelup·_start_wave에서)
+	_start_levelup_draft()
+
+## [경험치] 레벨업 카드 드래프트 — 전투 일시정지 후 카드 택1(완료 시 웨이브 안 넘기고 전투 재개).
+func _start_levelup_draft() -> void:
+	_pending_levelups -= 1
+	_levelup_draft = true
+	_draft_rare = false
+	$Player.skills_paused = true
+	get_tree().paused = true  # 전투 중 레벨업 — 선택하는 동안 멈춤
+	_flash_levelup()
+	var n := clampi(CHOICES_PER_CLEAR + GameState.asc_choices_delta(), 2, 3)
+	var cards := _draw_cards(n)
+	card_select.open(cards, [], 0, "레벨 %d — 카드 선택" % run_level)
+	if auto_pick and not cards.is_empty():
+		get_tree().create_timer(0.25).timeout.connect(card_select.pick_random)
+
+## 레벨업 픽 후: 남은 레벨업 있으면 다음 카드, 없으면 전투 재개(웨이브 진행 아님).
+func _after_levelup() -> void:
+	if _pending_levelups > 0:
+		_start_levelup_draft()
+	else:
+		_levelup_draft = false
+		$Player.skills_paused = false
+		get_tree().paused = false
+
+## 레벨업 순간 연출(하늘색 화면 플래시 + 흔들림)
+func _flash_levelup() -> void:
+	flash_overlay.color = Color(0.45, 0.8, 1.0, 0.28)
+	create_tween().tween_property(flash_overlay, "color:a", 0.0, 0.4)
+	_add_shake(4.0)
 
 func _build_result_ui() -> void:
 	result_panel = Control.new()
