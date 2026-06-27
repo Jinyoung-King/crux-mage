@@ -31,11 +31,19 @@ static func button_box(accent: Color, hl := false) -> StyleBoxFlat:
 	sb.set_content_margin_all(10)
 	return sb
 
-## 버튼에 normal/hover/pressed 스타일 + 흰 글자 일괄 적용.
+## 버튼에 normal/hover/pressed/disabled 스타일 + 글자색 일괄 적용.
 static func style_button(btn: Button, accent: Color) -> void:
 	btn.add_theme_stylebox_override("normal", button_box(accent, false))
 	btn.add_theme_stylebox_override("hover", button_box(accent, true))
 	btn.add_theme_stylebox_override("pressed", button_box(accent, true))
 	btn.add_theme_stylebox_override("focus", button_box(accent, false))
+	var dis := StyleBoxFlat.new()  # 비활성: 회색 디밍(살 수 없음 등)
+	dis.bg_color = Color(0.18, 0.18, 0.22, 0.55)
+	dis.set_corner_radius_all(10)
+	dis.set_border_width_all(2)
+	dis.border_color = Color(0.32, 0.32, 0.38, 0.55)
+	dis.set_content_margin_all(10)
+	btn.add_theme_stylebox_override("disabled", dis)
 	btn.add_theme_color_override("font_color", Color.WHITE)
 	btn.add_theme_color_override("font_hover_color", Color.WHITE)
+	btn.add_theme_color_override("font_disabled_color", Color(0.55, 0.55, 0.62))

@@ -113,7 +113,7 @@ func _make_card(id: String, sig_id: String) -> Control:
 		evo.add_theme_font_size_override("font_size", 14)
 		evo.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		evo.text = "진화 %d/%d ▸" % [GameState.beyond_evo_count(id), GameState.beyond_evo_max(id)]
-		evo.add_theme_color_override("font_color", Color(0.72, 0.8, 0.96))
+		UIKit.style_button(evo, Color(0.6, 0.66, 0.85))
 		evo.pressed.connect(_open_evo_overlay.bind(id))
 		box.add_child(evo)
 	return panel
@@ -125,6 +125,7 @@ func _make_action(id: String, sig_id: String) -> Control:
 	btn.add_theme_font_override("font", FONT)
 	btn.add_theme_font_size_override("font_size", 15)
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	UIKit.style_button(btn, Color(0.55, 0.62, 0.78))  # 장착/해제 — 통일(상태별 글자색은 아래서)
 	if id in GameState.beyond_loadout:
 		btn.text = "✓ 장착됨 — 해제"
 		btn.add_theme_color_override("font_color", Color(0.6, 0.95, 0.7))
@@ -198,6 +199,7 @@ func _open_evo_overlay(id: String) -> void:
 		d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		cvb.add_child(d)
 		var btn := Button.new(); btn.add_theme_font_override("font", FONT); btn.add_theme_font_size_override("font_size", 15)
+		UIKit.style_button(btn, Color(0.7, 0.6, 0.95))  # 진화 — 정수 보라
 		btn.text = "최대 진화" if maxed else "정수 %d" % cost
 		btn.disabled = maxed or GameState.essence < cost
 		var idx := i
@@ -207,6 +209,7 @@ func _open_evo_overlay(id: String) -> void:
 				_open_evo_overlay(id))
 		cvb.add_child(btn)
 	var close := Button.new(); close.text = "닫기"; close.add_theme_font_override("font", FONT); close.add_theme_font_size_override("font_size", 20)
+	UIKit.style_button(close, Color(0.55, 0.62, 0.78))
 	close.pressed.connect(func() -> void:
 		ov.queue_free()
 		_rebuild())

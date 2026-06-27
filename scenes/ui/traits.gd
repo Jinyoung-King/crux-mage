@@ -50,6 +50,7 @@ func _make_card(t: Dictionary) -> Control:
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	btn.add_theme_font_override("font", FONT)
 	btn.add_theme_font_size_override("font_size", 19)
+	UIKit.style_button(btn, Color(0.45, 0.8, 0.5))  # 특성 강화 — 초록
 	btn.pressed.connect(_on_buy.bind(t.id))
 	v.add_child(btn)
 	row_buttons[t.id] = btn

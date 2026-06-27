@@ -23,6 +23,7 @@ func _ready() -> void:
 		var toggle := Button.new()
 		toggle.add_theme_font_override("font", FONT)
 		toggle.add_theme_font_size_override("font_size", 20)
+		UIKit.style_button(toggle, Color(0.55, 0.62, 0.78))
 		toggle.custom_minimum_size = Vector2(360, 48)
 		toggle.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		toggle.text = "이전 패치 보기 (%d개) ▾" % (total - RECENT)

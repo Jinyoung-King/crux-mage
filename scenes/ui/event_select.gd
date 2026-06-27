@@ -66,6 +66,7 @@ func open(title: String, flavor: String, choices: Array, auto_index: int = -1) -
 		b.custom_minimum_size = Vector2(520, 60)
 		b.add_theme_font_override("font", FONT)
 		b.add_theme_font_size_override("font_size", 20)
+		UIKit.style_button(b, c.get("color", Color(0.55, 0.62, 0.78)))  # 선택지색 카드 버튼
 		b.add_theme_color_override("font_color", c.get("color", Color(0.92, 0.94, 1.0)))
 		var desc: String = c.get("desc", "")
 		b.text = c.get("label", "") + ("\n" + desc if desc != "" else "")

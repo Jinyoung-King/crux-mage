@@ -124,6 +124,7 @@ func _build_ui() -> void:
 	buy_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	buy_button.add_theme_font_override("font", FONT)
 	buy_button.add_theme_font_size_override("font_size", 22)
+	UIKit.style_button(buy_button, Color(0.45, 0.8, 0.5))  # 강화 구매 — 초록
 	buy_button.pressed.connect(_on_buy)
 	pv.add_child(buy_button)
 	panel.add_child(pv)

@@ -21,22 +21,14 @@ func _ready() -> void:
 	$Center/Title.text = "룬 뽑기"
 	back_button.hide()  # 뒤로 제거 — 하단 nav '홈'으로 복귀
 	roll_button.pressed.connect(_on_roll)
+	UIKit.style_button(roll_button, Color(1.0, 0.82, 0.4))  # 룬 뽑기 — 금(코인)
 	# 일일 무료 뽑기 버튼(초록 강조) — 코인 비싸진 후반에도 매일 1회 무료로 룬 획득
 	free_button = Button.new()
 	free_button.add_theme_font_override("font", FONT)
 	free_button.add_theme_font_size_override("font_size", 20)
 	free_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	free_button.custom_minimum_size = Vector2(260, 50)
-	var fst := StyleBoxFlat.new()
-	fst.bg_color = Color(0.3, 0.7, 0.4, 0.28)
-	fst.set_corner_radius_all(10)
-	fst.set_border_width_all(2)
-	fst.border_color = Color(0.5, 0.85, 0.55)
-	fst.set_content_margin_all(8)
-	free_button.add_theme_stylebox_override("normal", fst)
-	free_button.add_theme_stylebox_override("hover", fst)
-	free_button.add_theme_stylebox_override("pressed", fst)
-	free_button.add_theme_color_override("font_color", Color(0.7, 1.0, 0.78))
+	UIKit.style_button(free_button, Color(0.45, 0.8, 0.5))  # 무료 뽑기 — 초록
 	free_button.pressed.connect(_on_free_roll)
 	$Center.add_child(free_button)
 	$Center.move_child(free_button, roll_button.get_index() + 1)  # 뽑기 버튼 바로 아래
