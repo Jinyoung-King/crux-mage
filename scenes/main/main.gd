@@ -97,6 +97,16 @@ var storm_wave: WaveData = preload("res://resources/waves/wave_storm.tres")
 var plague_wave: WaveData = preload("res://resources/waves/wave_plague.tres")
 var earthlord_wave: WaveData = preload("res://resources/waves/wave_earthlord.tres")
 var midboss_wave: WaveData = preload("res://resources/waves/wave_midboss.tres")
+var titan_wave: WaveData = preload("res://resources/waves/wave_titan.tres")  # 새 거대 보스(일반/스테이지 보스 웨이브)
+const MIDBOSS_HP_FACTOR := 0.5  # 기존 보스를 중간보스로 쓸 때 체력 보정(600→300 ≈ 기존 중간보스)
+## 속성 → 기존 보스 적(이제 중간보스로 사용). 저편 보스에도 동일 매핑 사용.
+var _eboss := {
+	"fire": preload("res://resources/enemies/enemy_boss.tres"),
+	"water": preload("res://resources/enemies/enemy_guardian.tres"),
+	"metal": preload("res://resources/enemies/enemy_storm.tres"),
+	"wood": preload("res://resources/enemies/enemy_plague.tres"),
+	"earth": preload("res://resources/enemies/enemy_earthlord.tres"),
+}
 var bonus_wave: WaveData = preload("res://resources/waves/wave_bonus.tres")  # 보너스(코인) 웨이브 — 무해한 보물 적
 # 보상 후보 카드 풀 (소모되지 않으므로 같은 카드가 다시 나올 수 있음)
 var card_pool: Array = [
@@ -780,14 +790,20 @@ func _stage_element(index: int) -> String:
 		return GameState.stage_element
 	return ELEMENT_ORDER[(index / WAVES_PER_STAGE) % ELEMENT_ORDER.size()]
 
-## 스테이지 속성에 맞는 보스 웨이브
-func _boss_wave_for(index: int) -> WaveData:
+## 스테이지 속성에 맞는 기존 속성 보스 웨이브 (저편 장 보스 + 중간보스 적 추출에 사용)
+func _element_boss_wave(index: int) -> WaveData:
 	match _stage_element(index):
 		"fire": return boss_wave
 		"water": return guardian_wave
 		"metal": return storm_wave
 		"wood": return plague_wave
 		_: return earthlord_wave  # earth — 대지 마왕
+
+## 보스 웨이브: 일반·스테이지는 새 거대 보스(마룡왕), 저편은 기존 속성 보스(여정 정체성 유지)
+func _boss_wave_for(index: int) -> WaveData:
+	if GameState.game_mode == "beyond":
+		return _element_boss_wave(index)
+	return titan_wave
 
 ## 보스 웨이브의 HP바 적(보스 본체) 이름 — 등장 배너용
 func _boss_enemy_name(index: int) -> String:
@@ -844,6 +860,8 @@ func _start_wave(index: int) -> void:
 	endless_dmg_scale = minf(pow(1.0 + ENDLESS_DMG_GROWTH, _endless_level(index)), dmg_cap)  # 적 피해 상승(상한도 단계마다 상승)
 	endless_hp_scale *= GameState.asc_hp_mult()    # 상승 계층(스테이지): 배율 1.0이면 무영향
 	endless_hp_scale *= float(_run_mod.get("hp", 1.0))  # [모디파이어] 적 체력 배율
+	if _wave_kind(index) == "midboss":
+		endless_hp_scale *= MIDBOSS_HP_FACTOR  # 기존 보스를 중간보스로 쓰므로 체력 보정(과하게 안 세게)
 	endless_dmg_scale *= GameState.asc_dmg_mult()
 	if _challenge_left > 0:  # 갈림길 '도전': 다음 N웨이브 적 체력·피해 강화
 		endless_hp_scale *= CHALLENGE_MULT
@@ -859,7 +877,8 @@ func _start_wave(index: int) -> void:
 		_add_shake(6.0)  # 보스 등장 예고
 		_show_boss_banner(_boss_enemy_name(index))  # 보스 이름 등장 배너
 	elif kind == "midboss":
-		wave_label.text = "Wave %d - 중간보스" % (index + 1)
+		var mbn: String = _eboss[_stage_element(index)].display_name if _eboss.has(_stage_element(index)) else "중간보스"
+		wave_label.text = "Wave %d - 중간보스: %s" % [index + 1, mbn]
 		_add_shake(4.0)
 	elif kind == "bonus":
 		wave_label.text = "Wave %d - 보너스!" % (index + 1)
@@ -900,7 +919,12 @@ func _build_spawn_list(index: int) -> Array:
 			return _beyond_boss_spawn_list(index)  # 저편 보스 = 본체 + 단일 속성 호위(혼합 속성 잡몹 배제)
 		base = _boss_wave_for(index).build_spawn_list()
 	elif kind == "midboss":
-		base = midboss_wave.build_spawn_list()
+		base = midboss_wave.build_spawn_list()  # 가벼운 호위 구성 재사용
+		var mb = _eboss.get(_stage_element(index), null)  # 기존 속성 보스를 중간보스로 투입
+		if mb != null:
+			for i in base.size():
+				if base[i].show_hp_bar:
+					base[i] = mb  # 기존 중간보스 자리를 속성 보스로 교체(체력은 MIDBOSS_HP_FACTOR로 보정)
 	else:  # bonus
 		base = bonus_wave.build_spawn_list()  # 무한 단계만큼 보물도 증원 → 후반일수록 코인 多
 	var extra := int(base.size() * 0.25 * mini(_endless_level(index), COUNT_SCALE_CAP))  # 수 증가 상한(과밀 방지)
