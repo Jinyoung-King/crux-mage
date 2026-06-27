@@ -141,6 +141,7 @@ func setup(data: EnemyData, hp_scale: float = 1.0, dscale: float = 1.0, elite: D
 	# 표시 배율 = 크기/텍스처폭 (엘리트 거대 수식어면 body_size가 커져 함께 확대)
 	sprite_scale = body_size / float(data.sprite.get_width())
 	$Sprite2D.scale = Vector2(sprite_scale, sprite_scale)
+	queue_redraw()  # 발밑 그림자(_draw) — body_size 확정 후 1회(이후 원근 스케일·이동은 루트 변환이 처리)
 	# 충돌 모양은 인스턴스 간 공유되므로 새로 만들어 크기 적용
 	var shape := RectangleShape2D.new()
 	shape.size = Vector2(body_size, body_size)
@@ -237,6 +238,14 @@ func _physics_process(delta: float) -> void:
 		queue_free()
 
 ## 상태 색조(피격 플래시·예고 중이 아닐 때만) + HP바 갱신 — 일반 이동·돌진 공통
+## 발밑 그림자 — 적이 '땅에 서 있다'를 표현(하늘 낙하감 해소). 납작한 타원, 루트 변환에 자동 추종.
+func _draw() -> void:
+	if march_up:
+		return  # [리버스] 별도 구도 — 그림자 생략
+	draw_set_transform(Vector2(0.0, body_size * 0.42), 0.0, Vector2(1.0, 0.34))
+	draw_circle(Vector2.ZERO, body_size * 0.5, Color(0.0, 0.0, 0.0, 0.32))
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
 func _update_visuals() -> void:
 	_update_tint()
 	if not _flashing and not _telegraphing:

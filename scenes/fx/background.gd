@@ -169,27 +169,6 @@ func _draw() -> void:
 	_draw_silhouette()
 	# ④ 지평선 빛 띠
 	draw_rect(Rect2(0.0, HORIZON - 2.0, W, 3.0), Color(horizon_col.r, horizon_col.g, horizon_col.b, 0.5))
-	# ⑤ 성으로 이어지는 길(원근) — 지평선의 소실점에서 성(아래)로 넓어지는 사다리꼴 + 수렴 모서리 + 점점 넓어지는 가로 단
-	var cx := W * 0.5
-	var top_hw := 46.0           # 소실점 근처(멀리) 길 반폭
-	var bot_hw := W * 0.46       # 성 근처(가까이) 길 반폭(거의 전폭)
-	var path_fill := ground_near.lightened(0.10)
-	path_fill.a = 0.55
-	draw_colored_polygon(PackedVector2Array([  # 길 바닥(밝은 흙길) — 볼록 사다리꼴
-		Vector2(cx - top_hw, HORIZON), Vector2(cx + top_hw, HORIZON),
-		Vector2(cx + bot_hw, H), Vector2(cx - bot_hw, H)]), path_fill)
-	var edge: Color = ground_near.lightened(0.32)
-	edge.a = 0.55
-	draw_line(Vector2(cx - top_hw, HORIZON), Vector2(cx - bot_hw, H), edge, 3.0)  # 좌 수렴 모서리
-	draw_line(Vector2(cx + top_hw, HORIZON), Vector2(cx + bot_hw, H), edge, 3.0)  # 우 수렴 모서리
-	var rung: Color = ground_near.lightened(0.22)
-	rung.a = 0.35
-	for i in range(1, 11):  # 가로 단 — 아래로 갈수록 간격·폭↑(원근 사다리)
-		var f := float(i) / 11.0
-		var d := f * f  # 원근 분포(위는 촘촘, 아래는 성김)
-		var ly := HORIZON + (H - HORIZON) * d
-		var hw := lerpf(top_hw, bot_hw, d)
-		draw_rect(Rect2(cx - hw, ly, hw * 2.0, 2.5), rung)
 	# ⑥ 바닥 발광(용암·늪 등)
 	if _glow.a > 0.004:
 		var ggh := 320.0
