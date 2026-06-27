@@ -50,6 +50,7 @@ const TIPS := [
 
 func _ready() -> void:
 	Music.play_menu()
+	_build_backing_card()  # 중앙 콘텐츠를 받치는 다크 라운드 카드(도감 스타일 통일)
 	$VersionLabel.text = GameState.VERSION  # 빌드 버전 표기(단일 출처)
 	if OS.has_feature("web"):  # PWA 업데이트 배너는 홈에서만 표시(인게임 오탭으로 진행 유실 방지) + 수동 확인 버튼
 		JavaScriptBridge.eval("window.cmOnHome&&window.cmOnHome()")
@@ -131,6 +132,21 @@ func _build_save_button() -> void:
 	sb.offset_bottom = -148.0
 	sb.pressed.connect(_open_save_panel)
 	add_child(sb)
+
+## 중앙 콘텐츠 배킹 카드 — 풍경 배경 위에 다크 라운드 패널을 깔아 메뉴가 '카드 위에' 보이도록.
+func _build_backing_card() -> void:
+	var card := Panel.new()
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE  # 버튼 입력 통과
+	card.set_anchors_preset(Control.PRESET_FULL_RECT)
+	card.offset_left = 16.0
+	card.offset_top = 224.0
+	card.offset_right = -16.0
+	card.offset_bottom = -104.0
+	var sb := UIKit.panel(Color(0, 0, 0, 0), 20)
+	sb.bg_color = Color(0.10, 0.095, 0.14, 0.80)
+	card.add_theme_stylebox_override("panel", sb)
+	add_child(card)
+	move_child(card, 1)  # BgLayer(0) 위, Center 아래 → 콘텐츠 뒤에 깔림
 
 ## 공통 버튼 생성: 텍스트 + 폰트 + 크기 (flat·색·앵커·스타일박스 등 그 외는 호출부에서)
 func _btn(text: String, size: int) -> Button:
@@ -698,7 +714,7 @@ func _build_stage_buttons() -> void:
 	$Center.add_child(row)
 	for elem in ["wood", "fire", "earth", "metal", "water"]:
 		var b := _btn(ElementLib.display_name(elem), 22)
-		b.custom_minimum_size = Vector2(52, 48)
-		b.add_theme_color_override("font_color", ElementLib.color(elem))
+		b.custom_minimum_size = Vector2(54, 50)
+		UIKit.style_button(b, ElementLib.color(elem))  # 도감 스타일 통일(속성색 카드 버튼)
 		row.add_child(b)
 		b.pressed.connect(_on_stage.bind(elem))
