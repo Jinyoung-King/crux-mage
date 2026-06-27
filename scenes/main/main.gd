@@ -280,6 +280,7 @@ func _ready() -> void:
 	quality_button.add_theme_font_override("font", FONT)
 	quality_button.add_theme_font_size_override("font_size", 22)
 	quality_button.pressed.connect(_on_quality_pressed)
+	UIKit.style_button(quality_button, Color(0.55, 0.62, 0.78))  # 품질 버튼도 통일
 	var pcenter := $HUD/PauseScreen/Center
 	pcenter.add_child(quality_button)
 	pcenter.move_child(quality_button, damage_button.get_index() + 1)  # 데미지 숫자 토글 바로 아래
@@ -290,6 +291,7 @@ func _ready() -> void:
 	$HUD/HpIcon.hide()  # 좌상단 방패 아이콘 제거 — HP는 하단 바, 좌상단은 '남은 적 수'로 대체
 	hp_label.offset_left = 20.0  # 방패 자리까지 좌측 정렬(빈 칸 제거)
 	_build_result_ui()  # 사망·클리어 결과 요약 패널
+	_style_ingame_ui()  # [UI] HUD 버튼·일시정지·스탯 패널을 도감 카드 스타일로 통일
 	_on_player_hp_changed($Player.hp, $Player.max_hp)  # HP 초기 표시
 	_update_best_label()
 	_update_coin_label()
@@ -1736,6 +1738,33 @@ func _on_player_died() -> void:
 	_show_result(false, wave_index + 1, leveled, (wave_index + 1) > prev_best, unlocked_tabs)
 
 ## 결과 요약 패널 구성(코드) — 사망·클리어 시 표시. 자체 [다시하기][캐릭터 선택] 버튼 포함.
+## [UI] 인게임 HUD·패널 통일 — 상단 버튼 키트화 + 일시정지/스탯 패널에 배킹 카드·버튼 통일.
+func _style_ingame_ui() -> void:
+	var steel := Color(0.55, 0.62, 0.78)
+	for b in [speed_button, pause_button, restart_button, char_select_button]:
+		UIKit.style_button(b, steel)
+	_panel_card_behind($HUD/PauseScreen/Center)
+	for b in [mute_button, damage_button, $HUD/PauseScreen/Center/ResumeButton,
+			$HUD/PauseScreen/Center/RestartButton, $HUD/PauseScreen/Center/MenuButton]:
+		UIKit.style_button(b, steel)
+	_panel_card_behind($HUD/StatsPanel/Center)
+	UIKit.style_button($HUD/StatsPanel/Center/CloseButton, steel)
+
+## 중앙 VBox(center) 뒤에 그 '실제' rect를 감싸는 다크 라운드 카드. 내용 크기 변동(오버플로)에도 자동 피팅.
+func _panel_card_behind(center: Control, pad := 20.0) -> void:
+	var card := Panel.new()
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sb := UIKit.panel(Color(0, 0, 0, 0), 18)
+	sb.bg_color = Color(0.11, 0.105, 0.15, 0.97)
+	card.add_theme_stylebox_override("panel", sb)
+	center.get_parent().add_child(card)
+	center.get_parent().move_child(card, center.get_index())  # center 앞으로 → 뒤에 깔림
+	var fit := func() -> void:
+		card.global_position = center.global_position - Vector2(pad, pad)
+		card.size = center.size + Vector2(pad * 2.0, pad * 2.0)
+	center.item_rect_changed.connect(fit)  # center 크기·위치 변할 때마다 카드 재맞춤
+	fit.call_deferred()  # 초기 레이아웃 후 1회
+
 func _build_result_ui() -> void:
 	result_panel = Control.new()
 	result_panel.process_mode = Node.PROCESS_MODE_ALWAYS  # 정지 중에도 동작
@@ -1801,6 +1830,7 @@ func _result_button(text: String) -> Button:
 	b.custom_minimum_size = Vector2(220, 56)
 	b.add_theme_font_override("font", FONT)
 	b.add_theme_font_size_override("font_size", 22)
+	UIKit.style_button(b, Color(0.55, 0.62, 0.78))  # 결과 패널 버튼 통일
 	return b
 
 ## 결과 요약 표시: 도달·처치·카드·빌드(스킬·룬)·기록 리캡
@@ -2080,6 +2110,7 @@ func _build_cards_ui() -> void:
 	close.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	close.add_theme_font_override("font", FONT)
 	close.add_theme_font_size_override("font_size", 24)
+	UIKit.style_button(close, Color(0.55, 0.62, 0.78))  # 내 빌드 패널 닫기 버튼 통일
 	close.pressed.connect(_close_cards)
 	center.add_child(close)
 
