@@ -84,7 +84,10 @@ func execute(s: Dictionary) -> void:
 				for e in EnemyCache.all():  # [목] 속박: 범위 내 적을 잠시 완전 정지(덩굴로 옭아맴). 적별 쿨다운으로 영구정지 방지
 					if is_instance_valid(e) and tc.distance_to(e.global_position) <= er:
 						e.apply_root(1.3)
-				_thorn_erupt(tc, er)  # 날카로운 가시 다발이 솟구침(가시밭 정체성 — 가시가 주연이라 보조 먼지 FX 제거)
+				var nfx = PIXEL_FX.new()  # 자연 FX(가시 솟구침 삼각 이펙트는 제거 — 사용자 피드백)
+				nfx.position = tc
+				fx_root.add_child(nfx)
+				nfx.play(FX_WOOD, 10, er * 1.7, 60.0, Color.WHITE, 10)
 		"inferno":  # 불바다: 밀집 지점에 화염 작렬(광역 피해 + 화상) + 잔류 화염 장판(지속 피해)
 			var fc := aim if aim != Vector2.INF else _densest_cluster(er, pool)
 			if fc != Vector2.INF:
