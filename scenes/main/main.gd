@@ -35,6 +35,16 @@ const SPAWN_Y := -60.0  # 화면(720x1280) 위쪽 바깥
 const SPAWN_X_MIN := 60.0  # 스폰 가로 범위 (가장자리 여백 확보)
 const SPAWN_X_MAX := 660.0
 const CHOICES_PER_CLEAR := 3
+## [매 판 다르게] 런 모디파이어 — 판 시작 시 1개 무작위 적용해 매 런 룰이 달라지게(능동 입력 안 늘림).
+## hp=적 체력×, speed=적 이동×, count=적 수×, coin=코인×, choices=카드 선택지+, sig=시그니처 충전×, hp_start=시작 체력×.
+const RUN_MODS := [
+	{"name": "풍요", "desc": "코인 +60% · 적 체력 +10%", "coin": 1.6, "hp": 1.1},
+	{"name": "광전사", "desc": "적 이동 +25% · 코인 +50%", "speed": 1.25, "coin": 1.5},
+	{"name": "응축", "desc": "시그니처 충전 2배", "sig": 2.0},
+	{"name": "속전속결", "desc": "적 +30% 많지만 체력 -25%", "count": 1.3, "hp": 0.75},
+	{"name": "탐욕", "desc": "코인 2배 · 시작 체력 -20%", "coin": 2.0, "hp_start": 0.8},
+]
+var _run_mod: Dictionary = {}  # 이번 런 활성 모디파이어(비면 없음 — 저편·리버스)
 const RARITY_WEIGHT := {"common": 3.0, "uncommon": 1.7, "rare": 1.0, "epic": 0.45, "legendary": 0.22}  # 등장 가중치(고급<희귀<영웅<전설 순 희소)
 # 희귀도 색·뱃지 (card_select와 동일 체계) — '내 카드' 리스트 표시용
 const RARITY_COLORS := {
@@ -294,6 +304,7 @@ func _ready() -> void:
 	if GameState.game_mode == "reverse":  # [실험] 리버스 — 스쿼드(몹) vs 하단 마법사 AI
 		_setup_reverse()
 		return
+	_roll_run_mod()  # [매 판 다르게] 이번 런 무작위 룰 1개(stage·endless)
 	if GameState.game_mode == "stage":
 		wave_index = -1  # 스테이지 모드: Wave 1부터(시작 웨이브 도약 없음)
 	else:
@@ -316,6 +327,37 @@ func _grant_head_start(n: int) -> void:
 			_start_build_summary[nm] = int(_start_build_summary.get(nm, 0)) + 1
 
 ## 시작 도약(시작 웨이브>1)으로 자동 지급된 빌드 요약을 첫 진입 시 토스트로 안내
+## [매 판 다르게] 이번 런 모디파이어 1개 선정 + 시작 효과 적용 + 안내 배너.
+func _roll_run_mod() -> void:
+	_run_mod = RUN_MODS[randi() % RUN_MODS.size()]
+	$Player.sig_charge_mult = float(_run_mod.get("sig", 1.0))  # 시그니처 충전 배율(player가 참조)
+	var hs: float = float(_run_mod.get("hp_start", 1.0))
+	if hs != 1.0:
+		$Player.max_hp = maxf($Player.max_hp * hs, 10.0)
+		$Player.hp = $Player.max_hp
+		_on_player_hp_changed($Player.hp, $Player.max_hp)  # 기지 내구도 바 갱신
+	_show_run_mod_banner()
+
+## 이번 판 룰 안내 토스트(상단, 시작 빌드 요약 아래)
+func _show_run_mod_banner() -> void:
+	if _run_mod.is_empty():
+		return
+	var lbl := _label("이번 판 ┃ %s — %s" % [_run_mod.get("name", ""), _run_mod.get("desc", "")], 19, Color(0.7, 0.95, 1.0))
+	lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	lbl.add_theme_constant_override("outline_size", 5)
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lbl.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE, Control.PRESET_MODE_KEEP_SIZE)
+	lbl.offset_top = 210.0  # 시작 빌드 요약(150) 아래
+	lbl.offset_left = 20.0
+	lbl.offset_right = -20.0
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	$HUD.add_child(lbl)
+	var t := lbl.create_tween()
+	t.tween_interval(4.0)
+	t.tween_property(lbl, "modulate:a", 0.0, 1.0)
+	t.tween_callback(lbl.queue_free)
+
 func _show_start_build_summary() -> void:
 	var text := ""
 	for nm in _start_build_summary:
@@ -792,10 +834,16 @@ func _start_wave(index: int) -> void:
 	else:
 		Music.play_battle()
 	spawn_list = _build_spawn_list(index)
+	var _cmul: float = float(_run_mod.get("count", 1.0))  # [모디파이어] 적 수 배율
+	if _cmul > 1.0 and spawn_list.size() > 0:
+		for i in int(spawn_list.size() * (_cmul - 1.0)):
+			spawn_list.append(spawn_list[randi() % spawn_list.size()])
+		spawn_list.shuffle()
 	endless_hp_scale = pow(1.0 + ENDLESS_HP_GROWTH, _endless_level(index))  # 복리: 후반 빌드 성장을 따라잡도록
 	var dmg_cap: float = ENDLESS_DMG_CAP + ENDLESS_DMG_CAP_GROWTH * _endless_level(index)  # 단계 비례 완화 상한
 	endless_dmg_scale = minf(pow(1.0 + ENDLESS_DMG_GROWTH, _endless_level(index)), dmg_cap)  # 적 피해 상승(상한도 단계마다 상승)
 	endless_hp_scale *= GameState.asc_hp_mult()    # 상승 계층(스테이지): 배율 1.0이면 무영향
+	endless_hp_scale *= float(_run_mod.get("hp", 1.0))  # [모디파이어] 적 체력 배율
 	endless_dmg_scale *= GameState.asc_dmg_mult()
 	if _challenge_left > 0:  # 갈림길 '도전': 다음 N웨이브 적 체력·피해 강화
 		endless_hp_scale *= CHALLENGE_MULT
@@ -947,6 +995,7 @@ func _create_enemy(data: EnemyData, pos: Vector2, elite: Dictionary = {}) -> voi
 		return  # 게임오버 이후 도착한 예약 스폰은 무시
 	var enemy = ENEMY_SCENE.instantiate()
 	enemy.setup(data, endless_hp_scale, endless_dmg_scale, elite)
+	enemy.speed *= float(_run_mod.get("speed", 1.0))  # [모디파이어] 적 이동 배율(없으면 1.0)
 	enemy.position = pos
 	if GameState.game_mode == "reverse":  # [리버스] 몹이 아래→위로 올라와 상단 마법사에 닿음
 		enemy.march_up = true
@@ -1051,6 +1100,7 @@ func _on_enemy_died(pos: Vector2, color: Color, size: float, tex: Texture2D, coi
 		gain = int(round(gain * RelicLib.greed_mult($Player.relic_levels["greed"])))  # 황금의 룬(레벨별)
 	if GameState.run_ascension > 0:
 		gain = int(round(gain * GameState.asc_coin_mult()))  # 상승 계층 코인 보너스(+15%/계층)
+	gain = int(round(gain * float(_run_mod.get("coin", 1.0))))  # [모디파이어] 코인 배율
 	run_coins += gain
 	_update_coin_label()
 	_unregister_enemy()
@@ -1100,6 +1150,7 @@ func _on_wave_cleared() -> void:
 		bonus = int(round(bonus * RelicLib.greed_mult($Player.relic_levels["greed"])))
 	if GameState.run_ascension > 0:
 		bonus = int(round(bonus * GameState.asc_coin_mult()))  # 상승 계층 코인 보너스(+15%/계층)
+	bonus = int(round(bonus * float(_run_mod.get("coin", 1.0))))  # [모디파이어] 코인 배율
 	run_coins += bonus
 	_update_coin_label()
 	# 저편: 무드래프트 — 마지막 장 보스 격파=클리어, 그 외엔 다음 웨이브 직행(장 배너는 _start_wave)
@@ -1361,7 +1412,7 @@ func _card_synergy(card: CardData) -> float:
 func _open_draft(rare: bool = false, legendary: bool = false) -> void:
 	$Player.skills_paused = true  # 드래프트 중 스킬 쿨타임 정지
 	_draft_rare = rare or legendary  # 리롤도 최소 희귀+ 유지
-	var n := maxi(CHOICES_PER_CLEAR + GameState.asc_choices_delta(), 2)  # 상승 계층(3단계~): 선택지 −1(하한 2)
+	var n := clampi(CHOICES_PER_CLEAR + GameState.asc_choices_delta(), 2, 3)  # 카드 UI 슬롯 3개 — 하한 2·상한 3 안전 클램프
 	var cards := _draw_cards(n, rare, [], legendary)
 	card_select.open(cards)
 	if auto_pick and not cards.is_empty():
