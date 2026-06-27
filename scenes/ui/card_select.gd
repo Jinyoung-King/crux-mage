@@ -45,6 +45,21 @@ func _ready() -> void:
 	auto_button.pressed.connect(_on_auto_pressed)
 	view_cards_button.pressed.connect(func(): view_cards_requested.emit())
 	_build_reroll_row()
+	_build_backing_card()  # 도감 스타일 배킹 카드(드래프트 패널 통일)
+	for b in [reroll_button, auto_button, view_cards_button]:  # 하단 유틸 버튼 통일(강철빛)
+		UIKit.style_button(b, Color(0.55, 0.62, 0.78))
+
+## 드래프트 콘텐츠를 받치는 다크 라운드 카드(Dim 위, Center 뒤)
+func _build_backing_card() -> void:
+	var card := Panel.new()
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.anchor_left = 0.5; card.anchor_top = 0.5; card.anchor_right = 0.5; card.anchor_bottom = 0.5
+	card.offset_left = -356.0; card.offset_top = -352.0; card.offset_right = 356.0; card.offset_bottom = 352.0
+	var sb := UIKit.panel(Color(0, 0, 0, 0), 22)
+	sb.bg_color = Color(0.10, 0.095, 0.14, 0.93)
+	card.add_theme_stylebox_override("panel", sb)
+	add_child(card)
+	move_child(card, 1)  # Dim(0) 위, Center 아래 → 콘텐츠 뒤
 
 ## 호버 시 카드가 살짝 떠오름
 func _on_card_hover(i: int, on: bool) -> void:
