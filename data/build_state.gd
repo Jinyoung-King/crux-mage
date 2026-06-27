@@ -24,6 +24,10 @@ extends Resource
 @export var ground_field: bool = false  ## 행동: 광역 스킬(메테오·융단)이 명중 지점에 지속 피해 장판
 @export var execute_threshold: float = 0.0  ## 전설(수확자): 체력 이 비율 이하 적 즉사(유물 수확과 별개, 큰 값 적용)
 @export var pierce: int = 0  ## 행동: 마력탄이 적을 꿰뚫고 지나가는 추가 횟수 (bolts 발사체에만 적용)
+# [키스톤] 빌드 정체성 플래그(런마다 BuildState.new()로 false 초기화)
+@export var keystone_pierce_chain: bool = false  ## 평타가 관통+연쇄 (레인 꿰뚫기 빌드)
+@export var keystone_persist_field: bool = false ## 장판 지속·확대 + 적 사망 시 장판 (바닥 점령 빌드)
+@export var keystone_execute_chain: bool = false ## 처형 + 처치 폭발 (도미노 빌드) — 중복 픽 제외용
 # 부여형 누적 레벨 — 같은 부여 카드를 또 먹으면 +1씩 쌓여 효과가 강해진다(중복 보상). bool 플래그는 '활성' 게이트로 유지.
 @export var burn_level: int = 0   ## 화염 각인 누적 → 화상 dps·지속 ↑
 @export var slow_level: int = 0   ## 서리 각인 누적 → 둔화 강도·지속 ↑

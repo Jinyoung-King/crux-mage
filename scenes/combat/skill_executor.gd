@@ -280,6 +280,9 @@ func _drop_aoe(center: Vector2, radius: float, ep: float, element: String, col: 
 
 ## 잔류 장판: 명중 지점에 지속 피해 필드(초당 ep의 절반)
 func _ground_field(pos: Vector2, radius: float, ep: float, element: String, life := 3.6) -> void:
+	if player.build.keystone_persist_field:  # [키스톤] 장판 군주 — 오래 지속·넓게(바닥 점령)
+		life = maxf(life, 14.0)
+		radius *= 1.3
 	var h = GROUND_HAZARD.new()
 	h.position = pos
 	fx_root.add_child(h)

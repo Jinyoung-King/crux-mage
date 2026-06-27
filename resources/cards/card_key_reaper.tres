@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+card_name = "★ 처형 연쇄"
+description = "[키스톤] 저체력 적을 즉사시키고, 처치 시 폭발합니다 — 도미노로 쓸려나가는 빌드."
+rarity = "epic"
+keystone = "execute_chain"

@@ -148,6 +148,9 @@ var card_pool: Array = [
 	preload("res://resources/cards/card_reaper.tres"),
 	preload("res://resources/cards/card_berserker.tres"),
 	preload("res://resources/cards/card_pantheon.tres"),
+	preload("res://resources/cards/card_key_lance.tres"),       # [키스톤] 관통 폭풍
+	preload("res://resources/cards/card_key_overgrowth.tres"),  # [키스톤] 장판 군주
+	preload("res://resources/cards/card_key_reaper.tres"),      # [키스톤] 처형 연쇄
 ]
 
 var wave_index := 0
@@ -1135,6 +1138,9 @@ func _on_enemy_died(pos: Vector2, color: Color, size: float, tex: Texture2D, coi
 		$Player.gain_signature_charge()  # [능동] 처치로 시그니처 충전(공격적일수록 빨리 참)
 		if GameState.game_mode != "beyond" and GameState.game_mode != "reverse":
 			_gain_xp(maxf(2.0, size / 9.0))  # [경험치] 처치 XP(적 클수록↑) → 레벨업 시 카드
+		if $Player.build.keystone_persist_field:  # [키스톤] 장판 군주 — 적이 죽은 자리에 장판 남김
+			var elem: String = $Player.character.element if $Player.character else "wood"
+			skill_executor._ground_field(pos, 54.0, $Player.build.damage * 0.5, elem, 5.0)
 	# 찢긴 사체(좌/우 절반)를 남긴다 — 약 1.5초 후 스스로 사라짐
 	var remains = DEATH_REMAINS.new()
 	remains.position = pos
@@ -1363,6 +1369,12 @@ func _has_skill(id: String) -> bool:
 
 ## 현재 빌드에서 의미 있는 카드인지 — 죽은 픽(조건 미충족 시너지 등)을 드래프트에서 제외
 func _is_card_useful(card: CardData) -> bool:
+	if card.keystone != "":  # [키스톤] 이미 보유한 키스톤은 드래프트에서 제외(중복 방지)
+		var b = $Player.build
+		if card.keystone == "pierce_chain" and b.keystone_pierce_chain: return false
+		if card.keystone == "persist_field" and b.keystone_persist_field: return false
+		if card.keystone == "execute_chain" and b.keystone_execute_chain: return false
+		return true
 	if card.grant_skill_id != "":
 		var owned: bool = _has_skill(card.grant_skill_id)
 		var evolvable: bool = owned and $Player.can_evolve(card.grant_skill_id)
@@ -1421,6 +1433,8 @@ func _draw_cards(count: int, rare_only: bool = false, exclude: Array = [], legen
 
 ## 드로우 가중치 = 희귀도 가중치 × 빌드 시너지 (빌드에 맞는 카드를 더 자주 제시)
 func _card_weight(card: CardData) -> float:
+	if card.keystone != "":
+		return 6.0 * _card_synergy(card)  # [키스톤] 검증 슬라이스 — 자주 등장(추후 희귀하게 튜닝)
 	return RARITY_WEIGHT.get(card.rarity, 3.0) * _card_synergy(card)
 
 ## 빌드 시너지 배율(>=1.0). 기본 1.0, 보유 빌드와 맞물리는 카드를 선호.

@@ -511,6 +511,18 @@ func apply_card(card: CardData) -> void:
 		build.field_level += 1     # 누적: 중복할수록 장판 피해↑
 	build.execute_threshold += card.execute_threshold_bonus  # 수확자(즉사)
 	build.pierce += card.pierce_bonus  # 관통(마력탄 꿰뚫기)
+	match card.keystone:  # [키스톤] 빌드를 가르는 규칙 변경 — 기존 시스템 강하게 재활용
+		"pierce_chain":
+			build.keystone_pierce_chain = true
+			build.pierce += 2
+		"persist_field":
+			build.keystone_persist_field = true
+			build.ground_field = true
+			build.field_level += 1
+		"execute_chain":
+			build.keystone_execute_chain = true
+			build.execute_threshold += 0.18  # 저체력 즉사
+			build.explode_power += 0.7        # 처치 시 폭발(연쇄)
 	if card.max_hp_bonus != 0.0:
 		max_hp = maxf(max_hp + card.max_hp_bonus, 10.0)  # 트레이드오프로도 최소 10은 보장
 		hp = minf(hp, max_hp)
@@ -559,6 +571,11 @@ func _fire_at(target, aim_offset := 0.0) -> void:
 		p.direction = p.direction.rotated(aim_offset)  # 집중사격 부채 흩뿌림
 	p.rotation = p.direction.angle()
 	p.damage = effective_damage() * BASIC_ATTACK_MULT  # 평타 = 공격력의 일부(약한 베이스라인). 스킬은 별도(eff_power)
+	if build.keystone_pierce_chain:  # [키스톤] 평타가 적을 꿰뚫고 튕긴다(레인 관통 빌드)
+		p.pierce += 3
+		p.chain_count += 2
+		p.chain_factor = maxf(p.chain_factor, 0.55)
+		p.chain_range = maxf(p.chain_range, 240.0)
 	if host._perf_tier < 2:
 		p.enable_trail(true)  # 평타도 은은한 잔광(얇고 짧게) — 저성능 단계에선 생략
 	p.lifesteal = lifesteal  # dealt→_on_lifesteal는 acquire에서 1회 연결(방출은 lifesteal>0일 때만)

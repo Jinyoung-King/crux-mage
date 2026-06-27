@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+card_name = "★ 장판 군주"
+description = "[키스톤] 장판이 오래 지속·확대되고, 적이 죽은 자리에도 장판이 깔립니다 — 바닥을 점령하는 빌드."
+rarity = "epic"
+keystone = "persist_field"

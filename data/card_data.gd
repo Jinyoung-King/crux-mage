@@ -32,3 +32,6 @@ extends Resource
 @export var grant_ground_field: bool = false  ## 행동: 잔류 장판(광역 스킬이 장판 남김)
 @export var execute_threshold_bonus: float = 0.0  ## 전설: 저체력 즉사 임계치
 @export var pierce_bonus: int = 0  ## 행동: 마력탄 관통 횟수
+# [키스톤] 빌드를 가르는 규칙 변경 카드. "" 아니면 apply_card가 해당 키스톤을 켠다.
+# "pierce_chain"=평타 관통+연쇄 / "persist_field"=장판 지속+사망 장판 / "execute_chain"=처형+연쇄 폭발
+@export var keystone: String = ""
