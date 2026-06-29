@@ -112,6 +112,39 @@ func execute(s: Dictionary) -> void:
 				gfx.position = gc
 				fx_root.add_child(gfx)
 				gfx.play(FX_WATER, 10, er * 2.0, 60.0, Color.WHITE, 10)
+		"fireball":  # [화] 가장 단단한 적(보스 우선)에 화염구 집중 강타 + 화상
+			var tough = null
+			var tough_hp := -1.0
+			for e in pool:
+				if is_instance_valid(e) and e.hp > tough_hp:
+					tough_hp = e.hp; tough = e
+			if tough != null and is_instance_valid(tough):
+				_skill_aoe(tough.global_position, er, ep, true, element)  # 직격 지점 화염 작렬 + 화상
+		"tide":  # [수] 해일 — 광역 피해 + 기지 회복(유일한 지속형 보강)
+			var tc := aim if aim != Vector2.INF else _densest_cluster(er, pool)
+			if tc != Vector2.INF:
+				_skill_aoe(tc, er, ep, false, element)
+				player.heal(ep * 1.2)  # 피해의 일부만큼 기지 회복
+		"spores":  # [목] 포자 구름 — 넓고 오래가는 둔화 독 장판
+			var sc := aim if aim != Vector2.INF else _densest_cluster(er, pool)
+			if sc != Vector2.INF:
+				_skill_aoe(sc, er, ep, false, element)
+				_ground_field(sc, er, ep, element, 5.0)  # 오래 지속되는 독 장판
+				for e in EnemyCache.all():
+					if is_instance_valid(e) and sc.distance_to(e.global_position) <= er:
+						e.apply_slow(0.5, 3.0)
+		"shrapnel":  # [금] 비도 난사 — 가까운 적 다수에 직선 비도 일제 발사
+			pool.sort_custom(func(a, b): return player.global_position.distance_squared_to(a.global_position) < player.global_position.distance_squared_to(b.global_position))
+			for e in pool.slice(0, count):
+				if is_instance_valid(e):
+					player.fire_skill_bolt(e, ep, element)
+		"quake":  # [토] 지진 — 사거리 내 전 적 강타 + 짧은 속박
+			for e in pool:
+				if is_instance_valid(e):
+					_skill_hit(e, ep, element)
+					if is_instance_valid(e) and e.hp > 0.0:
+						e.apply_root(0.8)
+			host._add_shake(8.0)
 	host._add_shake(4.0)
 
 ## 스킬 1회 명중 파이프라인: pre_damage(격노·치명) → 상성·분산 → 피해·흡혈 → on_hit(반응) → on_kill(폭발) → 숫자.

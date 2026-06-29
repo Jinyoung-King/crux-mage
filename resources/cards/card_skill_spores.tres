@@ -4,8 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-card_name = "일제 사격"
-description = "다발 +2 · 스킬에 화상 부여 — 더 많은 적을 동시에 타격하고 불을 붙인다."
+card_name = "포자 구름 습득"
+description = "포자 구름 — 넓은 지역에 오래 지속되는 독 장판을 깔아 적을 둔화시키고 갉아먹는다."
 rarity = "rare"
-extra_targets_bonus = 2
-grant_burn = true
+grant_skill_id = "spores"

@@ -35,6 +35,7 @@ var picking := false  ## 선택 연출 중(중복 입력 방지)
 var shop_costs: Array = []  ## 비어있지 않으면 상점 모드(카드별 코인 비용)
 var shop_coins := 0          ## 상점 모드: 현재 보유 코인(구매 가능 판정)
 var player                   ## main이 주입 — 보유 스킬의 다음 진화명을 카드 이름에 표시
+var pool                     ## main이 주입(CardPool) — 스마트 자동픽(best_pick) 점수 계산용
 
 func _ready() -> void:
 	for i in buttons.size():
@@ -86,7 +87,7 @@ func _process(delta: float) -> void:
 		return
 	auto_left -= delta
 	if auto_left <= 0.0:
-		pick_random()
+		pick_best()  # [스마트 자동픽] 무작위 대신 가장 좋은 카드(희귀도·시너지·키스톤 우선)
 	else:
 		_update_auto_label()
 
@@ -192,9 +193,11 @@ func _render_cards(cards: Array) -> void:
 			btn.visible = true
 		else:
 			btn.visible = false
-	# 새로고침 아이콘(카드 아래·바깥) 초기화 — 전부 활성, 카드 있는 칸만 표시
+	# 새로고침 아이콘(카드 아래·바깥) 초기화 — 카드 있는 칸만 표시.
+	# 아이콘이 아니라 '셀(CenterContainer)'을 숨겨야 HBox가 빈 칸을 건너뛰어 카드와 같은 정렬(2장일 때 어긋남 수정).
 	for i in reroll_icons.size():
-		reroll_icons[i].visible = _reroll_allowed and i < cards.size()
+		var cell: Control = reroll_icons[i].get_parent()
+		cell.visible = _reroll_allowed and i < cards.size()
 		reroll_icons[i].disabled = false
 		reroll_icons[i].queue_redraw()
 	for i in cards.size():
@@ -598,3 +601,12 @@ func _on_button_pressed(index: int) -> void:
 func pick_random() -> void:
 	if not shown_cards.is_empty():
 		_on_button_pressed(randi() % shown_cards.size())
+
+## [스마트 자동픽] 후보 중 가장 좋은 카드 1장(희귀도·시너지·키스톤 우선). pool 미주입/후보 없으면 무작위로 폴백.
+func pick_best() -> void:
+	if shown_cards.is_empty():
+		return
+	if pool == null:
+		pick_random(); return
+	var best = pool.best_pick(shown_cards)
+	_on_button_pressed(shown_cards.find(best) if best != null else randi() % shown_cards.size())

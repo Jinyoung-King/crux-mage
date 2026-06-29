@@ -3,7 +3,7 @@ extends Node
 ## 씬을 새로 로드해도 유지되며, 최고 기록은 user://에 영속 저장된다.
 
 const SAVE_PATH := "user://save.cfg"
-const VERSION := "v3.74"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
+const VERSION := "v3.81"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
 
 # 패치노트 (최신이 위). 새 버전 추가 시 맨 앞에 한 항목 추가. 시작 화면 "패치노트" + 업데이트 시 자동 안내.
 const CHANGELOG := [
@@ -390,6 +390,14 @@ func _ready() -> void:
 	apply_audio()  # 저장된 음량·음소거를 마스터 버스에 적용(게임 전체)
 	if selected == null:
 		selected = characters[0]
+
+## 앱이 백그라운드/포커스아웃/뒤로가기/종료될 때 즉시 영속화.
+## 웹 모바일에서 뒤로가기로 페이지가 언로드되기 직전 localStorage 미러(동기)를 최신화 — 데이터 유실 방지.
+func _notification(what: int) -> void:
+	if what in [NOTIFICATION_APPLICATION_PAUSED, NOTIFICATION_APPLICATION_FOCUS_OUT,
+			NOTIFICATION_WM_WINDOW_FOCUS_OUT, NOTIFICATION_WM_GO_BACK_REQUEST,
+			NOTIFICATION_WM_CLOSE_REQUEST]:
+		_save()
 
 ## 마스터 버스에 음량·음소거 적용
 func apply_audio() -> void:

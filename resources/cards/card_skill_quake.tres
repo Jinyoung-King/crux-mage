@@ -4,8 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-card_name = "일제 사격"
-description = "다발 +2 · 스킬에 화상 부여 — 더 많은 적을 동시에 타격하고 불을 붙인다."
+card_name = "지진 습득"
+description = "지진 — 사거리 안의 모든 적을 한 번에 강타하고 잠시 속박한다."
 rarity = "rare"
-extra_targets_bonus = 2
-grant_burn = true
+grant_skill_id = "quake"

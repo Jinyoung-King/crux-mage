@@ -5,7 +5,8 @@
 [resource]
 script = ExtResource("1")
 card_name = "광신"
-description = "스킬 위력 +60%. 대신 최대 체력 -40 — 모 아니면 도."
+description = "스킬 위력 +45% · 방어 +2. 대신 최대 체력 -30 — 광신도의 가호(공·방을 함께)."
 rarity = "rare"
-skill_power_bonus = 0.6
-max_hp_bonus = -40.0
+skill_power_bonus = 0.45
+defense_bonus = 2.0
+max_hp_bonus = -30.0

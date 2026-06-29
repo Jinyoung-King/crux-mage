@@ -4,8 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-card_name = "일제 사격"
-description = "다발 +2 · 스킬에 화상 부여 — 더 많은 적을 동시에 타격하고 불을 붙인다."
+card_name = "화염구 습득"
+description = "화염구 — 가장 단단한 적(보스 우선)에게 화염구를 집중시켜 강타하고 화상을 남긴다."
 rarity = "rare"
-extra_targets_bonus = 2
-grant_burn = true
+grant_skill_id = "fireball"

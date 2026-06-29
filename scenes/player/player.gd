@@ -14,6 +14,7 @@ const THORN_ARROW := preload("res://assets/sprites/thorn_arrow.png")  ## 가시 
 const PLAIN_BOLT := preload("res://assets/sprites/bolt_dot.png")  ## 평타 공용 초소형 점(8px, 초경량 — 스킬 발사체와 명확히 구분)
 const FOCUS_SPREAD := PI / 90.0  ## 표적보다 발사 수가 많을 때 같은 표적에 겹쳐 쏘는 발사의 부채 각(≈2°)
 const BASIC_ATTACK_MULT := 0.04  ## 평타 피해 = effective_damage()의 이 비율(약한 베이스라인 — 스킬 쿨과 별개로 연사 주기마다)
+const DRONE_ASSIST_MULT := 0.6   ## 수호 비행체 평타 보조 사격 = 평타 피해의 이 비율(드론별·약화 보조)
 const MAX_SKILL_SLOTS := 5  ## 스킬 슬롯 제한(캐릭터 고유 1 포함) — 다 쓰기 방지·슬롯 차면 진화 유도. v1.95 4→5(원소 균열 몰빵 여유, 성능은 발사체/FX 상한이 보장)
 const EVOLVE_COST := 3  ## 같은 스킬 카드를 이만큼 모으면 1단계 진화(분기 선택)
 const ANCHOR_AFFINITY := 0.30   ## [어피니티] 마법사 속성(앵커) 기본 어피니티
@@ -534,10 +535,11 @@ func apply_card(card: CardData) -> void:
 	_sync_barrier_droid()    # 비행체 스킬 획득/변경 반영(미보유면 무동작)
 	attack_timer.wait_time = 1.0 / maxf(build.fire_rate, 0.1)  # 연사 변동 → 평타 주기 갱신(다음 주기부터)
 
-func _fire_at(target, aim_offset := 0.0) -> void:
+func _fire_at(target, aim_offset := 0.0, origin := Vector2.INF, dmg_scale := 1.0) -> void:
 	var p = host.acquire_projectile()
 	if p == null:
 		return  # 발사체 풀/캡 초과 — 드랍(평타는 가장 많이 발사 → 여기서 자주 컷)
+	var src: Vector2 = global_position if origin == Vector2.INF else origin  # 발사 원점(드론 보조 사격 시 드론 위치)
 	var spr: Sprite2D = p.get_node("Sprite2D")
 	if character and character.element == "metal":  # 비도술사: 투척 단검(점 대신 칼날)
 		spr.texture = KNIFE
@@ -562,15 +564,15 @@ func _fire_at(target, aim_offset := 0.0) -> void:
 		p.chain_range = character.passive_chain_range
 		p.splash_factor = character.passive_splash_factor
 		p.splash_radius = character.passive_splash_radius
-	p.position = global_position  # Projectiles 컨테이너가 원점에 있어 전역 좌표와 동일
+	p.position = src  # Projectiles 컨테이너가 원점에 있어 전역 좌표와 동일(드론이면 드론 위치)
 	# 적이 아래로 이동 중이므로 비행시간만큼 앞질러 조준 (1회 예측으로 충분)
-	var flight_time: float = global_position.distance_to(target.global_position) / p.speed
+	var flight_time: float = src.distance_to(target.global_position) / p.speed
 	var predicted: Vector2 = target.global_position + (Vector2.UP if reverse_aim else Vector2.DOWN) * target.speed * flight_time
-	p.direction = (predicted - global_position).normalized()
+	p.direction = (predicted - src).normalized()
 	if aim_offset != 0.0:
 		p.direction = p.direction.rotated(aim_offset)  # 집중사격 부채 흩뿌림
 	p.rotation = p.direction.angle()
-	p.damage = effective_damage() * BASIC_ATTACK_MULT  # 평타 = 공격력의 일부(약한 베이스라인). 스킬은 별도(eff_power)
+	p.damage = effective_damage() * BASIC_ATTACK_MULT * dmg_scale  # 평타 = 공격력의 일부(드론 보조는 dmg_scale로 약화)
 	if build.keystone_pierce_chain:  # [키스톤] 평타가 적을 꿰뚫고 튕긴다(레인 관통 빌드)
 		p.pierce += 3
 		p.chain_count += 2
@@ -581,6 +583,12 @@ func _fire_at(target, aim_offset := 0.0) -> void:
 	p.lifesteal = lifesteal  # dealt→_on_lifesteal는 acquire에서 1회 연결(방출은 lifesteal>0일 때만)
 	_apply_relics_to(p)
 	fired.emit(p)
+
+## 수호 비행체 평타 보조: 드론 위치(origin)에서 target에게 약화된 평타 1발(barrier_droid가 호출).
+func fire_assist(origin: Vector2, target) -> void:
+	if target == null or not is_instance_valid(target):
+		return
+	_fire_at(target, 0.0, origin, DRONE_ASSIST_MULT)
 
 ## 유물 효과를 발사체에 적용 (캐릭터 패시브 위에 가산/강화)
 func _apply_relics_to(p) -> void:

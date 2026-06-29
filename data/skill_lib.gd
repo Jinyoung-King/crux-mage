@@ -14,6 +14,11 @@ const DEFS := {
 	"inferno": {"name": "불바다", "cooldown": 8.0, "power": 9.0, "radius": 64.0, "count": 0, "element": "fire"},   # 화염 작렬+화상+잔류 장판(DoT)
 	"rockfall": {"name": "낙석", "cooldown": 8.5, "power": 8.0, "radius": 50.0, "count": 3, "element": "earth"},   # 여러 바위 분산 낙하(count=바위 수)
 	"glacier": {"name": "빙하", "cooldown": 7.0, "power": 13.0, "radius": 70.0, "count": 0, "element": "water"},   # 국지 고피해+강한 둔화
+	"fireball": {"name": "화염구", "cooldown": 9.0, "power": 24.0, "radius": 44.0, "count": 0, "element": "fire"},   # [화] 가장 단단한 적(보스) 집중 강타 + 화상
+	"tide":    {"name": "해일", "cooldown": 11.0, "power": 12.0, "radius": 82.0, "count": 0, "element": "water"},   # [수] 광역 피해 + 기지 회복(지속형)
+	"spores":  {"name": "포자 구름", "cooldown": 9.5, "power": 8.0, "radius": 92.0, "count": 0, "element": "wood"},  # [목] 넓고 오래가는 둔화 독 장판
+	"shrapnel": {"name": "비도 난사", "cooldown": 7.5, "power": 9.0, "radius": 0.0, "count": 5, "element": "metal"}, # [금] 가까운 적 다수 직선 일제사격
+	"quake":   {"name": "지진", "cooldown": 11.0, "power": 12.0, "radius": 0.0, "count": 0, "element": "earth"},    # [토] 사거리 내 전 적 강타 + 짧은 속박
 	# 방어형 비행체 — 지속형 동반자(쿨캐스트 아님). cooldown은 쓰이지 않음(player가 캐스트 루프에서 제외).
 	# power=tick 피해 기준(build.damage 비례), radius=공전 반경, count=비행체 수.
 	"barrier_droid": {"name": "수호 비행체", "cooldown": 99.0, "power": 10.0, "radius": 95.0, "count": 3, "element": "metal"},
@@ -31,6 +36,11 @@ const SKILL_RANGE := {
 	"inferno": 1000.0,
 	"rockfall": 1100.0,
 	"glacier": 900.0,
+	"fireball": 1100.0,
+	"tide": 1000.0,
+	"spores": 900.0,
+	"shrapnel": 1000.0,
+	"quake": 1100.0,
 	"barrier_droid": 99999.0,  # 쿨캐스트 아님(사거리 무의미) — 안전값
 }
 

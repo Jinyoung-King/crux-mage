@@ -5,7 +5,8 @@
 [resource]
 script = ExtResource("1")
 card_name = "광전사"
-description = "스킬 위력 +80%. 대신 최대 체력 -30 — 극단적 화력 (전설 리스크)."
+description = "스킬 위력 +75% · 스킬에 둔화 부여. 대신 최대 체력 -30 — 적을 묶고 짓이기는 폭주 (전설)."
 rarity = "legendary"
-skill_power_bonus = 0.8
+skill_power_bonus = 0.75
+grant_slow = true
 max_hp_bonus = -30.0

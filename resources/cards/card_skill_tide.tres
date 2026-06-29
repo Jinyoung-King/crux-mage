@@ -4,8 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-card_name = "피의 계약"
-description = "공격력 +20(스킬도 강화). 대신 최대 체력 -30 (피의 계약)."
+card_name = "해일 습득"
+description = "해일 — 밀집한 적에게 광역 피해를 주고, 그만큼 기지 내구도를 회복한다."
 rarity = "rare"
-damage_bonus = 20.0
-max_hp_bonus = -30.0
+grant_skill_id = "tide"

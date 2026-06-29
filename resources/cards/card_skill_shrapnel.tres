@@ -4,8 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-card_name = "필사의 각오"
-description = "공격력 +30 — 모든 스킬 대폭 강화. 대신 최대 체력 -50."
+card_name = "비도 난사 습득"
+description = "비도 난사 — 가장 가까운 적 다수에게 직선 비도를 한꺼번에 쏟아붓는다."
 rarity = "rare"
-damage_bonus = 30.0
-max_hp_bonus = -50.0
+grant_skill_id = "shrapnel"

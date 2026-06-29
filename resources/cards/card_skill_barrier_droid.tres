@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1")
 card_name = "수호 비행체"
-description = "수호 비행체 — 마법사 주위를 도는 비행체가 적탄을 소멸시키고 근접 적을 지속 타격(획득 시 즉시 공전, 모으면 비행체↑)."
+description = "수호 비행체 — 마법사 주위를 도는 하얀 드론이 적탄을 소멸시키고 가까운 적에 평타 보조 사격(획득 시 즉시 공전, 모으면 비행체↑)."
 rarity = "rare"
 grant_skill_id = "barrier_droid"

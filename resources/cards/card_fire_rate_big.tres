@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1")
 card_name = "질풍 시전"
-description = "연사 +1.0 — 스킬 쿨타임을 크게 단축."
+description = "연사 +0.8 · 스킬 위력 +15% — 빠르게, 그리고 강하게 쏜다."
 rarity = "rare"
-fire_rate_bonus = 1.0
+fire_rate_bonus = 0.8
+skill_power_bonus = 0.15

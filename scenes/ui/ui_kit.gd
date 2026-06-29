@@ -6,6 +6,16 @@ extends RefCounted
 const PANEL_BG := Color(0.12, 0.115, 0.16, 0.92)      # 카드 기본 배경(짙은 남보라)
 const PANEL_BG_SOFT := Color(0.16, 0.15, 0.21, 0.92)  # 살짝 밝은 카드
 const BORDER := Color(0.34, 0.34, 0.46, 0.55)         # 은은한 테두리
+const FONT := preload("res://assets/fonts/NotoSansKR.ttf")
+
+## 공용 라벨 생성: 텍스트 + 폰트 + 크기 + 색 (정렬·mouse_filter 등 그 외 속성은 호출부에서)
+static func label(text: String, size: int, color: Color) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.add_theme_font_override("font", FONT)
+	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_color_override("font_color", color)
+	return l
 
 ## 카드/패널 스타일박스. accent.a>0이면 그 색 테두리, 아니면 기본 은은한 테두리.
 static func panel(accent := Color(0, 0, 0, 0), radius := 12, soft := false, margin := 12) -> StyleBoxFlat:
