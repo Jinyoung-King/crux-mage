@@ -5,5 +5,5 @@
 [resource]
 script = ExtResource("1")
 card_name = "수호 마력"
-description = "방어 +2 — 받는 피해를 줄인다(최소 1은 들어옴)."
-defense_bonus = 2.0
+description = "방어 +3 — 받는 피해를 줄이는 피해 감소 전문(최소 1은 들어옴)."
+defense_bonus = 3.0

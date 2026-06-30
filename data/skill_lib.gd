@@ -92,6 +92,31 @@ const EVOLVE := {
 		{"name": "수호 비행체 III", "count": 1, "power_mult": 1.3},
 		{"name": "수호 비행체 IV", "count": 1, "power_mult": 1.3},
 	],
+	"fireball": [
+		{"name": "작렬 화염구", "radius_mult": 1.15, "power_mult": 1.4},
+		{"name": "지옥 화염구", "radius_mult": 1.25, "power_mult": 1.7},
+		{"name": "멸화구", "radius_mult": 1.3, "power_mult": 1.9},
+	],
+	"tide": [
+		{"name": "노도", "radius_mult": 1.2, "power_mult": 1.4},
+		{"name": "대해일", "radius_mult": 1.35, "power_mult": 1.7},
+		{"name": "해일 군주", "radius_mult": 1.4, "power_mult": 1.9},
+	],
+	"spores": [
+		{"name": "맹독 포자", "radius_mult": 1.2, "power_mult": 1.4},
+		{"name": "부패 포자", "radius_mult": 1.3, "power_mult": 1.7},
+		{"name": "역병 포자", "radius_mult": 1.4, "power_mult": 1.9},
+	],
+	"shrapnel": [
+		{"name": "비도 폭풍", "count": 1, "power_mult": 1.3},
+		{"name": "강철 난사", "count": 1, "power_mult": 1.6},
+		{"name": "천검 난무", "count": 1, "power_mult": 1.7},
+	],
+	"quake": [
+		{"name": "대지진", "power_mult": 1.45},
+		{"name": "강진", "power_mult": 1.7},
+		{"name": "지각 붕괴", "power_mult": 1.95},
+	],
 }
 
 ## 진화 분기 — 같은 스킬을 EVOLVE_COST(3)장 모으면 이 3개 분기 중 하나를 골라 진화한다.
@@ -147,5 +172,30 @@ const EVOLVE_BRANCHES := {
 		{"kind": "power", "name": "수호 군단",   "desc": "비행체 +1 · 위력 +25%", "count_add": 1, "power_mult": 1.25},
 		{"kind": "power", "name": "확장 궤도",   "desc": "공전 반경 +35% · 위력 +15%", "radius_mult": 1.35, "power_mult": 1.15},
 		{"kind": "power", "name": "파괴 비행체", "desc": "비행체 위력 +60%", "power_mult": 1.6},
+	],
+	"fireball": [
+		{"kind": "power",    "name": "작렬 화염구", "desc": "위력 +40% · 반경 +20%", "power_mult": 1.4, "radius_mult": 1.2},
+		{"kind": "element",  "name": "맹화구",      "desc": "화상 강화(중첩) · 위력 +15%", "grant": "burn", "power_mult": 1.15},
+		{"kind": "behavior", "name": "폭렬 화구",   "desc": "처치 시 폭발 · 위력 +15%", "behavior": "explode", "amount": 0.3, "power_mult": 1.15},
+	],
+	"tide": [
+		{"kind": "power",    "name": "노도",       "desc": "위력 +40% · 반경 +20%", "power_mult": 1.4, "radius_mult": 1.2},
+		{"kind": "element",  "name": "한파 해일",   "desc": "명중 시 둔화 부여 · 위력 +15%", "grant": "slow", "power_mult": 1.15},
+		{"kind": "behavior", "name": "격류",       "desc": "처치 시 폭발 · 위력 +15%", "behavior": "explode", "amount": 0.3, "power_mult": 1.15},
+	],
+	"spores": [
+		{"kind": "power",    "name": "맹독 포자",   "desc": "위력 +40% · 반경 +20%", "power_mult": 1.4, "radius_mult": 1.2},
+		{"kind": "element",  "name": "옭아매는 포자", "desc": "둔화 강화(중첩) · 위력 +15%", "grant": "slow", "power_mult": 1.15},
+		{"kind": "behavior", "name": "창궐",       "desc": "잔류 장판 강화(장판 누적) · 위력 +15%", "behavior": "ground_field", "power_mult": 1.15},
+	],
+	"shrapnel": [
+		{"kind": "power",    "name": "비도 폭풍",   "desc": "발사 수 +1 · 위력 +30%", "count_add": 1, "power_mult": 1.3},
+		{"kind": "element",  "name": "서리 비도",   "desc": "명중 시 둔화 부여 · 위력 +10%", "grant": "slow", "power_mult": 1.1},
+		{"kind": "behavior", "name": "관통 비도",   "desc": "적을 1회 더 관통 · 위력 +10%", "behavior": "pierce", "amount": 1, "power_mult": 1.1},
+	],
+	"quake": [
+		{"kind": "power",    "name": "대지진",     "desc": "위력 +45%", "power_mult": 1.45},
+		{"kind": "element",  "name": "여진 둔화",   "desc": "명중 시 둔화 부여 · 위력 +10%", "grant": "slow", "power_mult": 1.1},
+		{"kind": "behavior", "name": "붕괴 폭발",   "desc": "처치 시 폭발 · 위력 +15%", "behavior": "explode", "amount": 0.3, "power_mult": 1.15},
 	],
 }

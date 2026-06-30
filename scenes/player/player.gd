@@ -524,6 +524,13 @@ func apply_card(card: CardData) -> void:
 			build.keystone_execute_chain = true
 			build.execute_threshold += 0.18  # 저체력 즉사
 			build.explode_power += 0.7        # 처치 시 폭발(연쇄)
+		"overload":  # [키스톤] 원소 폭주 — 화상+둔화 동시 부여로 상시 과부하(기존 반응 시스템 재활용)
+			build.keystone_overload = true
+			build.apply_burn = true; build.burn_level += 1
+			build.apply_slow = true; build.slow_level += 1
+		"echo":  # [키스톤] 메아리 군주 — 모든 스킬 강하게 재시전(기존 echo 재활용)
+			build.keystone_echo = true
+			build.echo = true; build.echo_level += 2
 	if card.max_hp_bonus != 0.0:
 		max_hp = maxf(max_hp + card.max_hp_bonus, 10.0)  # 트레이드오프로도 최소 10은 보장
 		hp = minf(hp, max_hp)

@@ -28,6 +28,8 @@ extends Resource
 @export var keystone_pierce_chain: bool = false  ## 평타가 관통+연쇄 (레인 꿰뚫기 빌드)
 @export var keystone_persist_field: bool = false ## 장판 지속·확대 + 적 사망 시 장판 (바닥 점령 빌드)
 @export var keystone_execute_chain: bool = false ## 처형 + 처치 폭발 (도미노 빌드) — 중복 픽 제외용
+@export var keystone_overload: bool = false      ## 평타·마력탄이 화상+둔화 동시 부여 → 상시 과부하 (원소 반응 빌드)
+@export var keystone_echo: bool = false          ## 모든 스킬이 강하게 메아리 (두 번 시전 빌드)
 # 부여형 누적 레벨 — 같은 부여 카드를 또 먹으면 +1씩 쌓여 효과가 강해진다(중복 보상). bool 플래그는 '활성' 게이트로 유지.
 @export var burn_level: int = 0   ## 화염 각인 누적 → 화상 dps·지속 ↑
 @export var slow_level: int = 0   ## 서리 각인 누적 → 둔화 강도·지속 ↑

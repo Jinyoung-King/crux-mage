@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+card_name = "★ 메아리 군주"
+description = "[키스톤] 모든 스킬이 잠시 뒤 한 번 더 강하게 발동합니다 — 모든 시전이 두 번 울리는 빌드."
+rarity = "epic"
+keystone = "echo"

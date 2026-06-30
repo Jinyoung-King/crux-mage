@@ -5,6 +5,5 @@
 [resource]
 script = ExtResource("1")
 card_name = "철벽"
-description = "방어 +3 · 최대 체력 +30 — 단단한 기지."
-defense_bonus = 3.0
-max_hp_bonus = 30.0
+description = "최대 체력 +45 — 기지 내구도를 크게 늘리는 순수 체력 벽."
+max_hp_bonus = 45.0

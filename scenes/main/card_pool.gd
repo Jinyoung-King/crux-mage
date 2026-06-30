@@ -14,7 +14,6 @@ var pool: Array = [
 	preload("res://resources/cards/card_heal.tres"),
 	preload("res://resources/cards/card_damage_big.tres"),
 	preload("res://resources/cards/card_fire_rate_big.tres"),
-	preload("res://resources/cards/card_crystal.tres"),
 	preload("res://resources/cards/card_defense.tres"),
 	preload("res://resources/cards/card_legendary_arcane.tres"),
 	preload("res://resources/cards/card_legendary_storm.tres"),
@@ -53,6 +52,8 @@ var pool: Array = [
 	preload("res://resources/cards/card_key_lance.tres"),       # [키스톤] 관통 폭풍
 	preload("res://resources/cards/card_key_overgrowth.tres"),  # [키스톤] 장판 군주
 	preload("res://resources/cards/card_key_reaper.tres"),      # [키스톤] 처형 연쇄
+	preload("res://resources/cards/card_key_overload.tres"),    # [키스톤] 원소 폭주
+	preload("res://resources/cards/card_key_echo.tres"),        # [키스톤] 메아리 군주
 ]
 
 func _init(player: Node) -> void:
@@ -96,6 +97,8 @@ func is_useful(card: CardData) -> bool:
 		if card.keystone == "pierce_chain" and b.keystone_pierce_chain: return false
 		if card.keystone == "persist_field" and b.keystone_persist_field: return false
 		if card.keystone == "execute_chain" and b.keystone_execute_chain: return false
+		if card.keystone == "overload" and b.keystone_overload: return false
+		if card.keystone == "echo" and b.keystone_echo: return false
 		return true
 	if card.grant_skill_id != "":
 		var owned: bool = _has_skill(card.grant_skill_id)
@@ -184,6 +187,12 @@ func _keystone_affinity(card: CardData) -> float:
 	if b.keystone_execute_chain:  # 처형 연쇄 = 처형·폭발 보강
 		if card.execute_threshold_bonus > 0.0 or card.explode_power_bonus > 0.0:
 			m *= 4.0
+	if b.keystone_overload:  # 원소 폭주 = 화상·둔화·격발·파쇄 보강
+		if card.grant_burn or card.grant_slow or card.detonate_burn_bonus > 0.0 or card.frostbite_bonus > 0.0:
+			m *= 4.0
+	if b.keystone_echo:  # 메아리 군주 = 스킬 위력·스킬 획득 보강
+		if card.skill_power_bonus > 0.0 or card.grant_skill_id != "":
+			m *= 3.0
 	return m
 
 ## 드래프트 가중치 — 어피니티 기반. 앵커 심화(전문화) vs 반응 콤보 상대(다른 속성)로 분기.
