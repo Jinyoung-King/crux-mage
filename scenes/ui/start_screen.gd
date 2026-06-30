@@ -98,6 +98,7 @@ func _ready() -> void:
 	play_button.add_theme_stylebox_override("normal", _play_style)
 	play_button.add_theme_stylebox_override("hover", _play_style)
 	play_button.add_theme_stylebox_override("pressed", _play_style)
+	_build_resume_button()  # [이어하기] 진행 중인 판 스냅샷이 있으면 복귀 버튼(무한/스테이지)
 	_build_stage_buttons()
 	_build_beyond_button()  # 저편(엔드게임) 진입 — 최고 웨이브 30+ 해금
 	# _build_reverse_button()  # [실험] 리버스 — v3.41에 홈 버튼 숨김(구조적 어색함, 매몰비용 회피). 코드·모드는 보존; 호드 로그라이트로 재설계 시 주석 해제
@@ -517,6 +518,30 @@ func _update_mastery() -> void:
 func _on_play() -> void:  # 무한모드 (속성 순환, 끝없음)
 	GameState.game_mode = "endless"
 	GameState.run_ascension = 0  # 무한모드는 상승 계층 무관
+	get_tree().change_scene_to_file("res://scenes/main/main.tscn")
+
+## [이어하기] 진행 중인 런 스냅샷이 있으면 'Wave N 이어하기' 버튼을 시작 버튼 바로 아래에 노출.
+func _build_resume_button() -> void:
+	if not GameState.has_run_snapshot():
+		return
+	var snap := GameState.load_run_snapshot()
+	var wv: int = int(snap.get("wave_index", 0)) + 1
+	var rb := _btn("▶ 이어하기 — Wave %d" % wv, 20)
+	UIKit.style_button(rb, Color(0.45, 0.85, 0.5))  # 초록 강조(복귀 = 주요 행동)
+	rb.pressed.connect(_on_resume)
+	$Center.add_child(rb)
+	$Center.move_child(rb, play_button.get_index() + 1)  # 시작 버튼 바로 아래
+
+## 저장된 런으로 복귀 — 모드·캐릭터·스테이지 컨텍스트 복원 후 main이 스냅샷에서 빌드를 복원.
+func _on_resume() -> void:
+	var snap := GameState.load_run_snapshot()
+	if snap.is_empty():
+		return
+	GameState.game_mode = str(snap.get("game_mode", "endless"))
+	GameState.stage_element = str(snap.get("stage_element", GameState.stage_element))
+	GameState.run_ascension = int(snap.get("ascension", 0))
+	GameState.select_by_key(str(snap.get("char_key", "")))
+	GameState.resume_run = true
 	get_tree().change_scene_to_file("res://scenes/main/main.tscn")
 
 ## 속성 스테이지(유한 클리어 모드) 시작 — 고른 속성 + 선택한 상승 계층으로

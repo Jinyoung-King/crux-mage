@@ -53,3 +53,27 @@ func echo_power_at(lvl: int) -> float: return minf(0.6 + 0.2 * float(lvl - 1), 1
 func echo_power() -> float: return echo_power_at(echo_level)
 func field_mult_at(lvl: int) -> float: return 1.0 + 0.5 * float(mini(maxi(lvl - 1, 0), 8))      ## 장판 피해 배율
 func field_mult() -> float: return field_mult_at(field_level)
+
+## [이어하기] 스냅샷 직렬화 대상 필드(한 곳 관리 — to_dict/apply_dict 공용). element_empower/affinity는 별도(dict).
+const SNAP_FIELDS := ["damage", "fire_rate", "projectile_count", "damage_per_target", "defense",
+	"skill_power_mult", "skill_radius_mult", "explode_power", "extra_targets", "apply_burn", "apply_slow",
+	"detonate_burn", "frostbite", "echo", "knockback", "ground_field", "execute_threshold", "pierce",
+	"keystone_pierce_chain", "keystone_persist_field", "keystone_execute_chain", "keystone_overload", "keystone_echo",
+	"burn_level", "slow_level", "echo_level", "field_level"]
+
+## 빌드를 사전으로 직렬화(런 스냅샷 저장용).
+func to_dict() -> Dictionary:
+	var d := {}
+	for f in SNAP_FIELDS:
+		d[f] = get(f)
+	d["element_empower"] = element_empower.duplicate(true)
+	d["affinity"] = affinity.duplicate(true)
+	return d
+
+## 사전에서 빌드 복원(런 이어하기용). 없는 키는 현재값 유지(전방호환).
+func apply_dict(d: Dictionary) -> void:
+	for f in SNAP_FIELDS:
+		if d.has(f):
+			set(f, d[f])
+	element_empower = (d.get("element_empower", {}) as Dictionary).duplicate(true)
+	affinity = (d.get("affinity", {}) as Dictionary).duplicate(true)

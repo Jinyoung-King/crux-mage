@@ -3,7 +3,7 @@ extends Node
 ## 씬을 새로 로드해도 유지되며, 최고 기록은 user://에 영속 저장된다.
 
 const SAVE_PATH := "user://save.cfg"
-const VERSION := "v3.84"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
+const VERSION := "v3.86"  ## 빌드 버전 (메인·시작 화면 공용 표기) — 빌드마다 이 값만 올릴 것
 
 # 패치노트 (최신이 위). 새 버전 추가 시 맨 앞에 한 항목 추가. 시작 화면 "패치노트" + 업데이트 시 자동 안내.
 const CHANGELOG := [
@@ -994,6 +994,61 @@ func import_code(code: String) -> bool:
 ## 디스크에서 메모리 상태 재적용(불러오기 후 UI 갱신용)
 func reload_from_disk() -> void:
 	_load()
+
+## --- [이어하기] 진행 중인 런 스냅샷 (메타 세이브와 완전 격리된 별도 파일 — 손상돼도 코인·해금 무사) ---
+const RUN_SNAP_PATH := "user://run.cfg"
+var resume_run := false  ## start_screen '이어하기'가 true로 설정 → main._ready가 새 판 대신 복원 분기
+
+## 웨이브 경계에서 런 상태를 저장(best-effort — 실패해도 무시). data=main이 구성한 스냅샷 사전.
+func save_run_snapshot(data: Dictionary) -> void:
+	var cf := ConfigFile.new()
+	cf.set_value("run", "data", data)
+	cf.set_value("run", "version", VERSION)
+	if cf.save(RUN_SNAP_PATH) != OK:
+		return
+	if OS.has_feature("web"):  # 웹: localStorage 미러(메타 미러와 별개 키)
+		var txt := FileAccess.get_file_as_string(RUN_SNAP_PATH)
+		if txt != "":
+			JavaScriptBridge.eval("try{localStorage.setItem('cm_run','%s')}catch(e){}" % Marshalls.utf8_to_base64(txt))
+
+func has_run_snapshot() -> bool:
+	return _load_run_cf() != null
+
+## 저장된 런 스냅샷 사전(없거나 손상 시 빈 사전 → 호출부가 새 판으로 폴백).
+func load_run_snapshot() -> Dictionary:
+	var cf := _load_run_cf()
+	if cf == null:
+		return {}
+	var d = cf.get_value("run", "data", {})
+	return d if d is Dictionary else {}
+
+## 런 종료(사망·클리어·포기) 시 스냅샷 삭제 — 끝난 판이 이어하기로 안 뜨게.
+func clear_run_snapshot() -> void:
+	if FileAccess.file_exists(RUN_SNAP_PATH):
+		DirAccess.remove_absolute(RUN_SNAP_PATH)
+	if OS.has_feature("web"):
+		JavaScriptBridge.eval("try{localStorage.removeItem('cm_run')}catch(e){}")
+
+## 스냅샷 소스: 주 파일 → 웹 localStorage 미러. 성공한 ConfigFile(없으면 null).
+func _load_run_cf() -> ConfigFile:
+	var cf := ConfigFile.new()
+	if cf.load(RUN_SNAP_PATH) == OK and cf.has_section("run"):
+		return cf
+	if OS.has_feature("web"):
+		var b64 := str(JavaScriptBridge.eval("localStorage.getItem('cm_run')||''", true))
+		if b64 != "":
+			var txt := Marshalls.base64_to_utf8(b64)
+			var m := ConfigFile.new()
+			if txt != "" and m.parse(txt) == OK and m.has_section("run"):
+				return m
+	return null
+
+## 캐릭터를 키(char_key)로 selected에 복원 — 이어하기 시 시작 화면에서 호출.
+func select_by_key(key: String) -> void:
+	for c in characters:
+		if char_key(c) == key:
+			selected = c
+			return
 
 ## 현재 버전의 패치노트를 본 것으로 기록(자동 안내 1회용)
 func mark_version_seen() -> void:

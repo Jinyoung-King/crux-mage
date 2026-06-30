@@ -34,6 +34,15 @@ func record(card) -> void:
 		_picked_rarity[nm] = card.rarity
 	_picked_count[nm] = int(_picked_count.get(nm, 0)) + 1
 
+## [이어하기] 카드 획득 이력 직렬화/복원 — 런 스냅샷에 포함.
+func snapshot_history() -> Dictionary:
+	return {"count": _picked_count.duplicate(true), "order": _picked_order.duplicate(true), "rarity": _picked_rarity.duplicate(true)}
+
+func restore_history(d: Dictionary) -> void:
+	_picked_count = (d.get("count", {}) as Dictionary).duplicate(true)
+	_picked_order = (d.get("order", []) as Array).duplicate(true)
+	_picked_rarity = (d.get("rarity", {}) as Dictionary).duplicate(true)
+
 ## 결과 화면용 — 총 획득 장수
 func total_count() -> int:
 	var total := 0

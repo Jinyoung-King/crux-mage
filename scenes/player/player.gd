@@ -542,6 +542,12 @@ func apply_card(card: CardData) -> void:
 	_sync_barrier_droid()    # 비행체 스킬 획득/변경 반영(미보유면 무동작)
 	attack_timer.wait_time = 1.0 / maxf(build.fire_rate, 0.1)  # 연사 변동 → 평타 주기 갱신(다음 주기부터)
 
+## [이어하기] 빌드·스킬을 사전에서 복원한 뒤 파생 상태 재계산(히트 모디파이어·비행체·평타 주기).
+func refresh_after_load() -> void:
+	rebuild_hit_modifiers()
+	_sync_barrier_droid()
+	attack_timer.wait_time = 1.0 / maxf(build.fire_rate, 0.1)
+
 func _fire_at(target, aim_offset := 0.0, origin := Vector2.INF, dmg_scale := 1.0) -> void:
 	var p = host.acquire_projectile()
 	if p == null:

@@ -120,7 +120,7 @@ var _banked_mastery := 0
 var _run_counted := false
 # [경험치] 카드는 웨이브가 아니라 레벨업으로 획득. 킬=XP, 레벨업마다 드래프트.
 const XP_BASE := 18.0       # Lv1→2 필요 경험치
-const XP_GROWTH := 1.15     # 레벨당 필요 경험치 증가율(초반 빠르게, 후반 완만)
+const XP_GROWTH := 1.18     # 레벨당 필요 경험치 증가율(초반 빠르게, 후반 점점 가팔라짐 — 긴 판 드래프트 피로 완화). v3.85 1.15→1.18
 var run_xp := 0.0           # 현재 레벨 내 누적 경험치
 var run_level := 1          # 현재 레벨
 var xp_to_next := XP_BASE   # 다음 레벨까지 필요 경험치
@@ -279,11 +279,15 @@ func _ready() -> void:
 	if GameState.game_mode == "reverse":  # [실험] 리버스 — 스쿼드(몹) vs 하단 마법사 AI
 		_setup_reverse()
 		return
+	_build_xp_bar()  # [경험치] 상단 XP 바(새 판·이어하기 공통)
+	_card_pool = CardPool.new($Player)  # 카드 풀·뽑기 위임 대상($Player 주입)
+	card_select.pool = _card_pool  # 스마트 자동픽(best_pick) 점수 계산용 주입
+	if GameState.resume_run and GameState.has_run_snapshot():  # [이어하기] 마라톤 판 복원(stage/endless)
+		GameState.resume_run = false
+		_resume_run(GameState.load_run_snapshot())
+		return
 	_roll_run_mod()  # [매 판 다르게] 이번 런 무작위 룰 1개(stage·endless)
 	run_xp = 0.0; run_level = 1; xp_to_next = XP_BASE; _pending_levelups = 0  # [경험치] 런 초기화
-	_build_xp_bar()  # [경험치] 상단 XP 바(카드는 레벨업으로)
-	_card_pool = CardPool.new($Player)  # 카드 풀·뽑기 위임 대상($Player 주입) — 첫 드래프트 전에 생성
-	card_select.pool = _card_pool  # 스마트 자동픽(best_pick) 점수 계산용 주입
 	if GameState.game_mode == "stage":
 		wave_index = -1  # 스테이지 모드: Wave 1부터(시작 웨이브 도약 없음)
 	else:
@@ -703,6 +707,7 @@ func _start_wave(index: int) -> void:
 	wave_index = index
 	$Player.skills_paused = false  # 웨이브 진행 중에는 스킬 쿨타임 재개
 	_combo_meter.reset()  # 새 웨이브 시작 시 콤보 초기화(웨이브 사이 드래프트로 이어지지 않게)
+	_save_run_snapshot()  # [이어하기] 웨이브 경계에서 런 상태 저장(stage/endless)
 	var _bg := $Background/Bg  # 스테이지 속성에 맞춰 배경 바이옴 전환(목=숲/화=용암/토=사막/금=설원/수=늪)
 	if _bg.has_method("set_biome"):
 		var _variant := (index / WAVES_PER_STAGE) / ELEMENT_ORDER.size()  # 속성 순환 한 바퀴마다 변형 교체(숲→정글, 용암→화산재…)
@@ -1647,6 +1652,7 @@ func _result_button(text: String) -> Button:
 
 ## 결과 요약 표시: 도달·처치·카드·빌드(스킬·룬)·기록 리캡
 func _show_result(is_clear: bool, reached: int, leveled_name: String, new_best: bool, unlocked_tabs: Array = []) -> void:
+	GameState.clear_run_snapshot()  # [이어하기] 판 종료(사망·클리어) → 스냅샷 삭제(끝난 판 이어하기 방지)
 	if is_clear:
 		result_title.text = "%s 스테이지 클리어!" % ElementLib.display_name(GameState.stage_element)
 		result_title.add_theme_color_override("font_color", ElementLib.color(GameState.stage_element))
@@ -1694,6 +1700,7 @@ func _on_restart_pressed() -> void:
 ## 나가기(일시정지 메뉴): 여태 도달 기록·획득 코인을 정산하고 시작 화면으로 (수동 종료)
 func _on_give_up() -> void:
 	_bank_run()  # 런 정산(멱등) — 사망과 동일 경로
+	GameState.clear_run_snapshot()  # [이어하기] 수동 포기 → 스냅샷 삭제
 	get_tree().paused = false
 	Engine.time_scale = 1.0
 	get_tree().change_scene_to_file("res://scenes/ui/start_screen.tscn")
@@ -1718,6 +1725,68 @@ func _bank_run() -> void:
 	if not _run_counted:
 		_run_counted = true
 		GameState.note_run(GameState.selected, reached)  # 플레이 수 + 캐릭터별 최고(런당 1회)
+
+## [이어하기] 현재 런 상태를 사전으로 — 웨이브 경계 스냅샷 저장용(stage/endless).
+func _snapshot_dict() -> Dictionary:
+	var p = $Player
+	return {
+		"wave_index": wave_index,
+		"build": p.build.to_dict(),
+		"skills": p.skills.duplicate(true),
+		"max_hp": p.max_hp, "hp": p.hp, "lifesteal": p.lifesteal,
+		"relic_levels": p.relic_levels.duplicate(true),
+		"run_coins": run_coins, "run_essence": run_essence, "run_kills": run_kills,
+		"run_level": run_level, "run_xp": run_xp, "xp_to_next": xp_to_next,
+		"banked_coins": _banked_coins, "banked_essence": _banked_essence,
+		"banked_mastery": _banked_mastery, "run_counted": _run_counted,
+		"run_mod": _run_mod.duplicate(true), "challenge_left": _challenge_left,
+		"game_mode": GameState.game_mode, "char_key": GameState.char_key(GameState.selected),
+		"stage_element": GameState.stage_element, "ascension": GameState.run_ascension,
+		"picked": _build_panel.snapshot_history(),
+	}
+
+## 웨이브 경계에서 스냅샷 저장(이어하기는 stage/endless만 — beyond/reverse·게임오버 제외).
+func _save_run_snapshot() -> void:
+	if game_over or GameState.game_mode == "beyond" or GameState.game_mode == "reverse":
+		return
+	GameState.save_run_snapshot(_snapshot_dict())
+
+## [이어하기] 스냅샷 사전에서 런 복원 후, 저장된 웨이브부터 시작. (없는/손상 키는 기본값 — 폴백)
+func _resume_run(d: Dictionary) -> void:
+	var p = $Player
+	p.build.apply_dict(d.get("build", {}))
+	var sk = d.get("skills", [])
+	if sk is Array:
+		p.skills = sk.duplicate(true)
+	p.max_hp = float(d.get("max_hp", p.max_hp))
+	p.hp = clampf(float(d.get("hp", p.max_hp)), 1.0, p.max_hp)
+	p.lifesteal = float(d.get("lifesteal", 0.0))
+	var rl = d.get("relic_levels", {})
+	if rl is Dictionary:
+		p.relic_levels = rl.duplicate(true)
+	run_coins = int(d.get("run_coins", 0))
+	run_essence = int(d.get("run_essence", 0))
+	run_kills = int(d.get("run_kills", 0))
+	run_level = int(d.get("run_level", 1))
+	run_xp = float(d.get("run_xp", 0.0))
+	xp_to_next = float(d.get("xp_to_next", XP_BASE))
+	_pending_levelups = 0
+	_banked_coins = int(d.get("banked_coins", 0))
+	_banked_essence = int(d.get("banked_essence", 0))
+	_banked_mastery = int(d.get("banked_mastery", 0))
+	_run_counted = bool(d.get("run_counted", false))
+	var rm = d.get("run_mod", {})
+	_run_mod = rm.duplicate(true) if rm is Dictionary else {}
+	p.sig_charge_mult = float(_run_mod.get("sig", 1.0))
+	_challenge_left = int(d.get("challenge_left", 0))
+	_build_panel.restore_history(d.get("picked", {}))
+	p.refresh_after_load()  # 히트 모디파이어·비행체·평타 주기 재계산
+	_update_xp_bar()
+	_update_coin_label()
+	_on_player_hp_changed(p.hp, p.max_hp)
+	if not p.skills.is_empty():
+		_rebuild_skill_icons(p.skills)
+	_start_wave(int(d.get("wave_index", 0)))  # 저장된 웨이브부터 (내부에서 스냅샷 재저장)
 
 ## 앱 백그라운드/포커스아웃/뒤로가기/종료 — 웹 모바일에서 페이지 언로드 전에 이번 런 진행분을 정산(유실 방지).
 func _notification(what: int) -> void:
